@@ -1,0 +1,50 @@
+import SamsChatbot from '@/components/SamsChatbot';
+
+import PublicHeader from '@/components/PublicHeader';
+
+import SiteBackground from '@/components/public/SiteBackground';
+
+import PublicFooter from '@/components/public/PublicFooter';
+
+
+
+export default function PoseLayout({ children }) {
+
+    const poseLinks = [
+
+        { href: '/pose', label: 'Beranda' },
+
+        { href: '/pose/pemberitahuan', label: 'Pemberitahuan' },
+
+        { href: '/pose/team', label: 'Tim & Jadwal' },
+
+        { href: '/pose/contact', label: 'Kontak' }
+
+    ];
+
+
+
+    return (
+
+        <div className="min-h-screen text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-500 relative">
+
+            <SiteBackground site="pose" subtle />
+
+            <PublicHeader site="pose" links={poseLinks} />
+
+            <main className="flex-1 relative z-10">
+
+                {children}
+
+            </main>
+
+            <PublicFooter site="pose" links={poseLinks} />
+
+            <SamsChatbot />
+
+        </div>
+
+    );
+
+}
+

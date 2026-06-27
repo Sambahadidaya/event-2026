@@ -1,5 +1,14 @@
+# promt : 
+bacalagi file AGENTS.MD.
+sekarang fokus ke chatbot tepatnya pada file SamsChatbot.js, nah saya ingin datanya itu disimpan didatabase dengan tabel riwayat_pertanyaan (sesuai dengan yang ada di AGENTS.MD), terus dihalaman panitia tepatnya di folder dashboard-faq datanya itu diambil dari tabel riwayat_pertanyaan, terus jika jawabannya chatbotnya "Maaf, saya tidak menemukan jawaban yang tepat. Silakan hubungi panitia melalui menu Kontak." atau yang ada di else {
+                setMessages......
+}
+maka jawaban ai dianggap tidak akurasi atau tidak dimengerti. dan untuk donate atau grafiknya semua dari tabel itu bukan dammy lagi dan juga tidak ada label untuk Bantuan Langsung jadi cuman 2 opsi antara terjawab atau tidak dimengerti.
 
-# INSTRUKSI UTAMA UNTUK AI AGENT (CODING ASSISTANT)
+# keterangan AGENTS.MDnya :
+
+
+## INSTRUKSI UTAMA UNTUK AI AGENT (CODING ASSISTANT)
 
 Kamu adalah AI Web Developer Expert yang bertugas memprogram proyek "Portal Kampus 2026 (PKKMB & PORAK)".
 
@@ -31,19 +40,10 @@ Proyek ini menggunakan Next.js (App Router) berbasis JavaScript murni (bukan Typ
 ```sql
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-CREATE TYPE site_type AS ENUM ('pkkmb', 'pose', 'portal');
+CREATE TYPE site_type AS ENUM ('pkkmb', 'pose');
 
 -- Tabel Berita / Pemberitahuan
 CREATE TABLE berita (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    title VARCHAR(255) NOT NULL,
-    content TEXT NOT NULL,
-    type site_type NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Tabel Kelompok/Team
-CREATE TABLE Team (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     title VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
@@ -62,60 +62,9 @@ CREATE TABLE trafik_kunjungan (
 CREATE TABLE riwayat_pertanyaan (
     id BIGSERIAL PRIMARY KEY, -- Menggunakan ID angka berurutan untuk tabel admin
     pertanyaan TEXT NOT NULL,
-    jawaban TEXT NOT NULL,
     site site_type NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
-
--- TABEL KONTAK 
-CREATE TABLE kontak (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    nama VARCHAR(255) NOT NULL,
-    email VARCHAR(255),
-    whatsapp VARCHAR(20),
-    pesan TEXT NOT NULL,
-    site site_type NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- 1. Buat Enum untuk Role Admin
-CREATE TYPE admin_role AS ENUM ('super_admin', 'admin_pkkmb', 'admin_pose');
-
--- 2. Buat Tabel Admins
-CREATE TABLE admins (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE, -- Link ke tabel auth
-    nama VARCHAR(255) NOT NULL UNIQUE,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    role admin_role NOT NULL DEFAULT 'admin_pkkmb',
-    is_online BOOLEAN DEFAULT false,
-    last_active TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- 3. Beri Akses RLS (Bypass RLS untuk pengembangan awal)
-ALTER TABLE admins ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Enable read access for all users" ON "public"."admins"
-AS PERMISSIVE FOR SELECT
-TO public
-USING (true);
-
-CREATE POLICY "Enable insert for all users" ON "public"."admins"
-AS PERMISSIVE FOR INSERT
-TO public
-WITH CHECK (true);
-
-CREATE POLICY "Enable update for all users" ON "public"."admins"
-AS PERMISSIVE FOR UPDATE
-TO public
-USING (true)
-WITH CHECK (true);
-
-CREATE POLICY "Enable delete for all users" ON "public"."admins"
-AS PERMISSIVE FOR DELETE
-TO public
-USING (true);
 
 ```
 
@@ -165,22 +114,31 @@ USING (true);
 │   │       └── team/
 │   │           └── page.js
 │   ├── components/
-│   │   ├── ContactForm.js
-│   │   ├── PublicHeader.js
-│   │   ├── ClientTracker.js
 │   │   ├── SamsChatbot.js
 │   │   └── ThemeToggle.js
-│   │   └── public/
-│   │       └── SiteBackground.js
-│   │       └── WaveDivider.js
-│   │       └── HomeLanding.js
-│   │       └── PageHero.js
-│   │       └── PublicFooter.js
 │   └── lib/
 │       └── supabase.js
-│       └── siteThemes.js
 ```
 
 ## 2. ATURAN KODE
 
 ### 1. No TypeScript: Gunakan ES6 JavaScript murni (.js).
+
+# Jawaban Ai :
+
+Saya telah menyesuaikan semua file yang Anda minta sesuai dengan pembaruan aturan di AGENTS.md. Berikut adalah rincian perubahannya:
+
+Memperbarui Logika Chatbot (SamsChatbot.js):
+
+Saya telah menambahkan integrasi ke Supabase agar setiap kali Chatbot menerima pertanyaan dan merespons, data pertanyaan tersebut langsung disimpan ke tabel riwayat_pertanyaan.
+Data riwayat juga sudah menyertakan site (berdasarkan apakah halaman memuat url pkkmb atau pose).
+Memperbarui Dashboard FAQ Panitia (faq/page.js):
+
+Sistem tidak lagi membaca riwayat palsu (dummy) dari localStorage. Kini datanya murni mengambil secara real-time dari tabel riwayat_pertanyaan di Supabase.
+Grafik Statistik (Donut Chart) sekarang hanya terbagi menjadi dua kategori sesuai instruksi Anda:
+Tidak Dimengerti: Jika jawaban Chatbot adalah pesan "Maaf, saya tidak menemukan jawaban yang tepat. Silakan hubungi panitia melalui menu Kontak."
+Terjawab: Jika jawaban Chatbot berisi data yang relevan.
+Angka "Akurasi Jawaban", "Total Interaksi", serta riwayat tabel di halaman admin kini sepenuhnya merepresentasikan angka asli yang diambil dari perhitungan database Supabase.
+Silakan ujicoba dengan menanyakan sesuatu kepada Chatbot, lalu cek pada halaman admin Dashboard -> FAQ Chatbot untuk memastikan bahwa grafik serta tabel riwayatnya ter-update!
+
+23/06/2026 5:15 PM
