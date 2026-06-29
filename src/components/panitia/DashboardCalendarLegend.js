@@ -41,8 +41,8 @@ export default function DashboardCalendarLegend({
     const todayKey = toDateKey(new Date());
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
-            <div className={`bg-white dark:bg-gray-900 p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-x-auto ${donutChart ? 'lg:col-span-1' : 'lg:col-span-2'}`}>
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-5">
+            <div className={`bg-white dark:bg-gray-900 p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-x-auto ${donutChart ? 'xl:col-span-1' : 'xl:col-span-2'}`}>
                 <div className="flex items-center justify-between mb-4 gap-3 flex-wrap min-w-[280px]">
                     <div className="flex items-center gap-1.5">
                         <button
@@ -133,12 +133,12 @@ export default function DashboardCalendarLegend({
             </div>
 
             {donutChart && (
-                <div className="lg:col-span-1 flex items-stretch">
+                <div className="xl:col-span-1 flex items-stretch">
                     {donutChart}
                 </div>
             )}
 
-            <div className={`bg-white dark:bg-gray-900 p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 ${donutChart ? 'lg:col-span-1' : ''}`}>
+            <div className={`bg-white dark:bg-gray-900 p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 ${donutChart ? 'xl:col-span-1' : ''}`}>
                 <h3 className="font-semibold text-sm text-gray-800 dark:text-gray-200 mb-3">{legendTitle}</h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 leading-relaxed">{legendDescription}</p>
                 <ul className="space-y-2">

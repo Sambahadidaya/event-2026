@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Mail, Inbox, Eye, Eraser, CheckSquare, Square, Search, CheckCircle2, CircleDashed } from 'lucide-react';
+import { Mail, Inbox, Eye, Eraser, CheckSquare, Square, Search, CheckCircle2, CircleDashed, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
@@ -23,7 +23,7 @@ export default function KontakDashboard() {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [formatting, setFormatting] = useState(false);
-    const [activeTab, setActiveTab] = useState('pkkmb');
+    const [activeTab, setActiveTab] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [adminRole, setAdminRole] = useState(null);
     const [lastSyncedAt, setLastSyncedAt] = useState(null);
@@ -100,7 +100,7 @@ export default function KontakDashboard() {
 
     const siteFiltered = useMemo(() => {
         return data.filter(item => {
-            if (adminRole === 'super_admin') return item.site === activeTab;
+            if (adminRole === 'super_admin' && activeTab !== 'all') return item.site === activeTab;
             return true;
         });
     }, [data, adminRole, activeTab]);
@@ -258,6 +258,7 @@ export default function KontakDashboard() {
                 siteFilter={siteFilterValue}
                 onSiteFilterChange={(v) => setActiveTab(v)}
                 siteOptions={[
+                    { value: 'all', label: 'Semua Situs' },
                     { value: 'pkkmb', label: 'PKKMB' },
                     { value: 'pose', label: 'POSE' },
                 ]}
@@ -333,15 +334,15 @@ export default function KontakDashboard() {
                                 className="w-full pl-9 pr-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:ring-2 focus:ring-blue-500/30"
                             />
                         </div>
-                        {isSuperAdmin && selectedIds.length > 0 && (
+                        {isSuperAdmin && (
                             <button
                                 type="button"
                                 onClick={() => deleteItems(selectedIds)}
-                                disabled={formatting}
-                                className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg border border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 disabled:opacity-50"
+                                disabled={formatting || selectedIds.length === 0}
+                                className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg border border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                <Eraser size={14} />
-                                Hapus ({selectedIds.length})
+                                <Trash2 size={14} />
+                                Hapus {selectedIds.length > 0 ? `(${selectedIds.length})` : ''}
                             </button>
                         )}
                     </div>

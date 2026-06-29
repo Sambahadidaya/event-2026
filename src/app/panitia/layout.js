@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import ThemeToggle from '@/components/ThemeToggle';
-import { User, LayoutDashboard, FileText, ChevronDown, ChevronRight, LogOut, ShieldAlert, Menu, BarChart3, MessageCircle, Mail, Newspaper, Users } from 'lucide-react';
+import { User, LayoutDashboard, FileText, ChevronDown, ChevronRight, LogOut, ShieldAlert, Menu, BarChart3, MessageCircle, Mail, Newspaper, Users, Monitor } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function PanitiaLayout({ children }) {
@@ -12,6 +12,8 @@ export default function PanitiaLayout({ children }) {
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
     const [menuOpen, setMenuOpen] = useState({ dashboard: true, pkkmb: false, pose: false, admin: false });
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [showDesktopWarning, setShowDesktopWarning] = useState(false);
+    const [hasSeenDesktopWarning, setHasSeenDesktopWarning] = useState(false);
     const [adminData, setAdminData] = useState(null);
     const [loading, setLoading] = useState(true);
     const pathname = usePathname();
@@ -54,7 +56,10 @@ export default function PanitiaLayout({ children }) {
 
     useEffect(() => {
         setMobileSidebarOpen(false);
-    }, [pathname]);
+        if (!isDesktop && !hasSeenDesktopWarning && pathname !== '/panitia/login') {
+            setShowDesktopWarning(true);
+        }
+    }, [pathname, isDesktop, hasSeenDesktopWarning]);
 
     useEffect(() => {
         if (pathname === '/panitia/login') return;
@@ -351,6 +356,29 @@ export default function PanitiaLayout({ children }) {
                     </div>
                 </div>
             </main>
+
+            {showDesktopWarning && pathname !== '/panitia/login' && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-sm w-full p-6 text-center animate-in fade-in zoom-in duration-300">
+                        <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Monitor size={32} />
+                        </div>
+                        <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Gunakan Perangkat Desktop</h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+                            Untuk pengalaman terbaik, kami menyarankan Anda untuk membuka halaman admin ini melalui perangkat Desktop atau Laptop.
+                        </p>
+                        <button
+                            onClick={() => {
+                                setShowDesktopWarning(false);
+                                setHasSeenDesktopWarning(true);
+                            }}
+                            className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors"
+                        >
+                            Mengerti
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

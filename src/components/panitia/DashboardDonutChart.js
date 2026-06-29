@@ -42,8 +42,10 @@ export default function DashboardDonutChart({ title, labels, values, colors = ['
     return (
         <div className="bg-white dark:bg-gray-900 p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 h-full flex flex-col">
             <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-4 text-center text-sm sm:text-base">{title}</h3>
-            <div className="flex-1 min-h-[200px] relative flex justify-center items-center">
-                <Doughnut data={donutData} options={donutOptions} />
+            <div className="flex-1 min-h-[200px] relative flex justify-center items-center p-2">
+                <div className="w-[80%] max-w-[220px] aspect-square flex items-center justify-center">
+                    <Doughnut data={donutData} options={donutOptions} />
+                </div>
             </div>
         </div>
     );

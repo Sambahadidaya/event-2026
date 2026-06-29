@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { MessageSquare, HelpCircle, Eye, Eraser, CheckSquare, Square } from 'lucide-react';
+import { MessageSquare, HelpCircle, Eye, Eraser, CheckSquare, Square, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
@@ -260,15 +260,15 @@ export default function FaqDashboard() {
             <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
                 <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-gray-50/50 dark:bg-gray-800/50">
                     <h3 className="font-bold text-base sm:text-lg text-gray-800 dark:text-gray-200">Riwayat Pertanyaan</h3>
-                    {isSuperAdmin && selectedIds.length > 0 && (
+                    {isSuperAdmin && (
                         <button
                             type="button"
                             onClick={() => deleteItems(selectedIds)}
-                            disabled={formatting}
-                            className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg border border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 disabled:opacity-50"
+                            disabled={formatting || selectedIds.length === 0}
+                            className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg border border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <Eraser size={14} />
-                            Hapus ({selectedIds.length})
+                            <Trash2 size={14} />
+                            Hapus {selectedIds.length > 0 ? `(${selectedIds.length})` : ''}
                         </button>
                     )}
                 </div>
@@ -284,7 +284,7 @@ export default function FaqDashboard() {
                                         </button>
                                     </th>
                                 )}
-                                <th className="px-4 py-3 font-medium w-20">ID</th>
+                                <th className="px-4 py-3 font-medium w-12 text-center">No</th>
                                 <th className="px-4 py-3 font-medium w-44">Waktu</th>
                                 <th className="px-4 py-3 font-medium">Site</th>
                                 <th className="px-4 py-3 font-medium min-w-[140px]">Pertanyaan</th>
@@ -304,7 +304,7 @@ export default function FaqDashboard() {
                                         Belum ada riwayat percakapan.
                                     </td>
                                 </tr>
-                            ) : paginatedData.map((item) => (
+                            ) : paginatedData.map((item, index) => (
                                 <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                                     {isSuperAdmin && (
                                         <td className="px-4 py-3">
@@ -313,7 +313,7 @@ export default function FaqDashboard() {
                                             </button>
                                         </td>
                                     )}
-                                    <td className="px-4 py-3 text-gray-500 font-mono text-xs">#{item.id}</td>
+                                    <td className="px-4 py-3 text-center text-gray-500 font-medium">{startIndex + index + 1}</td>
                                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs whitespace-nowrap">{formatDateTime(item.created_at)}</td>
                                     <td className="px-4 py-3 text-xs font-bold uppercase text-gray-500">{item.site}</td>
                                     <td className="px-4 py-3 font-medium text-gray-800 dark:text-gray-200 truncate max-w-[180px]" title={item.pertanyaan}>{item.pertanyaan}</td>

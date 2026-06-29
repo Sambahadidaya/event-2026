@@ -7,26 +7,26 @@ export const DAY_HEADERS = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 
 export const TRAFFIC_LEVELS = [
     {
-        min: 200,
-        label: '≥ 200',
+        min: 100,
+        label: '≥ 100',
         cell: 'bg-[#1e40af] border-[#1e3a8a]/40 text-white dark:bg-[#3b82f6] dark:border-blue-400/25 dark:text-white',
         swatch: 'bg-[#1e40af] dark:bg-[#3b82f6]',
     },
     {
-        min: 150,
-        label: '≥ 150',
+        min: 75,
+        label: '≥ 75',
         cell: 'bg-[#2563eb] border-[#1d4ed8]/35 text-white dark:bg-[#2563eb]/85 dark:border-blue-400/20 dark:text-white',
         swatch: 'bg-[#2563eb] dark:bg-[#2563eb]/85',
     },
     {
-        min: 100,
-        label: '≥ 100',
+        min: 50,
+        label: '≥ 50',
         cell: 'bg-[#60a5fa] border-[#3b82f6]/25 text-[#1e3a8a] dark:bg-[#1d4ed8]/70 dark:border-blue-500/20 dark:text-blue-50',
         swatch: 'bg-[#60a5fa] dark:bg-[#1d4ed8]/70',
     },
     {
-        min: 50,
-        label: '≥ 50',
+        min: 25,
+        label: '≥ 25',
         cell: 'bg-[#bfdbfe] border-[#93c5fd]/50 text-[#1e40af] dark:bg-[#1e3a8a]/45 dark:border-blue-700/30 dark:text-blue-100',
         swatch: 'bg-[#bfdbfe] dark:bg-[#1e3a8a]/45',
     },

@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
 import DashboardOverviewCards from '@/components/panitia/DashboardOverviewCards';
 import DashboardCalendarLegend from '@/components/panitia/DashboardCalendarLegend';
+import DashboardDonutChart from '@/components/panitia/DashboardDonutChart';
 import {
     MONTH_NAMES, startOfDay, toDateKey, getDaysBetween, filterByDateRange
 } from '@/lib/dashboardUtils';
@@ -193,6 +194,9 @@ export default function TrafikDashboard() {
 
         return { labels, dataPoints, total: filtered.length };
     }, [siteFilteredData, rangeFilteredData, timeFilter, referenceDate, appliedDateRange]);
+
+    const pkkmbCount = rangeFilteredData.filter(item => item.site === 'pkkmb').length;
+    const poseCount = rangeFilteredData.filter(item => item.site === 'pose').length;
 
     const chartPeriodLabel = useMemo(() => {
         if (appliedDateRange) {
@@ -431,6 +435,14 @@ export default function TrafikDashboard() {
                 showFormatButton={adminRole === 'super_admin'}
                 countLabel="kunjungan"
                 legendDescription="Skala biru sequential — semakin gelap, semakin tinggi kunjungan harian (filter situs aktif)."
+                donutChart={
+                    <DashboardDonutChart
+                        title="Distribusi Situs Kunjungan"
+                        labels={['PKKMB', 'POSE']}
+                        values={[pkkmbCount, poseCount]}
+                        colors={['#3b82f6', '#a855f7']}
+                    />
+                }
             />
         </div>
     );

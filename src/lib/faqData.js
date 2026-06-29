@@ -10,7 +10,7 @@ export const pkkmbFaq = [
     { question: 'Kapan pkkmb dimulai?', keywords: ['jadwal', 'kapan', 'mulai', 'waktu', 'pkkmb'], answer: 'PKKMB dimulai sesuai jadwal di halaman pemberitahuan PKKMB.' },
     { question: 'Apa yang harus dipersiapkan?', keywords: ['persiapan', 'siapkan', 'bawa', 'perlengkapan'], answer: 'Silakan cek daftar perlengkapan di pengumuman terbaru pada portal PKKMB.' },
     { question: 'Di mana lokasi PKKMB?', keywords: ['lokasi', 'tempat', 'dimana', 'dilaksanakan'], answer: 'PKKMB biasanya dilaksanakan di Auditorium Kampus. Detail lokasi akan diumumkan di jadwal.' },
-    { question: 'Bagaimana cara mendaftar kelompok?', keywords: ['daftar', 'kelompok', 'grup', 'gabung'], answer: 'Pembagian kelompok bisa dilihat pada halaman Kelompok di menu PKKMB.' }
+    { question: 'Bagaimana cara melihat kelompok?', keywords: ['melihat', 'kelompok', 'grup', 'gabung'], answer: 'Pembagian kelompok bisa dilihat pada halaman Kelompok di menu PKKMB.' }
 ];
 
 export const poseFaq = [
