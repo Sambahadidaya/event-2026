@@ -1,31 +1,48 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { RefreshCw, Search, Inbox, MessageSquare, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import { Mail, Inbox, Eye, Eraser, CheckSquare, Square, Search, CheckCircle2, CircleDashed } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
+import DashboardOverviewCards from '@/components/panitia/DashboardOverviewCards';
+import DashboardCalendarLegend from '@/components/panitia/DashboardCalendarLegend';
+import DashboardDonutChart from '@/components/panitia/DashboardDonutChart';
+import DetailModal from '@/components/panitia/DetailModal';
+import ConfirmModal from '@/components/panitia/ConfirmModal';
+import TablePagination from '@/components/panitia/TablePagination';
+import {
+    MONTH_NAMES, startOfDay, getDaysBetween,
+    buildDailyCounts, filterByDateRange, formatDateTime
+} from '@/lib/dashboardUtils';
+
+const ITEMS_PER_PAGE = 10;
+const CACHE_KEY = 'kontak_data_cache';
 
 export default function KontakDashboard() {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
+    const [formatting, setFormatting] = useState(false);
     const [activeTab, setActiveTab] = useState('pkkmb');
     const [searchQuery, setSearchQuery] = useState('');
     const [adminRole, setAdminRole] = useState(null);
-    const router = useRouter();
-    
-    // Pagination (optional but good for elegant design)
+    const [lastSyncedAt, setLastSyncedAt] = useState(null);
+    const [draftStartDate, setDraftStartDate] = useState('');
+    const [draftEndDate, setDraftEndDate] = useState('');
+    const [appliedDateRange, setAppliedDateRange] = useState(null);
+    const [calendarMonth, setCalendarMonth] = useState(() => {
+        const now = new Date();
+        return { year: now.getFullYear(), month: now.getMonth() };
+    });
+    const [selectedIds, setSelectedIds] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 10;
+    const [detailItem, setDetailItem] = useState(null);
+    const [confirmJawabItem, setConfirmJawabItem] = useState(null);
+    const [jawabLoading, setJawabLoading] = useState(false);
+    const router = useRouter();
 
-    const CACHE_KEY = 'kontak_data_cache';
-
-    const fetchData = async (forceRefresh = false) => {
-        if (forceRefresh) {
-            setRefreshing(true);
-        } else {
-            setLoading(true);
-        }
+    const fetchData = useCallback(async (forceRefresh = false) => {
+        setLoading(true);
 
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
@@ -39,18 +56,23 @@ export default function KontakDashboard() {
             .eq('user_id', session.user.id)
             .single();
 
-        let currentRole = admin?.role || 'super_admin';
+        const currentRole = admin?.role || 'super_admin';
         setAdminRole(currentRole);
-
         if (currentRole === 'admin_pkkmb') setActiveTab('pkkmb');
         if (currentRole === 'admin_pose') setActiveTab('pose');
 
+        const cacheRoleKey = `${CACHE_KEY}_${currentRole}`;
+        const timeKey = `${CACHE_KEY}_time_${currentRole}`;
+
         if (!forceRefresh) {
-            const cachedData = localStorage.getItem(`${CACHE_KEY}_${currentRole}`);
+            const cachedData = localStorage.getItem(cacheRoleKey);
+            const cachedAt = localStorage.getItem(timeKey);
             if (cachedData) {
                 try {
                     setData(JSON.parse(cachedData));
+                    if (cachedAt) setLastSyncedAt(Number(cachedAt));
                     setLoading(false);
+                    return;
                 } catch (e) {
                     console.error('Failed to parse cache', e);
                 }
@@ -58,253 +80,394 @@ export default function KontakDashboard() {
         }
 
         let query = supabase.from('kontak').select('*').order('created_at', { ascending: false });
-
-        if (currentRole === 'admin_pkkmb') {
-            query = query.eq('site', 'pkkmb');
-        } else if (currentRole === 'admin_pose') {
-            query = query.eq('site', 'pose');
-        }
+        if (currentRole === 'admin_pkkmb') query = query.eq('site', 'pkkmb');
+        else if (currentRole === 'admin_pose') query = query.eq('site', 'pose');
 
         const { data: kontakData, error } = await query;
-
         if (!error && kontakData) {
             setData(kontakData);
-            localStorage.setItem(`${CACHE_KEY}_${currentRole}`, JSON.stringify(kontakData));
+            const now = Date.now();
+            localStorage.setItem(cacheRoleKey, JSON.stringify(kontakData));
+            localStorage.setItem(timeKey, now.toString());
+            setLastSyncedAt(now);
         }
-        
         setLoading(false);
-        setRefreshing(false);
-    };
+    }, [router]);
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [fetchData]);
 
-    const filteredData = data.filter(item => {
-        const matchesTab = adminRole === 'super_admin' ? item.site === activeTab : true;
+    const siteFiltered = useMemo(() => {
+        return data.filter(item => {
+            if (adminRole === 'super_admin') return item.site === activeTab;
+            return true;
+        });
+    }, [data, adminRole, activeTab]);
+
+    const filteredData = useMemo(() => {
+        let result = filterByDateRange(siteFiltered, appliedDateRange, 'created_at');
         const searchLower = searchQuery.toLowerCase();
-        const matchesSearch = 
-            (item.nama && item.nama.toLowerCase().includes(searchLower)) ||
-            (item.email && item.email.toLowerCase().includes(searchLower)) ||
-            (item.whatsapp && item.whatsapp.toLowerCase().includes(searchLower)) ||
-            (item.pesan && item.pesan.toLowerCase().includes(searchLower));
-        return matchesTab && matchesSearch;
-    });
+        if (searchQuery) {
+            result = result.filter(item =>
+                (item.nama && item.nama.toLowerCase().includes(searchLower)) ||
+                (item.email && item.email.toLowerCase().includes(searchLower)) ||
+                (item.whatsapp && item.whatsapp.toLowerCase().includes(searchLower)) ||
+                (item.pesan && item.pesan.toLowerCase().includes(searchLower))
+            );
+        }
+        return result;
+    }, [siteFiltered, appliedDateRange, searchQuery]);
+
+    const dailyCounts = useMemo(() => buildDailyCounts(siteFiltered, 'created_at'), [siteFiltered]);
 
     const pkkmbCount = data.filter(item => item.site === 'pkkmb').length;
     const poseCount = data.filter(item => item.site === 'pose').length;
 
-    // Pagination logic
-    const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const paginatedData = filteredData.slice(startIndex, startIndex + itemsPerPage);
+    const sudahDijawabCount = filteredData.filter(item => item.jawab).length;
+    const belumDijawabCount = filteredData.length - sudahDijawabCount;
 
-    // Reset page when tab or search changes
+    const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE) || 1;
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const paginatedData = filteredData.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
     useEffect(() => {
         setCurrentPage(1);
-    }, [activeTab, searchQuery]);
+        setSelectedIds([]);
+    }, [activeTab, searchQuery, appliedDateRange]);
 
-    const handleRefresh = () => {
-        fetchData(true);
+    const toggleSelect = (id) => {
+        setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
     };
 
-    const formatDate = (dateString) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('id-ID', {
-            year: 'numeric', month: 'long', day: 'numeric',
-            hour: '2-digit', minute: '2-digit'
-        }) + ' WIB';
+    const toggleSelectAll = () => {
+        const pageIds = paginatedData.map(item => item.id);
+        const allSelected = pageIds.every(id => selectedIds.includes(id));
+        if (allSelected) {
+            setSelectedIds(prev => prev.filter(id => !pageIds.includes(id)));
+        } else {
+            setSelectedIds(prev => [...new Set([...prev, ...pageIds])]);
+        }
     };
+
+    const deleteItems = async (ids) => {
+        if (adminRole !== 'super_admin' || ids.length === 0) return;
+        if (!window.confirm(`Hapus ${ids.length} data kontak? Tindakan ini tidak dapat dibatalkan.`)) return;
+
+        setFormatting(true);
+        const { error } = await supabase.from('kontak').delete().in('id', ids);
+        if (error) {
+            window.alert('Gagal menghapus data.');
+            setFormatting(false);
+            return;
+        }
+
+        const remaining = data.filter(item => !ids.includes(item.id));
+        setData(remaining);
+        setSelectedIds(prev => prev.filter(id => !ids.includes(id)));
+
+        const now = Date.now();
+        localStorage.setItem(`${CACHE_KEY}_${adminRole}`, JSON.stringify(remaining));
+        localStorage.setItem(`${CACHE_KEY}_time_${adminRole}`, now.toString());
+        setLastSyncedAt(now);
+        setFormatting(false);
+    };
+
+    const handleJawabClick = (item) => {
+        if (item.jawab) return;
+        setConfirmJawabItem(item);
+    };
+
+    const confirmJawab = async () => {
+        if (!confirmJawabItem || !adminRole) return;
+
+        setJawabLoading(true);
+        const { error } = await supabase
+            .from('kontak')
+            .update({ jawab: true })
+            .eq('id', confirmJawabItem.id);
+
+        if (error) {
+            window.alert('Gagal memperbarui status jawab. Silakan coba lagi.');
+            setJawabLoading(false);
+            return;
+        }
+
+        const updated = data.map(d =>
+            d.id === confirmJawabItem.id ? { ...d, jawab: true } : d
+        );
+        setData(updated);
+        localStorage.setItem(`${CACHE_KEY}_${adminRole}`, JSON.stringify(updated));
+
+        if (detailItem?.id === confirmJawabItem.id) {
+            setDetailItem({ ...detailItem, jawab: true });
+        }
+
+        setJawabLoading(false);
+        setConfirmJawabItem(null);
+    };
+
+    const formatMonthData = async () => {
+        if (adminRole !== 'super_admin') return;
+        const { year, month } = calendarMonth;
+        const monthStart = new Date(year, month, 1);
+        const monthEnd = new Date(year, month + 1, 0, 23, 59, 59, 999);
+
+        const targets = data.filter(item => {
+            const d = new Date(item.created_at);
+            if (d < monthStart || d > monthEnd) return false;
+            if (adminRole === 'super_admin' && item.site !== activeTab) return false;
+            return true;
+        });
+
+        if (targets.length === 0) {
+            window.alert(`Tidak ada data kontak untuk ${MONTH_NAMES[month]} ${year}.`);
+            return;
+        }
+        await deleteItems(targets.map(t => t.id));
+    };
+
+    const applyDateRange = () => {
+        const diff = getDaysBetween(draftStartDate, draftEndDate);
+        if (!draftStartDate || !draftEndDate || diff < 0 || diff > 30) return;
+        setAppliedDateRange({ start: draftStartDate, end: draftEndDate });
+        const start = startOfDay(new Date(draftStartDate));
+        setCalendarMonth({ year: start.getFullYear(), month: start.getMonth() });
+    };
+
+    const clearDateRange = () => {
+        setDraftStartDate('');
+        setDraftEndDate('');
+        setAppliedDateRange(null);
+    };
+
+    const isSuperAdmin = adminRole === 'super_admin';
+    const colSpan = isSuperAdmin ? 9 : 8;
+    const pageIds = paginatedData.map(item => item.id);
+    const allPageSelected = pageIds.length > 0 && pageIds.every(id => selectedIds.includes(id));
+
+    const siteFilterValue = isSuperAdmin ? activeTab : (adminRole === 'admin_pkkmb' ? 'pkkmb' : 'pose');
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500">
-            {/* Header section with Stats */}
-            <div className={`grid grid-cols-1 ${(!adminRole || adminRole === 'super_admin') ? 'md:grid-cols-2' : ''} gap-4`}>
-                {(!adminRole || adminRole === 'super_admin' || adminRole === 'admin_pkkmb') && (
-                    <div className="bg-gradient-to-br from-blue-500 to-blue-700 p-6 rounded-2xl shadow-lg text-white relative overflow-hidden">
-                        <div className="relative z-10">
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <p className="text-blue-100 font-medium mb-1">Total Pesan PKKMB</p>
-                                    <h3 className="text-4xl font-bold">{pkkmbCount}</h3>
-                                </div>
-                                <div className="p-3 bg-white/20 rounded-xl">
-                                    <Inbox className="text-white" size={24} />
-                                </div>
-                            </div>
-                        </div>
-                        <div className="absolute -bottom-4 -right-4 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-                    </div>
-                )}
+        <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-500">
+            <DashboardHeaderFilters
+                title="Kontak"
+                subtitle="Kelola pesan masuk dari pengunjung"
+                icon={Mail}
+                adminRole={adminRole}
+                siteFilter={siteFilterValue}
+                onSiteFilterChange={(v) => setActiveTab(v)}
+                siteOptions={[
+                    { value: 'pkkmb', label: 'PKKMB' },
+                    { value: 'pose', label: 'POSE' },
+                ]}
+                onRefresh={() => fetchData(true)}
+                loading={loading}
+                lastSyncedAt={lastSyncedAt}
+            />
 
-                {(!adminRole || adminRole === 'super_admin' || adminRole === 'admin_pose') && (
-                    <div className="bg-gradient-to-br from-purple-500 to-purple-700 p-6 rounded-2xl shadow-lg text-white relative overflow-hidden">
-                        <div className="relative z-10">
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <p className="text-purple-100 font-medium mb-1">Total Pesan POSE</p>
-                                    <h3 className="text-4xl font-bold">{poseCount}</h3>
-                                </div>
-                                <div className="p-3 bg-white/20 rounded-xl">
-                                    <MessageSquare className="text-white" size={24} />
-                                </div>
-                            </div>
-                        </div>
-                        <div className="absolute -bottom-4 -right-4 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-                    </div>
-                )}
-            </div>
+            <DashboardOverviewCards
+                cards={[
+                    ...(isSuperAdmin ? [
+                        { key: 'pkkmb', label: 'Total PKKMB', value: pkkmbCount, subtext: 'Semua pesan PKKMB', icon: Inbox },
+                        { key: 'pose', label: 'Total POSE', value: poseCount, subtext: 'Semua pesan POSE', icon: Mail, iconClass: 'text-purple-500', iconBg: 'bg-purple-50 dark:bg-purple-900/20' },
+                    ] : [
+                        { key: 'total', label: 'Total Pesan', value: siteFiltered.length, subtext: `Data ${activeTab.toUpperCase()}`, icon: Inbox },
+                    ]),
+                    { key: 'filtered', label: 'Pesan Filter Aktif', value: filteredData.length, subtext: appliedDateRange ? 'Rentang tanggal diterapkan' : 'Semua periode' },
+                ]}
+                dateRangeProps={{
+                    startDate: draftStartDate,
+                    endDate: draftEndDate,
+                    onStartChange: setDraftStartDate,
+                    onEndChange: setDraftEndDate,
+                    onApply: applyDateRange,
+                    onClear: clearDateRange,
+                    appliedRange: appliedDateRange,
+                }}
+            />
 
-            {/* Main Content Area */}
-            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col">
-                {/* Toolbar */}
-                <div className="p-4 md:p-6 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 flex flex-col md:flex-row justify-between items-center gap-4">
-                    
-                    {/* Tabs */}
-                    {(!adminRole || adminRole === 'super_admin') ? (
-                        <div className="flex p-1 bg-gray-200 dark:bg-gray-800 rounded-xl self-start md:self-auto">
-                            <button 
-                                onClick={() => setActiveTab('pkkmb')}
-                                className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'pkkmb' ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
-                            >
-                                PKKMB
-                            </button>
-                            <button 
-                                onClick={() => setActiveTab('pose')}
-                                className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'pose' ? 'bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
-                            >
-                                POSE
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="flex p-1 bg-gray-200 dark:bg-gray-800 rounded-xl self-start md:self-auto px-4 py-2 text-sm font-bold text-gray-700 dark:text-gray-300 uppercase">
-                            Data Kontak {adminRole === 'admin_pkkmb' ? 'PKKMB' : 'POSE'}
-                        </div>
-                    )}
+            <DashboardCalendarLegend
+                calendarMonth={calendarMonth}
+                onNavigateMonth={(dir) => setCalendarMonth(prev => {
+                    let month = prev.month + (dir === 'next' ? 1 : -1);
+                    let year = prev.year;
+                    if (month > 11) { month = 0; year++; }
+                    if (month < 0) { month = 11; year--; }
+                    return { year, month };
+                })}
+                dailyCounts={dailyCounts}
+                appliedDateRange={appliedDateRange}
+                onDayClick={(day, dateKey) => {
+                    setDraftStartDate(dateKey);
+                    setDraftEndDate(dateKey);
+                    setAppliedDateRange({ start: dateKey, end: dateKey });
+                }}
+                onFormatMonth={formatMonthData}
+                formatting={formatting}
+                loading={loading}
+                showFormatButton={isSuperAdmin}
+                countLabel="pesan"
+                legendDescription="Skala biru sequential — semakin gelap, semakin banyak pesan masuk harian."
+                donutChart={
+                    <DashboardDonutChart
+                        title="Status Balasan Pesan"
+                        labels={['Sudah Dijawab', 'Belum Dijawab']}
+                        values={[sudahDijawabCount, belumDijawabCount]}
+                        colors={['#10b981', '#f59e0b']}
+                    />
+                }
+            />
 
-                    <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
-                        {/* Search */}
-                        <div className="relative w-full md:w-64">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                            <input 
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
+                <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <h3 className="font-bold text-base sm:text-lg text-gray-800 dark:text-gray-200">Daftar Pesan Kontak</h3>
+                    <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                        <div className="relative flex-1 sm:flex-none sm:w-56">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                            <input
                                 type="text"
-                                placeholder="Cari pesan, nama, email..."
+                                placeholder="Cari nama, email, pesan..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                className="w-full pl-9 pr-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:ring-2 focus:ring-blue-500/30"
                             />
                         </div>
-                        
-                        {/* Refresh Button */}
-                        <button 
-                            onClick={handleRefresh}
-                            disabled={refreshing}
-                            className="p-2.5 w-full md:w-auto flex items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all shadow-sm disabled:opacity-50"
-                            title="Perbarui Data"
-                        >
-                            <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
-                            <span className="md:hidden">Refresh Data</span>
-                        </button>
+                        {isSuperAdmin && selectedIds.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={() => deleteItems(selectedIds)}
+                                disabled={formatting}
+                                className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg border border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 disabled:opacity-50"
+                            >
+                                <Eraser size={14} />
+                                Hapus ({selectedIds.length})
+                            </button>
+                        )}
                     </div>
                 </div>
 
-                {/* Table */}
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm whitespace-nowrap md:whitespace-normal">
+                    <table className="w-full text-left text-sm">
                         <thead className="bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
                             <tr>
-                                <th className="px-6 py-4 font-medium w-16 text-center">No</th>
-                                <th className="px-6 py-4 font-medium">Nama Lengkap</th>
-                                <th className="px-6 py-4 font-medium">Email/WhatsApp</th>
-                                <th className="px-6 py-4 font-medium w-1/3">Pesan</th>
-                                <th className="px-6 py-4 font-medium">Tanggal</th>
-                                <th className="px-6 py-4 font-medium text-center">Status Web</th>
+                                {isSuperAdmin && (
+                                    <th className="px-4 py-3 w-10">
+                                        <button type="button" onClick={toggleSelectAll} className="text-gray-400 hover:text-blue-500">
+                                            {allPageSelected ? <CheckSquare size={18} className="text-blue-500" /> : <Square size={18} />}
+                                        </button>
+                                    </th>
+                                )}
+                                <th className="px-4 py-3 font-medium w-12 text-center">No</th>
+                                <th className="px-4 py-3 font-medium">Nama</th>
+                                <th className="px-4 py-3 font-medium">Email/WA</th>
+                                <th className="px-4 py-3 font-medium min-w-[160px]">Pesan</th>
+                                <th className="px-4 py-3 font-medium w-44">Tanggal</th>
+                                <th className="px-4 py-3 font-medium text-center">Site</th>
+                                <th className="px-4 py-3 font-medium w-24 text-center">Lihat</th>
+                                <th className="px-4 py-3 font-medium w-28 text-center">Jawab</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                             {loading && data.length === 0 ? (
                                 <tr>
-                                    <td colSpan="6" className="px-6 py-12 text-center">
-                                        <div className="flex flex-col items-center justify-center text-gray-500">
-                                            <RefreshCw size={28} className="animate-spin mb-3 text-blue-500" />
-                                            <p>Memuat data kontak...</p>
-                                        </div>
-                                    </td>
+                                    <td colSpan={colSpan} className="px-6 py-12 text-center text-gray-500">Memuat data kontak...</td>
                                 </tr>
                             ) : paginatedData.length === 0 ? (
                                 <tr>
-                                    <td colSpan="6" className="px-6 py-16 text-center">
-                                        <div className="flex flex-col items-center justify-center text-gray-500 bg-gray-50/50 dark:bg-gray-800/30 rounded-2xl mx-6 p-8 border border-dashed border-gray-200 dark:border-gray-700">
-                                            <Filter size={32} className="mb-3 text-gray-400" />
-                                            <p className="text-base font-medium text-gray-700 dark:text-gray-300">Tidak ada pesan ditemukan</p>
-                                            <p className="text-sm mt-1">Coba sesuaikan kata kunci pencarian Anda atau segarkan data.</p>
-                                        </div>
+                                    <td colSpan={colSpan} className="px-6 py-16 text-center text-gray-500">Tidak ada pesan ditemukan.</td>
+                                </tr>
+                            ) : paginatedData.map((item, index) => (
+                                <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                                    {isSuperAdmin && (
+                                        <td className="px-4 py-3">
+                                            <button type="button" onClick={() => toggleSelect(item.id)} className="text-gray-400 hover:text-blue-500">
+                                                {selectedIds.includes(item.id) ? <CheckSquare size={18} className="text-blue-500" /> : <Square size={18} />}
+                                            </button>
+                                        </td>
+                                    )}
+                                    <td className="px-4 py-3 text-center text-gray-500 font-medium">{startIndex + index + 1}</td>
+                                    <td className="px-4 py-3 font-semibold text-gray-800 dark:text-gray-200">{item.nama}</td>
+                                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs">
+                                        {item.email || item.whatsapp || '-'}
+                                    </td>
+                                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 truncate max-w-[200px]" title={item.pesan}>{item.pesan}</td>
+                                    <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{formatDateTime(item.created_at)}</td>
+                                    <td className="px-4 py-3 text-center">
+                                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold uppercase ${item.site === 'pkkmb' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20' : 'bg-purple-50 text-purple-600 dark:bg-purple-900/20'}`}>
+                                            {item.site}
+                                        </span>
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                        <button
+                                            type="button"
+                                            onClick={() => setDetailItem(item)}
+                                            className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 transition-colors"
+                                        >
+                                            <Eye size={14} />
+                                            Lihat
+                                        </button>
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                        {item.jawab ? (
+                                            <span className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-green-200 dark:border-green-800/50 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400">
+                                                <CheckCircle2 size={14} />
+                                                Sudah
+                                            </span>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleJawabClick(item)}
+                                                title="Tandai sudah dijawab"
+                                                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
+                                            >
+                                                <CircleDashed size={14} />
+                                                Belum
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
-                            ) : (
-                                paginatedData.map((item, index) => (
-                                    <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group">
-                                        <td className="px-6 py-4 text-center text-gray-500 font-medium">
-                                            {startIndex + index + 1}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <p className="font-semibold text-gray-800 dark:text-gray-200">{item.nama}</p>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {item.email ? (
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded">Email</span>
-                                                    <span className="text-gray-600 dark:text-gray-400">{item.email}</span>
-                                                </div>
-                                            ) : (
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 px-2 py-0.5 rounded">WA</span>
-                                                    <span className="text-gray-600 dark:text-gray-400">{item.whatsapp}</span>
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <p className="text-gray-600 dark:text-gray-400 md:line-clamp-2" title={item.pesan}>{item.pesan}</p>
-                                        </td>
-                                        <td className="px-6 py-4 text-gray-500 text-xs whitespace-nowrap">
-                                            {formatDate(item.created_at)}
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${item.site === 'pkkmb' ? 'bg-blue-50 text-blue-600 border border-blue-100 dark:bg-blue-900/20 dark:border-blue-800/50' : 'bg-purple-50 text-purple-600 border border-purple-100 dark:bg-purple-900/20 dark:border-purple-800/50'}`}>
-                                                {item.site}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
+                            ))}
                         </tbody>
+                        <TablePagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            totalItems={filteredData.length}
+                            itemsPerPage={ITEMS_PER_PAGE}
+                            onPageChange={setCurrentPage}
+                            colSpan={colSpan}
+                        />
                     </table>
                 </div>
-
-                {/* Pagination */}
-                {totalPages > 1 && (
-                    <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-500">
-                        <p>Menampilkan <span className="font-medium text-gray-900 dark:text-white">{filteredData.length > 0 ? startIndex + 1 : 0}</span> hingga <span className="font-medium text-gray-900 dark:text-white">{Math.min(startIndex + itemsPerPage, filteredData.length)}</span> dari <span className="font-medium text-gray-900 dark:text-white">{filteredData.length}</span> data</p>
-                        <div className="flex items-center gap-2">
-                            <button 
-                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                disabled={currentPage === 1}
-                                className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 transition-all flex items-center justify-center bg-white dark:bg-gray-800"
-                            >
-                                <ChevronLeft size={18} />
-                            </button>
-                            <span className="px-4 font-medium bg-gray-50 dark:bg-gray-800 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700">Halaman {currentPage} dari {totalPages}</span>
-                            <button 
-                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                disabled={currentPage === totalPages}
-                                className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 transition-all flex items-center justify-center bg-white dark:bg-gray-800"
-                            >
-                                <ChevronRight size={18} />
-                            </button>
-                        </div>
-                    </div>
-                )}
             </div>
+
+            <DetailModal
+                open={Boolean(detailItem)}
+                onClose={() => setDetailItem(null)}
+                title="Detail Kontak"
+                fields={detailItem ? [
+                    { label: 'ID', value: detailItem.id },
+                    { label: 'Nama', value: detailItem.nama },
+                    { label: 'Email', value: detailItem.email || detailItem.whatsapp || '-' },
+                    { label: 'Pesan', value: detailItem.pesan, multiline: true },
+                    { label: 'Status Jawab', value: detailItem.jawab ? 'Sudah dijawab' : 'Belum dijawab' },
+                    { label: 'Tanggal', value: formatDateTime(detailItem.created_at) },
+                ] : []}
+            />
+
+            <ConfirmModal
+                open={Boolean(confirmJawabItem)}
+                onClose={() => !jawabLoading && setConfirmJawabItem(null)}
+                onConfirm={confirmJawab}
+                title="Konfirmasi Jawab"
+                message={
+                    confirmJawabItem
+                        ? `Apakah pesan dari "${confirmJawabItem.nama}" benar sudah dijawab? Status akan disimpan ke database.`
+                        : ''
+                }
+                confirmLabel="Ya, Sudah Dijawab"
+                loading={jawabLoading}
+            />
         </div>
     );
 }

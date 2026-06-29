@@ -31,3 +31,5 @@ saya ingin dihalaman kelompok dippkmb itu ada filter untuk memilih antara tiap c
 4. Pekanbaru
 5. Padang
 6. Langsa
+
+dileanding pages/beranda saya kepikiran untuk membuat testimoni pkkmb dan pose yaitu dari kaka tingkat seperti gubernur/wakil gubernur/menteri/pbem/menpora/dll.

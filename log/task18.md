@@ -1,0 +1,1 @@
+fokus pada halaman portal, saya ingin memberi footer dibawah yaitu nama copyright dan developed by samba, yang kata developed by samba itu diberi link ke website "https://samba.my.id".

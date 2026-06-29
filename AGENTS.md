@@ -40,6 +40,7 @@ CREATE TABLE berita (
     content TEXT NOT NULL,
     type site_type NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    custom_date DATE
 );
 
 -- Tabel Kelompok/Team
@@ -76,6 +77,7 @@ CREATE TABLE kontak (
     pesan TEXT NOT NULL,
     site site_type NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    jawab BOOLEAN DEFAULT false,
 );
 
 -- 1. Buat Enum untuk Role Admin

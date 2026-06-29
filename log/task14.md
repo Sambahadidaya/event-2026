@@ -1,0 +1,4 @@
+pakai aplikasi cursor;
+
+fokus pada halaman portal tepatnya pada folder (portal). ada tambahan div atau linknya itu yaitu untuk masuk ke website resmi lp3i dan website siakad lp3i. jadi tambah 2 div lagi yang layout divnya itu jika tampilan selain destop maka div website resmi lp3i dan div website siiakad lp3i itu dalam satu div (sama seperti pada pkkmb dan pose) yang posisinya itu di div pkkmb dan pose, tapi kalau tampilan mobile tetap satu satu. untuk div website resmi itu diarahkan linknya ke "https://plb.ac.id/id/" dan kalau div website siakad itu diarahkan ke link "https://siakad.plb.ac.id/".
+terus perbaikilah style divnya itu dan iconnya ganti dengan logo yang ada diasset, jika div pkkmb menjadi pakai gambar logopkkmb.png, jika div pose menjadi pakai gambar logopose.png, dan jika div resmi+siakad itu menggunakan gambar logopoltek.png

@@ -54,5 +54,32 @@ export const siteThemes = {
 };
 
 export function getTheme(site) {
-    return siteThemes[site] || siteThemes.pkkmb;
+    const portalTheme = {
+        name: 'Portal Kampus',
+        tagline: 'Satu Pintu Menuju Kampus',
+        primary: '#14b8a6', // teal-500
+        primaryLight: '#2dd4bf', // teal-400
+        primaryPale: '#99f6e4', // teal-200
+        accent: '#60a5fa', // blue-400
+        accentPale: '#bfdbfe', // blue-200
+        gradient: 'from-teal-500 via-emerald-500 to-blue-500',
+        gradientText: 'from-teal-500 to-blue-500',
+        blob1: 'bg-teal-500/20 dark:bg-teal-400/15',
+        blob2: 'bg-emerald-500/20 dark:bg-emerald-400/15',
+        blob3: 'bg-blue-500/20 dark:bg-blue-400/15',
+        ring: 'ring-teal-500/30',
+        badge: 'bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800/50',
+        iconBg: 'bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400',
+        sectionBase: 'bg-slate-50 dark:bg-slate-950',
+        sectionAlt: 'bg-teal-50/50 dark:bg-teal-950/30',
+        waveToAlt: 'fill-teal-50/50 dark:fill-teal-950/30',
+        waveToBase: 'fill-slate-50 dark:fill-slate-950',
+        waveToFooter: 'fill-slate-900 dark:fill-slate-950',
+        heroGradient: 'bg-gradient-to-br from-slate-50 via-teal-50/30 to-blue-50/30 dark:from-slate-950 dark:via-teal-950/20 dark:to-blue-950/20',
+        footerBg: 'bg-slate-900 dark:bg-slate-950',
+        btnPrimary: 'bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 shadow-teal-500/30',
+        focusRing: 'focus:ring-teal-500',
+    };
+
+    return site === 'portal' ? portalTheme : (siteThemes[site] || siteThemes.pkkmb);
 }

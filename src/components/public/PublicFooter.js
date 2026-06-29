@@ -85,7 +85,7 @@ export default function PublicFooter({ site, links }) {
                 {/* Bottom bar */}
                 <div className="mt-14 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
                     <p className="text-xs text-white/50 font-medium text-center md:text-left">
-                        © {year} <span className="text-white/80">Portal Kampus</span> · Politeknik LP3I
+                        © {year} <span className="text-white/80">{site === 'pkkmb' ? 'PKKMB' : 'POSE'}</span> · Politeknik LP3I Bandung. All rights reserved
                     </p>
                     <a href='https://samba.my.id'
                         className="text-xs text-white/30 font-medium tracking-wider hover:text-white transition-colors duration-300">
