@@ -15,7 +15,6 @@ import {
     buildDailyCounts, filterByDateRange, formatDateTime
 } from '@/lib/dashboardUtils';
 
-const NOT_UNDERSTOOD = 'Maaf, saya tidak menemukan jawaban yang tepat. Silakan hubungi panitia melalui menu Kontak.';
 const ITEMS_PER_PAGE = 10;
 
 export default function FaqDashboard() {
@@ -104,9 +103,8 @@ export default function FaqDashboard() {
 
     const dailyCounts = useMemo(() => buildDailyCounts(siteFiltered, 'created_at'), [siteFiltered]);
 
-    const terjawabCount = filteredHistory.filter(h => h.jawaban !== NOT_UNDERSTOOD).length;
-    const tidakDimengertiCount = filteredHistory.length - terjawabCount;
-    const akurasi = filteredHistory.length > 0 ? Math.round((terjawabCount / filteredHistory.length) * 100) : 0;
+    const terjawabCount = filteredHistory.filter(h => h.is_faq_matched === true).length;
+    const diluarFaqCount = filteredHistory.length - terjawabCount;
 
     const totalPages = Math.ceil(filteredHistory.length / ITEMS_PER_PAGE) || 1;
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -211,8 +209,8 @@ export default function FaqDashboard() {
             <DashboardOverviewCards
                 cards={[
                     { key: 'total', label: 'Total Interaksi', value: filteredHistory.length, subtext: 'Berdasarkan filter aktif', icon: MessageSquare },
-                    { key: 'akurasi', label: 'Akurasi Jawaban', value: `${akurasi}%`, subtext: `${terjawabCount} terjawab`, icon: HelpCircle, iconClass: 'text-emerald-500', iconBg: 'bg-emerald-50 dark:bg-emerald-900/20' },
-                    { key: 'tidak', label: 'Tidak Dimengerti', value: tidakDimengertiCount, subtext: 'Perlu perhatian', subtextClass: 'text-red-500' },
+                    { key: 'faq', label: 'Sesuai FAQ', value: terjawabCount, subtext: `${filteredHistory.length > 0 ? Math.round((terjawabCount / filteredHistory.length) * 100) : 0}% dari total`, icon: HelpCircle, iconClass: 'text-emerald-500', iconBg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+                    { key: 'non_faq', label: 'Di Luar FAQ', value: diluarFaqCount, subtext: 'Pertanyaan umum / random', subtextClass: 'text-amber-500' },
                 ]}
                 dateRangeProps={{
                     startDate: draftStartDate,
@@ -247,12 +245,12 @@ export default function FaqDashboard() {
                 showFormatButton={isSuperAdmin}
                 countLabel="interaksi"
                 legendDescription="Skala biru sequential — semakin gelap, semakin banyak interaksi FAQ harian."
-                donutChart={
+                    donutChart={
                     <DashboardDonutChart
-                        title="Status Resolusi Chatbot"
-                        labels={['Terjawab', 'Tidak Dimengerti']}
-                        values={[terjawabCount, tidakDimengertiCount]}
-                        colors={['#3b82f6', '#ef4444']}
+                        title="Kategori Pertanyaan"
+                        labels={['Sesuai FAQ', 'Di Luar FAQ']}
+                        values={[terjawabCount, diluarFaqCount]}
+                        colors={['#3b82f6', '#f59e0b']}
                     />
                 }
             />
@@ -318,9 +316,10 @@ export default function FaqDashboard() {
                                     <td className="px-4 py-3 text-xs font-bold uppercase text-gray-500">{item.site}</td>
                                     <td className="px-4 py-3 font-medium text-gray-800 dark:text-gray-200 truncate max-w-[180px]" title={item.pertanyaan}>{item.pertanyaan}</td>
                                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400 truncate max-w-[180px]" title={item.jawaban}>
-                                        {item.jawaban === NOT_UNDERSTOOD ? (
-                                            <span className="text-red-500 dark:text-red-400">Tidak dimengerti</span>
-                                        ) : item.jawaban}
+                                        <div className="flex items-center gap-1.5">
+                                            <span className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${item.is_faq_matched ? 'bg-blue-500' : 'bg-amber-400'}`}></span>
+                                            <span className="truncate">{item.jawaban}</span>
+                                        </div>
                                     </td>
                                     <td className="px-4 py-3 text-center">
                                         <button

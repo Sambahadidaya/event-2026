@@ -1,0 +1,4 @@
+fokus ke halaman chatbot yaitu difile components-SamsChatbot.js dan datanya dari lib-faqData.js, terus apinya ada di src-api-chatbot.js dan file app-panitia-dashboard-faq.js.
+dihalaman chatbot ada bug yaitu pada saat chatbot difullscreen terus ketika menekan tombol x untuk keluar dari fullscreen, chatbotnya malah menjadi dipojok kiri atas, padahalkan harusnya berada dipojok kanan bawah seperti semula. 
+terus saya ingin jawaban ai itu tidak statis seperti di file faqData.js itu, namun jawabannya itu dinamis tapi data reerensi jawabannya tetep menggunakan data dari faqData.js itu untuk referensi yang tujuannya agar ai tidak menjawab seenaknya dan ketika user bertanya selain yang ada didatabase maka akan dijawab oleh ai dengan bahasa santai dan sopan dan pakai emote juga. jadi intinya faqData.js itu cuman untuk referensi jawaban ai.
+terus dihalaman app-panitia-dashboard-faq.js itu sesuaikan saja dengan pembaruan dichatbot tadi.

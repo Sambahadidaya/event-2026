@@ -1,0 +1,6 @@
+fokus pada halaman chatbot yaitu pada file src-components-SamsChatbot.js dan juga src-lib-faqData.js dengan tugasnya sebagai berikut ;
+- mengubah limit karakter menjadi 20 karakter 
+- terus limit pesan menjadi 10 pesan
+- terus menambah angka dipojok kanan bawah pesan yang mewakili sisa karakter
+- terus jika limit pesan mencapai 0 maka tombol kirim akan menjadi disable dan jika limit karakter mencapai 0 maka tombol kirim akan menjadi disable. 
+- terus saya ingin pertanyaan ini akan diklasifikasi dulu oleh ai openai yang apikeynya ada di env dengan nama variabel NEXT_PUBLIC_OPENAI_KEY, dengan prompt "Anda adalah AI yang bertugas untuk mengklasifikasi pertanyaan yang masuk" dan klasifikasi pertanyaannya sesuai website yang aktif dengan data mentahannya difile faqData.js, setelah diklasifikasi maka jawaban chatbotnya tetap memakai file faqData.js, dan jika pertanyaan tidak ditemukan maka akan menjawab "Maaf, saya tidak menemukan jawaban yang tepat. Silakan hubungi panitia melalui menu Kontak."

@@ -1,6 +1,7 @@
 import { MessageCircle } from 'lucide-react';
 import ContactForm from '@/components/ContactForm';
 import PageHero from '@/components/public/PageHero';
+import ScheduleBarrier from '@/components/public/ScheduleBarrier';
 
 export default function PoseContact() {
     return (
@@ -12,6 +13,7 @@ export default function PoseContact() {
                 subtitle="Punya pertanyaan seputar pendaftaran atau jadwal? Hubungi kami di sini."
             />
             <ContactForm site="pose" />
+
         </div>
     );
 }

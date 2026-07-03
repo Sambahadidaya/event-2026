@@ -197,6 +197,7 @@ export default function TrafikDashboard() {
 
     const pkkmbCount = rangeFilteredData.filter(item => item.site === 'pkkmb').length;
     const poseCount = rangeFilteredData.filter(item => item.site === 'pose').length;
+    const portalCount = rangeFilteredData.filter(item => item.site === 'portal').length;
 
     const chartPeriodLabel = useMemo(() => {
         if (appliedDateRange) {
@@ -438,9 +439,9 @@ export default function TrafikDashboard() {
                 donutChart={
                     <DashboardDonutChart
                         title="Distribusi Situs Kunjungan"
-                        labels={['PKKMB', 'POSE']}
-                        values={[pkkmbCount, poseCount]}
-                        colors={['#3b82f6', '#a855f7']}
+                        labels={['PKKMB', 'POSE', 'PORTAL KAMPUS']}
+                        values={[pkkmbCount, poseCount, portalCount]}
+                        colors={['#3b82f6', '#a855f7', '#10b981']}
                     />
                 }
             />

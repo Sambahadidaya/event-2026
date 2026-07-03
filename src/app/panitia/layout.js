@@ -79,10 +79,10 @@ export default function PanitiaLayout({ children }) {
 
             if (admin) {
                 setAdminData(admin);
-                
+
                 // Set initial status online and start heartbeat
                 await supabase.from('admins').update({ is_online: true, last_active: new Date().toISOString() }).eq('id', admin.id);
-                
+
                 heartbeatInterval.current = setInterval(() => {
                     updateHeartbeat(session.user.id);
                 }, 60000); // every 1 minute
@@ -223,7 +223,7 @@ export default function PanitiaLayout({ children }) {
                         {!collapsed && (
                             <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Manajemen Konten</p>
                         )}
-                        
+
                         {canAccessPkkmb && (
                             <>
                                 <button
@@ -267,16 +267,41 @@ export default function PanitiaLayout({ children }) {
                                     </span>
                                     {!collapsed && (menuOpen.pose ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
                                 </button>
-                                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.pose ? 'max-h-48 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.pose ? 'max-h-86 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
                                     <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-12 pr-3'} py-1 space-y-1.5 text-sm`}>
                                         <li>
+                                            <Link href="/panitia/pose/jadwal_acara" onClick={closeMobile} title="Manajemen Jadwal Acara POSE" className={`flex items-center ${collapsed ? 'justify-center px-2 py-2.5' : 'block px-3 py-2'} rounded-lg transition-colors ${isActive('/panitia/pose/jadwal_acara') ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'}`}>
+                                                {sidebarCollapsed ? <Newspaper size={16} /> : 'Manajemen Jadwal Acara'}
+                                            </Link>
+                                        </li>
+                                        <li>
                                             <Link href="/panitia/pose/berita" onClick={closeMobile} title="Manajemen Berita POSE" className={`flex items-center ${collapsed ? 'justify-center px-2 py-2.5' : 'block px-3 py-2'} rounded-lg transition-colors ${isActive('/panitia/pose/berita') ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'}`}>
-                                                {sidebarCollapsed ? <Newspaper size={16} /> : 'Manajemen Berita'}
+                                                {sidebarCollapsed ? <Users size={16} /> : 'Manajemen Berita'}
+                                            </Link>
+                                        </li>
+                                        <li>
+                                            <Link href="/panitia/pose/peserta" onClick={closeMobile} title="Manajemen Peserta POSE" className={`flex items-center ${collapsed ? 'justify-center px-2 py-2.5' : 'block px-3 py-2'} rounded-lg transition-colors ${isActive('/panitia/pose/peserta') ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'}`}>
+                                                {sidebarCollapsed ? <Users size={16} /> : 'Manajemen Peserta'}
                                             </Link>
                                         </li>
                                         <li>
                                             <Link href="/panitia/pose/team" onClick={closeMobile} title="Manajemen Team POSE" className={`flex items-center ${collapsed ? 'justify-center px-2 py-2.5' : 'block px-3 py-2'} rounded-lg transition-colors ${isActive('/panitia/pose/team') ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'}`}>
                                                 {sidebarCollapsed ? <Users size={16} /> : 'Manajemen Team'}
+                                            </Link>
+                                        </li>
+                                        <li>
+                                            <Link href="/panitia/pose/form_register" onClick={closeMobile} title="Manajemen Form Register POSE" className={`flex items-center ${collapsed ? 'justify-center px-2 py-2.5' : 'block px-3 py-2'} rounded-lg transition-colors ${isActive('/panitia/pose/form_register') ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'}`}>
+                                                {sidebarCollapsed ? <Users size={16} /> : 'Manajemen Form Register'}
+                                            </Link>
+                                        </li>
+                                        <li>
+                                            <Link href="/panitia/pose/register" onClick={closeMobile} title="Manajemen Register POSE" className={`flex items-center ${collapsed ? 'justify-center px-2 py-2.5' : 'block px-3 py-2'} rounded-lg transition-colors ${isActive('/panitia/pose/register') ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'}`}>
+                                                {sidebarCollapsed ? <Users size={16} /> : 'Manajemen Register'}
+                                            </Link>
+                                        </li>
+                                        <li>
+                                            <Link href="/panitia/pose/jadwal_pertandingan" onClick={closeMobile} title="Manajemen Jadwal Pertandingan POSE" className={`flex items-center ${collapsed ? 'justify-center px-2 py-2.5' : 'block px-3 py-2'} rounded-lg transition-colors ${isActive('/panitia/pose/jadwal_pertandingan') ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'}`}>
+                                                {sidebarCollapsed ? <Users size={16} /> : 'Manajemen Jadwal Pertandingan'}
                                             </Link>
                                         </li>
                                     </ul>

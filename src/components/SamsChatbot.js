@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import Fuse from 'fuse.js';
-import { Bot, Headset, X, Send, HelpCircle } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { Bot, Headset, X, Send, HelpCircle, Maximize2, Minimize2 } from 'lucide-react';
 import { getFaqBySite, getRandomQuestions } from '@/lib/faqData';
+import { generateAnswer, saveChatHistory } from '@/api/chatbot';
 
 // Menyisipkan custom keyframes untuk animasi melayang acak dan titik berpikir
 const customStyles = `
@@ -80,7 +79,9 @@ export default function SamsChatbot() {
     const [randomQuestions, setRandomQuestions] = useState([]);
     const [isTyping, setIsTyping] = useState(false);
     const [siteType, setSiteType] = useState('pkkmb');
-    
+    const [remainingMessages, setRemainingMessages] = useState(10);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
     // Idle Popup States
     const [showIdlePopup, setShowIdlePopup] = useState(false);
     const [hasClosedPopup, setHasClosedPopup] = useState(false);
@@ -96,13 +97,13 @@ export default function SamsChatbot() {
         // Load FAQ
         const faqs = getFaqBySite(currentSite);
         setFaqData(faqs);
-        
+
         // Initial Message
         const randomQs = getRandomQuestions(currentSite, 3);
-        setRandomQuestions(faqs); 
-        
+        setRandomQuestions(faqs);
+
         setMessages([
-            { sender: 'bot', text: `Halo! Selamat datang di Portal ${currentSite.toUpperCase()}. Ada yang bisa saya bantu? Berikut beberapa pertanyaan yang sering ditanyakan:` },
+            { sender: 'bot', text: `Hallo👋. Selamat datang di Portal ${currentSite.toUpperCase()}😊. Ada yang bisa saya bantu? Berikut beberapa pertanyaan yang sering ditanyakan:` },
             { sender: 'bot', isSuggestions: true, suggestions: randomQs.map(q => q.question) }
         ]);
 
@@ -118,6 +119,19 @@ export default function SamsChatbot() {
     }, [isOpen, isPopupHiddenTemporarily]);
 
     useEffect(() => {
+        const RATE_LIMIT_KEY = 'chatbot_limit';
+        const limitDataStr = localStorage.getItem(RATE_LIMIT_KEY);
+        if (limitDataStr) {
+            const limitData = JSON.parse(limitDataStr);
+            if (Date.now() - limitData.firstSubmit > 3600000) {
+                setRemainingMessages(10);
+            } else {
+                setRemainingMessages(Math.max(0, 10 - limitData.count));
+            }
+        }
+    }, [messages]);
+
+    useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, isTyping]);
 
@@ -131,9 +145,9 @@ export default function SamsChatbot() {
         }, 300000);
     };
 
-    const handleSend = (textInput) => {
-        const text = textInput || input;
-        if (!text.trim()) return;
+    const handleSend = async (textInput) => {
+        const inputanUser = textInput || input;
+        if (!inputanUser.trim()) return;
 
         const RATE_LIMIT_KEY = 'chatbot_limit';
         const limitDataStr = localStorage.getItem(RATE_LIMIT_KEY);
@@ -143,72 +157,43 @@ export default function SamsChatbot() {
             limitData = { count: 0, firstSubmit: Date.now() };
         }
 
-        if (limitData.count >= 30) { 
-            setMessages(prev => [...prev, { sender: 'bot', text: 'Maaf, Anda telah mencapai batas pertanyaan (30 kali/jam). Silakan coba lagi nanti.' }]);
+        if (limitData.count >= 10) {
+            setMessages(prev => [...prev, { sender: 'bot', text: 'Maaf, Anda telah mencapai batas pertanyaan (10 kali/jam). Silakan coba lagi nanti. ⏳' }]);
             if (!textInput) setInput('');
             return;
         }
 
         limitData.count += 1;
         localStorage.setItem(RATE_LIMIT_KEY, JSON.stringify(limitData));
+        setRemainingMessages(10 - limitData.count);
 
-        const newMessages = [...messages, { sender: 'user', text }];
+        const newMessages = [...messages, { sender: 'user', text: inputanUser }];
 
         setMessages(newMessages);
         if (!textInput) setInput('');
-        setIsTyping(true); // Aktifkan animasi berpikir
-        
-        // Exact / keyword match as fallback before fuse
-        const normalizedInput = text.toLowerCase().trim();
-        let exactMatch = faqData.find(faq => 
-            faq.question.toLowerCase() === normalizedInput || 
-            faq.keywords.some(k => k.toLowerCase() === normalizedInput)
-        );
+        setIsTyping(true);
 
-        let botAnswer = '';
+        try {
+            const { answer, isFaqMatched } = await generateAnswer(inputanUser, faqData, siteType);
 
-        if (exactMatch) {
-            botAnswer = exactMatch.answer;
-        } else {
-            const fuse = new Fuse(faqData, {
-                keys: [
-                    { name: 'keywords', weight: 0.8 },
-                    { name: 'question', weight: 0.2 }
-                ],
-                threshold: 0.4, // Make it a bit more lenient
-                ignoreLocation: true,
-                includeScore: true
-            });
+            setMessages([...newMessages, { sender: 'bot', text: answer }]);
 
-            const result = fuse.search(text);
-
-            if (result.length > 0 && result[0].score <= 0.5) {
-                botAnswer = result[0].item.answer;
-            } else {
-                botAnswer = 'Maaf, saya tidak menemukan jawaban yang tepat. Silakan hubungi panitia melalui menu Kontak.';
-            }
+            await saveChatHistory(inputanUser, answer, siteType, isFaqMatched);
+        } catch (error) {
+            console.error("OpenAI Error:", error);
+            setMessages([...newMessages, { sender: 'bot', text: 'Maaf, terjadi kesalahan pada server AI. Silakan coba lagi ya! 🙏' }]);
+        } finally {
+            setIsTyping(false);
         }
-
-        // Simulasi delay berfikir selama 1 detik
-        setTimeout(async () => {
-            setIsTyping(false); // Matikan animasi berpikir
-            setMessages([...newMessages, { sender: 'bot', text: botAnswer }]);
-
-            await supabase.from('riwayat_pertanyaan').insert([{
-                pertanyaan: text,
-                jawaban: botAnswer,
-                site: siteType
-            }]);
-        }, 1000);
     };
 
     return (
         <>
             <style>{customStyles}</style>
-            <div className="fixed bottom-4 right-4 z-50 flex items-end justify-end flex-col">
-                
+            <div className={`fixed z-[9999] flex flex-col ${isFullscreen ? 'inset-0' : 'bottom-4 right-4 items-end justify-end'}`}>
+
                 {isOpen ? (
-                    <div className="w-80 h-[28rem] rounded-2xl shadow-2xl flex flex-col border border-gray-200/50 dark:border-gray-700/50 overflow-hidden backdrop-blur-xl bg-white/90 dark:bg-gray-900/90 mb-4 animate-in fade-in slide-in-from-bottom-5 duration-300">
+                    <div className={`shadow-2xl flex flex-col overflow-hidden backdrop-blur-xl bg-white/90 dark:bg-gray-900/90 animate-in fade-in slide-in-from-bottom-5 duration-300 ${isFullscreen ? 'w-full h-full rounded-none' : 'w-80 h-[28rem] rounded-2xl border border-gray-200/50 dark:border-gray-700/50 mb-4'}`}>
                         {/* Header Modern */}
                         <div className="p-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex justify-between items-center shadow-md">
                             <div className="flex items-center gap-3">
@@ -221,20 +206,27 @@ export default function SamsChatbot() {
                                     <p className="text-xs text-blue-100 opacity-90">Online</p>
                                 </div>
                             </div>
-                            <button onClick={() => setIsOpen(false)} className="hover:bg-white/20 p-1.5 rounded-full transition-colors"><X size={20} /></button>
+                            <div className="flex items-center gap-1">
+                                <button onClick={() => setIsFullscreen(!isFullscreen)} className="hover:bg-white/20 p-1.5 rounded-full transition-colors">
+                                    {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                                </button>
+                                <button onClick={() => { setIsFullscreen(false); setIsOpen(false); }} className="hover:bg-white/20 p-1.5 rounded-full transition-colors">
+                                    <X size={20} />
+                                </button>
+                            </div>
                         </div>
 
                         {/* Chat Area Background */}
                         <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50 dark:bg-gray-950/50 relative">
                             {/* Decorative background pattern */}
                             <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, gray 1px, transparent 0)', backgroundSize: '16px 16px' }}></div>
-                            
+
                             {messages.map((msg, i) => (
                                 <div key={i} className={`flex relative z-10 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} ${msg.isSuggestions ? 'flex-col gap-2' : ''}`}>
                                     {msg.isSuggestions ? (
                                         <div className="flex flex-col gap-2 mt-1">
                                             {msg.suggestions.map((sug, idx) => (
-                                                <button 
+                                                <button
                                                     key={idx}
                                                     onClick={() => handleSend(sug)}
                                                     className="text-left text-xs bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors shadow-sm"
@@ -254,7 +246,7 @@ export default function SamsChatbot() {
                             {isTyping && (
                                 <div className="flex justify-start relative z-10">
                                     <div className="p-3 rounded-2xl max-w-[85%] text-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-800 dark:text-gray-100 shadow-sm flex items-center chat-bubble-bot mr-2">
-                                        <span className="italic opacity-70">Mengetik<span className="typing-dots"></span></span>
+                                        <span className="italic opacity-70">Befikir <span className="typing-dots"></span></span>
                                     </div>
                                 </div>
                             )}
@@ -275,27 +267,42 @@ export default function SamsChatbot() {
                                     </button>
                                 ))}
                             </div>
-                            
-                            <div className="p-3 flex gap-2">
-                                <input
-                                    type="text"
-                                    maxLength={80}
-                                    className="flex-1 p-2.5 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800/50 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all placeholder-gray-400"
-                                    value={input}
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        if (/^[a-zA-Z0-9\s?.,!-]*$/.test(val)) {
-                                            setInput(val);
-                                        }
-                                    }}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                                    placeholder="Ketik pesan..."
-                                    disabled={isTyping}
-                                />
+
+                            <div className="p-3 flex gap-2 items-end">
+                                <div className="flex-1 relative">
+                                    <textarea
+                                        rows={1}
+                                        maxLength={100}
+                                        style={{ resize: 'none', maxHeight: '120px' }}
+                                        className="w-full p-2.5 pb-6 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800/50 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all placeholder-gray-400 hide-scrollbar"
+                                        value={input}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (/^[a-zA-Z0-9\s?.,!]*$/.test(val)) {
+                                                setInput(val);
+                                            }
+                                            e.target.style.height = 'auto';
+                                            e.target.style.height = e.target.scrollHeight + 'px';
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                                e.preventDefault();
+                                                handleSend();
+                                                e.target.style.height = 'auto';
+                                            }
+                                        }}
+                                        placeholder="Ketik pesan..."
+                                        disabled={isTyping || remainingMessages <= 0}
+                                    />
+                                    <div className="absolute bottom-1.5 right-3 flex gap-3 text-[10px] text-gray-400 pointer-events-none">
+                                        <span>Sisa pesan: {remainingMessages}</span>
+                                        <span className={(100 - input.length) === 0 ? "text-red-500 font-bold" : ""}>Sisa karakter: {100 - input.length}</span>
+                                    </div>
+                                </div>
                                 <button
                                     onClick={() => handleSend()}
-                                    disabled={isTyping || !input.trim()}
-                                    className={`p-2.5 rounded-xl transition-all flex items-center justify-center ${isTyping || !input.trim() ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg active:scale-95'}`}
+                                    disabled={isTyping || !input.trim() || remainingMessages <= 0 || (100 - input.length) === 0}
+                                    className={`p-2.5 rounded-xl transition-all flex items-center justify-center h-[46px] ${isTyping || !input.trim() || remainingMessages <= 0 || (100 - input.length) === 0 ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg active:scale-95'}`}
                                 >
                                     <Send size={18} />
                                 </button>
@@ -306,9 +313,9 @@ export default function SamsChatbot() {
                     <div className="relative animate-float-random flex items-center gap-3">
                         {/* Idle Popup */}
                         {showIdlePopup && (
-                            <div className="bg-white dark:bg-gray-800 text-gray-800 dark:text-white px-4 py-2.5 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 relative animate-in fade-in slide-in-from-right-5 text-sm font-medium pr-8 max-w-[200px]">
-                                Ada yang bisa dibantu?
-                                <button 
+                            <div className="bg-white dark:bg-gray-800 text-gray-800 dark:text-white px-4 py-2.5 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 relative animate-in fade-in slide-in-from-right-5 text-sm font-medium pr-8 max-w-[250px]">
+                                Ada yang bisa dibantu?😊
+                                <button
                                     onClick={handleCloseIdlePopup}
                                     className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1"
                                 >

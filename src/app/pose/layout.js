@@ -16,7 +16,11 @@ export default function PoseLayout({ children }) {
 
         { href: '/pose/pemberitahuan', label: 'Pemberitahuan' },
 
-        { href: '/pose/team', label: 'Tim & Jadwal' },
+        { href: '/pose/team', label: 'Tim' },
+
+        { href: '/pose/jadwal', label: 'Jadwal' },
+
+        { href: '/pose/register', label: 'Daftar' },
 
         { href: '/pose/contact', label: 'Kontak' }
 
