@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getTeams, upsertTeam, deleteTeam, deleteMultipleTeams } from '@/api/supabase/team';
+import { uploadFile } from '@/api/supabase/storage';
 import { RefreshCw, Plus, Trash2, Search, Users, Edit2, CheckSquare, X, Link as LinkIcon, Image as ImageIcon, UserPlus } from 'lucide-react';
 
 export default function AdminPkkmbTeam() {
@@ -26,7 +27,7 @@ export default function AdminPkkmbTeam() {
 
     const fetchTeam = async () => {
         setLoading(true);
-        const { data } = await supabase.from('team').select('*, team_members(*)').eq('type', 'pkkmb').order('created_at', { ascending: false });
+        const data = await getTeams('pkkmb');
         if (data) {
             setTeam(data);
         }
@@ -69,27 +70,20 @@ export default function AdminPkkmbTeam() {
 
         if (gambarFile) {
             setUploadingImage(true);
-            const fileExt = gambarFile.name.split('.').pop();
-            const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-            const filePath = `pkkmb/${fileName}`;
-
-            const { error: uploadError } = await supabase.storage
-                .from('team-images')
-                .upload(filePath, gambarFile);
+            const formData = new FormData();
+            formData.append('file', gambarFile);
+            
+            const uploadRes = await uploadFile(formData, 'team-images', 'pkkmb/');
 
             setUploadingImage(false);
 
-            if (uploadError) {
-                alert('Gagal mengupload gambar: ' + uploadError.message);
+            if (!uploadRes.success) {
+                alert('Gagal mengupload gambar: ' + uploadRes.error);
                 setIsSubmitting(false);
                 return;
             }
 
-            const { data: publicUrlData } = supabase.storage
-                .from('team-images')
-                .getPublicUrl(filePath);
-
-            finalGambarUrl = publicUrlData.publicUrl;
+            finalGambarUrl = uploadRes.url;
         }
 
         const payload = { 
@@ -100,41 +94,17 @@ export default function AdminPkkmbTeam() {
             gambar: finalGambarUrl
         };
 
-        let currentTeamId = editingId;
+        const validMembers = members.filter(m => m.nama.trim() !== '').map(m => ({
+            nama: m.nama,
+            jabatan: m.jabatan
+        }));
 
-        if (editingId) {
-            const { error } = await supabase.from('team').update(payload).eq('id', editingId);
-            if (error) {
-                alert('Gagal mengupdate: ' + error.message);
-                setIsSubmitting(false);
-                return;
-            }
-        } else {
-            const { data, error } = await supabase.from('team').insert([payload]).select().single();
-            if (error) {
-                alert('Gagal menyimpan: ' + error.message);
-                setIsSubmitting(false);
-                return;
-            }
-            currentTeamId = data.id;
-        }
-
-        // Save members
-        if (currentTeamId) {
-            // Hapus member lama
-            await supabase.from('team_members').delete().eq('team_id', currentTeamId);
-            
-            // Insert member baru jika ada yg tidak kosong namanya
-            const validMembers = members.filter(m => m.nama.trim() !== '').map(m => ({
-                team_id: currentTeamId,
-                nama: m.nama,
-                jabatan: m.jabatan
-            }));
-
-            if (validMembers.length > 0) {
-                const { error: memberError } = await supabase.from('team_members').insert(validMembers);
-                if (memberError) console.error("Error saving members:", memberError);
-            }
+        const res = await upsertTeam(payload, validMembers, editingId);
+        
+        if (!res.success) {
+            alert('Gagal menyimpan tim: ' + res.error);
+            setIsSubmitting(false);
+            return;
         }
 
         cancelEdit();
@@ -171,14 +141,14 @@ export default function AdminPkkmbTeam() {
 
     const handleDelete = async (id) => {
         if (!confirm('Apakah Anda yakin ingin menghapus data kelompok ini secara permanen?')) return;
-        await supabase.from('team').delete().eq('id', id);
-        handleRefresh();
+        const res = await deleteTeam(id);
+        if (res.success) handleRefresh();
     };
 
     const handleBulkDelete = async () => {
         if (!confirm(`Hapus ${selectedIds.length} data terpilih secara permanen?`)) return;
-        await supabase.from('team').delete().in('id', selectedIds);
-        handleRefresh();
+        const res = await deleteMultipleTeams(selectedIds);
+        if (res.success) handleRefresh();
     };
 
     const toggleSelectAll = (e) => {

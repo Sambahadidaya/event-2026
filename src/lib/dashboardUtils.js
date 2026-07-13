@@ -89,8 +89,15 @@ export function formatSyncTime(timestamp) {
     if (!timestamp) return 'Belum disinkron';
     const diff = Date.now() - timestamp;
     if (diff < 60000) return 'Baru saja';
-    if (diff < 3600000) return `${Math.floor(diff / 60000)} menit lalu`;
-    return new Date(timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    if (diff < 3600000) {
+        return `${Math.floor(diff / 60000)} menit yang lalu`;
+    }
+    if (diff < 86400000) {
+        return `${Math.floor(diff / 3600000)} jam yang lalu`;
+    }
+    const days = Math.floor(diff / 86400000);
+    const hours = Math.floor((diff % 86400000) / 3600000);
+    return `${days} hari, ${hours} jam yang lalu`;
 }
 
 export function getDaysBetween(startKey, endKey) {

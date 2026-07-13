@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getAdmins, addAdmin, deleteAdmin } from '@/api/supabase/admin';
 import { Shield, Plus, Trash2, Edit, RefreshCw, UserPlus, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function AdminStatusPage() {
@@ -14,12 +14,9 @@ export default function AdminStatusPage() {
 
     const fetchAdmins = async () => {
         setLoading(true);
-        const { data, error } = await supabase
-            .from('admins')
-            .select('*')
-            .order('created_at', { ascending: false });
+        const data = await getAdmins();
         
-        if (!error && data) {
+        if (data) {
             setAdmins(data);
         }
         setLoading(false);
@@ -39,23 +36,14 @@ export default function AdminStatusPage() {
         setActionLoading(true);
 
         try {
-            // 1. Create user in Supabase Auth
-            const { data: authData, error: authError } = await supabase.auth.signUp({
-                email: formData.email,
-                password: formData.password,
-            });
-
-            if (authError) throw authError;
-
-            // 2. Insert into admins table
-            const { error: insertError } = await supabase.from('admins').insert([{
-                user_id: authData.user.id,
+            const res = await addAdmin({
                 nama: formData.nama,
                 email: formData.email,
+                password: formData.password,
                 role: formData.role
-            }]);
+            });
 
-            if (insertError) throw insertError;
+            if (!res.success) throw new Error(res.error);
 
             showMessage('Admin berhasil ditambahkan!');
             setShowAddModal(false);
@@ -73,10 +61,10 @@ export default function AdminStatusPage() {
         if (!confirm('Apakah Anda yakin ingin menghapus admin ini?')) return;
         setActionLoading(true);
         
-        const { error } = await supabase.from('admins').delete().eq('id', id);
+        const res = await deleteAdmin(id);
         
-        if (error) {
-            showMessage('Gagal menghapus admin', 'error');
+        if (!res.success) {
+            showMessage('Gagal menghapus admin: ' + res.error, 'error');
         } else {
             showMessage('Admin berhasil dihapus');
             fetchAdmins();
@@ -119,17 +107,18 @@ export default function AdminStatusPage() {
                                 <th className="px-6 py-4">Email</th>
                                 <th className="px-6 py-4">Role</th>
                                 <th className="px-6 py-4">Status</th>
+                                <th className="px-6 py-4">Terakhir Login</th>
                                 <th className="px-6 py-4 text-right">Aksi</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                             {loading ? (
                                 <tr>
-                                    <td colSpan="5" className="px-6 py-8 text-center text-slate-500">Memuat data admin...</td>
+                                    <td colSpan="6" className="px-6 py-8 text-center text-slate-500">Memuat data admin...</td>
                                 </tr>
                             ) : admins.length === 0 ? (
                                 <tr>
-                                    <td colSpan="5" className="px-6 py-8 text-center text-slate-500">Belum ada data admin.</td>
+                                    <td colSpan="6" className="px-6 py-8 text-center text-slate-500">Belum ada data admin.</td>
                                 </tr>
                             ) : (
                                 admins.map((admin) => {
@@ -159,6 +148,12 @@ export default function AdminStatusPage() {
                                                         {isActuallyOnline ? 'Online' : 'Offline'}
                                                     </span>
                                                 </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">
+                                                {admin.last_active ? new Date(admin.last_active).toLocaleString('id-ID', {
+                                                    dateStyle: 'medium',
+                                                    timeStyle: 'short'
+                                                }) : '-'}
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <button 

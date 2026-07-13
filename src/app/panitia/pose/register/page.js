@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Users, Search, Eye, CheckCircle2, XCircle, Clock, Filter } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { getTeams, upsertTeam } from '@/api/supabase/team';
 import { useRouter } from 'next/navigation';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
 import DashboardSelect from '@/components/panitia/DashboardSelect';
@@ -30,12 +30,6 @@ export default function PoseRegisterDashboard() {
     const fetchData = useCallback(async (forceRefresh = false) => {
         setLoading(true);
 
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-            router.push('/panitia/login');
-            return;
-        }
-
         const cacheKey = CACHE_KEY;
         const timeKey = `${CACHE_KEY}_time`;
 
@@ -54,13 +48,9 @@ export default function PoseRegisterDashboard() {
             }
         }
 
-        const { data: teamData, error } = await supabase
-            .from('team')
-            .select('*, team_members(*)')
-            .eq('type', 'pose')
-            .order('created_at', { ascending: false });
+        const teamData = await getTeams('pose');
 
-        if (!error && teamData) {
+        if (teamData) {
             setData(teamData);
             const now = Date.now();
             localStorage.setItem(cacheKey, JSON.stringify(teamData));
@@ -111,13 +101,10 @@ export default function PoseRegisterDashboard() {
         if (!verifikasiItem) return;
         setVerifikasiLoading(true);
         
-        const { error } = await supabase
-            .from('team')
-            .update({ verivikasi: status })
-            .eq('id', verifikasiItem.id);
+        const res = await upsertTeam({ verivikasi: status }, verifikasiItem.id);
 
-        if (error) {
-            window.alert('Gagal memverifikasi tim.');
+        if (!res.success) {
+            window.alert('Gagal memverifikasi tim: ' + res.error);
         } else {
             const updated = data.map(d =>
                 d.id === verifikasiItem.id ? { ...d, verivikasi: status } : d
@@ -318,7 +305,7 @@ export default function PoseRegisterDashboard() {
             />
 
             {verifikasiItem && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
                     <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden border border-gray-100 dark:border-gray-800">
                         <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
                             <h3 className="font-bold text-lg text-gray-900 dark:text-white">Verifikasi Tim</h3>

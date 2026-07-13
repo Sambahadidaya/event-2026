@@ -1,0 +1,7 @@
+sekarang ada bug yaitu pada saat login dihalaman login panitia itu malah stack dihalaman login dan waktu aku refersh baru bisa masuk, dan meskipun sudah masuk malah semuanya dikunci seolah admin rolenya tidak terdeteksi, kan harusnya halaman hanya bisa dibuka tergantung rolenya apa yang sudah diatur difile src/lib/adminRoleData.js. terus waktu aku liat didevtools itu malah adminsnya bocor semua, padahal kalau selain superadmin tidak bisa mengakses semua tabel admins (select*), dan harusnya kalau selain superadmin itu cuman bisa akses admins sesuai yang login.
+dan berikut bocornya;
+```json
+0:{"a":"$@1","f":"","q":"","i":true,"b":"development"}
+1:D"$2"
+1:[{"id":"4d8e5140-2acd-490d-915a-4836592b5ec3","user_id":"79c63a53-008f-41f6-b4a2-82ebdced196a","nama":"sam","email":"sam1@gmail.com","role":"super_admin","is_online":true,"last_active":"2026-07-11T14:18:03.429+00:00","created_at":"2026-07-09T14:58:52.940726+00:00"},{"id":"a961fb38-9388-4bad-85ca-15ab9a254cf1","user_id":"79c63a53-008f-41f6-b4a2-82ebdced196a","nama":"pose","email":"sam@gmail.com","role":"admin_pose","is_online":true,"last_active":"2026-07-11T14:18:03.429+00:00","created_at":"2026-07-02T19:34:52.520342+00:00"},{"id":"4874848e-3a25-4dbd-aeb6-cf51c3f843c2","user_id":"3b3a9cc7-eef5-4811-9e9c-05a97835cc14","nama":"Sams","email":"sambahadidaya3@gmail.com","role":"super_admin","is_online":true,"last_active":"2026-07-11T14:12:08.237+00:00","created_at":"2026-06-28T16:01:29.602689+00:00"}]
+```

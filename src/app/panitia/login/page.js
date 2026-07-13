@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { loginAdmin } from '@/api/supabase/auth';
 import ThemeToggle from '@/components/ThemeToggle';
 import { Shield, Mail, Lock, ArrowRight, User } from 'lucide-react';
 
@@ -32,51 +32,15 @@ export default function PanitiaLogin() {
         setLoading(true);
         setError(null);
 
-        let loginEmail = identifier;
+        const res = await loginAdmin(identifier, password, loginMethod);
 
-        if (loginMethod === 'nama') {
-            // Cek email berdasarkan nama dari tabel admins
-            const { data: adminData, error: adminError } = await supabase
-                .from('admins')
-                .select('email')
-                .ilike('nama', identifier)
-                .single();
-
-            if (adminError || !adminData) {
-                setError('Nama tidak ditemukan dalam sistem.');
-                setLoading(false);
-                return;
-            }
-            loginEmail = adminData.email;
-        } else {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(identifier)) {
-                setError('Format email tidak valid.');
-                setLoading(false);
-                return;
-            }
-        }
-
-        const { data, error: signInError } = await supabase.auth.signInWithPassword({
-            email: loginEmail,
-            password,
-        });
-
-        if (signInError) {
-            setError('Kredensial tidak valid. Silakan coba lagi.');
+        if (!res.success) {
+            setError(res.error);
             setLoading(false);
             return;
         }
 
-        // Update status online
-        await supabase
-            .from('admins')
-            .update({ is_online: true, last_active: new Date().toISOString() })
-            .eq('user_id', data.user.id);
-
-        document.cookie = `sb-access-token=${data.session.access_token}; path=/; max-age=3600`;
         router.push('/panitia/dashboard/trafik');
-        router.refresh();
     };
 
     return (

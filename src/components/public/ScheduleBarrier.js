@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '@/lib/supabase';
+import { getJadwalAcara } from '@/api/supabase/jadwal';
 import { Clock, ArrowRight, X } from 'lucide-react';
 import Link from 'next/link';
 
@@ -26,13 +26,9 @@ export default function ScheduleBarrier({ children, pageType }) {
 
     useEffect(() => {
         const fetchAndCheck = async () => {
-            const { data, error } = await supabase
-                .from('jadwal_acara')
-                .select('*')
-                .eq('site', 'pose')
-                .order('waktu_mulai', { ascending: true });
+            const data = await getJadwalAcara('pose');
 
-            if (error || !data || data.length === 0) {
+            if (!data || data.length === 0) {
                 setLoading(false);
                 return;
             }

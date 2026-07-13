@@ -36,13 +36,11 @@ export const PRODI_DATA = [
     'Manajemen Pemasaran',
     'Manajemen Perusahaan',
     'Teknik Komputer',
-    'Lainnya'
 ];
 
 export const Angkatan_DATA = [
     '2026',
     '2025',
-    'Lainnya'
 ];
 
 export const KAMPUS_DATA = [
@@ -52,7 +50,6 @@ export const KAMPUS_DATA = [
     'Kampus Pekanbaru',
     'Kampus Padang',
     'Kampus Langsa',
-    'Lainnya'
 ];
 
 export const STATUS_BAYAR_DATA = [
@@ -65,3 +62,32 @@ export const STATUS_VERIFIKASI_DATA = [
     'Ditolak',
     'Pending'
 ];
+
+export const KAMPUS_PRODI_CODES = {
+    'Kampus Bandung': {
+        '01': 'Administrasi Bisnis',
+        '02': 'Manajemen Informatika',
+        '03': 'Akuntansi',
+        '04': 'Hubungan Masyarakat',
+        '41': 'Bisnis Digital'
+    }
+};
+
+export function parseNIM(nim, kampus) {
+    if (!nim || nim.length !== 9) return null;
+    const angkatan = nim.substring(0, 4);
+    const prodiCode = nim.substring(4, 6);
+    const urut = nim.substring(6, 9);
+
+    let prodiName = "Tidak Diketahui";
+    if (KAMPUS_PRODI_CODES[kampus] && KAMPUS_PRODI_CODES[kampus][prodiCode]) {
+        prodiName = KAMPUS_PRODI_CODES[kampus][prodiCode];
+    }
+
+    return {
+        angkatan,
+        prodiCode,
+        prodiName,
+        urut
+    };
+}

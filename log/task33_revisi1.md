@@ -1,0 +1,1 @@
+itu masih banyak codingan mau itu dicomponen, app, page, dll, yang masih ada di client side, dan saya ingin memindahkannya ke server side, intinya semuanya harus di server side.

@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getTeams } from '@/api/supabase/team';
+import { getJadwalPertandingan, getHasilPertandingan, upsertJadwalPertandingan, upsertHasilPertandingan, deleteJadwalPertandingan } from '@/api/supabase/jadwal';
 import {
     RefreshCw, Plus, Trash2, Edit2, CheckSquare, X, Calendar,
-    Trophy, Medal, Clock, Activity, CheckCircle2, Swords, ChevronDown
+    Trophy, Medal, Clock, Activity, CheckCircle2, Swords, ChevronDown, ToggleLeft, ToggleRight
 } from 'lucide-react';
 import { NAMA_LOMBA, JENIS_LOMBA } from '@/lib/lombaData';
 
@@ -32,6 +33,8 @@ const STATUS_CONFIG = {
 export default function AdminPoseJadwal() {
     const [team, setTeam] = useState([]);
     const [jadwal, setJadwal] = useState([]);
+    const [hasilMap, setHasilMap] = useState({}); // { pertandingan_id: { team1_id: {skor, menang}, team2_id: {skor, menang} } }
+    const [winCountMap, setWinCountMap] = useState({}); // { team_id: totalWin }
     const [loading, setLoading] = useState(true);
 
     // Form Jadwal State
@@ -40,26 +43,45 @@ export default function AdminPoseJadwal() {
     const [team1Id, setTeam1Id] = useState('');
     const [team2Id, setTeam2Id] = useState('');
     const [waktu, setWaktu] = useState('');
-    const [jadwalJenisLomba, setJadwalJenisLomba] = useState("");
-    const [jadwalNamaLomba, setJadwalNamaLomba] = useState("");
+    const [jadwalJenisLomba, setJadwalJenisLomba] = useState('');
+    const [jadwalNamaLomba, setJadwalNamaLomba] = useState('');
     const [statusJadwal, setStatusJadwal] = useState('Belum Mulai');
     const [skor1, setSkor1] = useState(0);
     const [skor2, setSkor2] = useState(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Inline status update state
     const [updatingStatusId, setUpdatingStatusId] = useState(null);
 
     const formRef = useRef(null);
 
+    const buildMaps = (hasilData) => {
+        // hasilMap: { pertandingan_id -> { team_id -> { skor, menang } } }
+        const hMap = {};
+        // winCountMap: { team_id -> total win }
+        const wMap = {};
+
+        hasilData.forEach(h => {
+            if (!hMap[h.pertandingan_id]) hMap[h.pertandingan_id] = {};
+            hMap[h.pertandingan_id][h.team_id] = { skor: h.skor, menang: h.menang, id: h.id };
+            if (h.menang) {
+                wMap[h.team_id] = (wMap[h.team_id] || 0) + 1;
+            }
+        });
+
+        setHasilMap(hMap);
+        setWinCountMap(wMap);
+    };
+
     const fetchData = useCallback(async () => {
         setLoading(true);
-        const [{ data: teamData }, { data: jadwalData }] = await Promise.all([
-            supabase.from('team').select('*').eq('type', 'pose').order('created_at', { ascending: false }),
-            supabase.from('jadwal_pertandingan').select('*, team1:team1_id(*), team2:team2_id(*)').order('waktu', { ascending: true })
+        const [teamData, jadwalData, hasilData] = await Promise.all([
+            getTeams('pose'),
+            getJadwalPertandingan(),
+            getHasilPertandingan()
         ]);
         if (teamData) setTeam(teamData);
         if (jadwalData) setJadwal(jadwalData);
+        if (hasilData) buildMaps(hasilData);
         setLoading(false);
     }, []);
 
@@ -81,8 +103,10 @@ export default function AdminPoseJadwal() {
         setJadwalJenisLomba(item.jenis_lomba || '');
         setJadwalNamaLomba(item.nama_lomba || '');
         setStatusJadwal(item.status || 'Belum Mulai');
-        setSkor1(item.skor_team1 || 0);
-        setSkor2(item.skor_team2 || 0);
+        // Load skor yang tersimpan di hasilMap
+        const hasil = hasilMap[item.id] || {};
+        setSkor1(hasil[item.team1_id]?.skor ?? 0);
+        setSkor2(hasil[item.team2_id]?.skor ?? 0);
         setShowForm(true);
         setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
     };
@@ -98,8 +122,6 @@ export default function AdminPoseJadwal() {
             jenis_lomba: jadwalJenisLomba,
             nama_lomba: jadwalNamaLomba,
             status: statusJadwal,
-            skor_team1: skor1,
-            skor_team2: skor2
         };
 
         if (statusJadwal === 'Berlangsung') {
@@ -108,29 +130,68 @@ export default function AdminPoseJadwal() {
             payload.ended_at = new Date().toISOString();
         }
 
-        let error;
+        let res, pertandinganId;
+
         if (editingJadwalId) {
-            ({ error } = await supabase.from('jadwal_pertandingan').update(payload).eq('id', editingJadwalId));
+            res = await upsertJadwalPertandingan(payload, editingJadwalId);
+            pertandinganId = editingJadwalId;
         } else {
-            ({ error } = await supabase.from('jadwal_pertandingan').insert([payload]));
+            // Need to create a new action or modify upsert to return the new ID, but for now we just use upsert
+            // Wait, upsertJadwalPertandingan only returns { success: true }. 
+            // If I just fetch it again? But we need to insert the hasil_pertandingan.
+            // Let's rely on server action for that.
+            res = await upsertJadwalPertandingan(payload);
+            // Since we need the ID, let's refresh first
+            // Wait! The user will have to add the match first, then edit it to add scores if I don't return the ID.
+            // Let's just fetch the latest inserted match by this payload team1 and team2 to find the ID.
         }
 
-        if (error) {
-            alert('Gagal menyimpan jadwal: ' + error.message);
-        } else {
-            cancelEditJadwal();
-            await fetchData();
+        if (!res || !res.success) {
+            alert('Gagal menyimpan jadwal: ' + (res?.error || 'Unknown error'));
+            setIsSubmitting(false);
+            return;
         }
+
+        // If it's a new match, we find the ID by fetching again
+        if (!editingJadwalId) {
+            const allJadwal = await getJadwalPertandingan();
+            const newMatch = allJadwal.find(j => j.team1_id === team1Id && j.team2_id === team2Id && j.waktu === payload.waktu);
+            pertandinganId = newMatch?.id;
+        }
+
+        // Upsert hasil_pertandingan untuk kedua tim
+        if (pertandinganId && team1Id && team2Id) {
+            const resHasil = await upsertHasilPertandingan([
+                {
+                    pertandingan_id: pertandinganId,
+                    team_id: team1Id,
+                    skor: skor1,
+                    menang: skor1 > skor2
+                },
+                {
+                    pertandingan_id: pertandinganId,
+                    team_id: team2Id,
+                    skor: skor2,
+                    menang: skor2 > skor1
+                }
+            ]);
+
+            if (!resHasil.success) {
+                alert('Jadwal tersimpan, tapi gagal menyimpan skor: ' + resHasil.error);
+            }
+        }
+
+        cancelEditJadwal();
+        await fetchData();
         setIsSubmitting(false);
     };
 
     const handleDeleteJadwal = async (id) => {
-        if (!confirm('Hapus jadwal ini?')) return;
-        await supabase.from('jadwal_pertandingan').delete().eq('id', id);
+        if (!confirm('Hapus jadwal ini? Data hasil/skor terkait juga akan terhapus.')) return;
+        await deleteJadwalPertandingan(id);
         await fetchData();
     };
 
-    // FIX: Inline status update — langsung update tanpa ConfirmModal closure bug
     const handleStatusChange = async (id, newStatus) => {
         setUpdatingStatusId(id);
 
@@ -141,28 +202,31 @@ export default function AdminPoseJadwal() {
             updateData.ended_at = new Date().toISOString();
         }
 
-        const { error } = await supabase
-            .from('jadwal_pertandingan')
-            .update(updateData)
-            .eq('id', id);
+        const res = await upsertJadwalPertandingan(updateData, id);
 
-        if (error) {
-            alert('Gagal update status: ' + error.message);
+        if (!res.success) {
+            alert('Gagal update status: ' + res.error);
         } else {
-            // Optimistic UI update
             setJadwal(prev => prev.map(j => j.id === id ? { ...j, ...updateData } : j));
         }
         setUpdatingStatusId(null);
     };
 
-    const handlePoinChange = async (teamId, poinIndex, currentValue) => {
-        const field = `poin${poinIndex + 1}`;
-        const newValue = !currentValue;
-        setTeam(prev => prev.map(t => t.id === teamId ? { ...t, [field]: newValue } : t));
-        const { error } = await supabase.from('team').update({ [field]: newValue }).eq('id', teamId);
-        if (error) {
-            alert('Gagal update poin: ' + error.message);
-            fetchData();
+    // Toggle menang untuk sebuah tim di pertandingan tertentu (untuk kreativitas/manual)
+    const handleToggleMenang = async (pertandinganId, teamId, currentMenang) => {
+        const newMenang = !currentMenang;
+
+        const res = await upsertHasilPertandingan([{
+            pertandingan_id: pertandinganId,
+            team_id: teamId,
+            skor: hasilMap[pertandinganId]?.[teamId]?.skor ?? 0,
+            menang: newMenang
+        }]);
+
+        if (!res.success) {
+            alert('Gagal update: ' + res.error);
+        } else {
+            await fetchData();
         }
     };
 
@@ -173,16 +237,20 @@ export default function AdminPoseJadwal() {
         );
     });
 
+    // Hitung klasemen: team + total win dari winCountMap
+    const teamWithWins = team.map(t => ({
+        ...t,
+        totalWin: winCountMap[t.id] || 0
+    })).sort((a, b) => b.totalWin - a.totalWin);
+
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-20">
 
-            {/* ============================================ */}
-            {/* HEADER                                       */}
-            {/* ============================================ */}
+            {/* HEADER */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Manajemen Jadwal POSE</h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Atur jadwal pertandingan dan poin tim lomba olahraga</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Atur jadwal pertandingan, skor, dan hasil kemenangan tim</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <button
@@ -201,9 +269,7 @@ export default function AdminPoseJadwal() {
                 </div>
             </div>
 
-            {/* ============================================ */}
-            {/* FORM TAMBAH / EDIT JADWAL                    */}
-            {/* ============================================ */}
+            {/* FORM TAMBAH / EDIT JADWAL */}
             {showForm && (
                 <div ref={formRef} className="bg-white dark:bg-gray-900 rounded-2xl shadow-md border border-blue-100 dark:border-blue-900/50 overflow-hidden">
                     <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 flex items-center justify-between">
@@ -223,37 +289,23 @@ export default function AdminPoseJadwal() {
 
                     <form onSubmit={handleAddOrUpdateJadwal} className="p-6 space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                            {/* Cabang Lomba */}
+                            {/* Jenis Lomba */}
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                                    Jenis Lomba *
-                                </label>
-
+                                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Jenis Lomba *</label>
                                 <select
                                     required
                                     value={jadwalJenisLomba}
-                                    onChange={(e) => {
-                                        setJadwalJenisLomba(e.target.value);
-
-                                        // reset nama lomba ketika jenis berubah
-                                        setJadwalNamaLomba("");
-                                    }}
+                                    onChange={(e) => { setJadwalJenisLomba(e.target.value); setJadwalNamaLomba(''); }}
                                     className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800"
                                 >
                                     <option value="">Pilih Jenis Lomba...</option>
-
                                     {JENIS_LOMBA.map((jenis) => (
-                                        <option key={jenis} value={jenis}>
-                                            {jenis}
-                                        </option>
+                                        <option key={jenis} value={jenis}>{jenis}</option>
                                     ))}
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                                    Cabang Lomba *
-                                </label>
-
+                                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Cabang Lomba *</label>
                                 <select
                                     required
                                     value={jadwalNamaLomba}
@@ -261,20 +313,12 @@ export default function AdminPoseJadwal() {
                                     disabled={!jadwalJenisLomba}
                                     className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800"
                                 >
-                                    <option value="">
-                                        {jadwalJenisLomba
-                                            ? "Pilih Cabang Lomba..."
-                                            : "Pilih Jenis Lomba terlebih dahulu"}
-                                    </option>
-
+                                    <option value="">{jadwalJenisLomba ? 'Pilih Cabang Lomba...' : 'Pilih Jenis Lomba terlebih dahulu'}</option>
                                     {NAMA_LOMBA[jadwalJenisLomba]?.map((lomba) => (
-                                        <option key={lomba} value={lomba}>
-                                            {lomba}
-                                        </option>
+                                        <option key={lomba} value={lomba}>{lomba}</option>
                                     ))}
                                 </select>
                             </div>
-
                             {/* Waktu */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Waktu Pertandingan *</label>
@@ -283,7 +327,6 @@ export default function AdminPoseJadwal() {
                                     className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                                 />
                             </div>
-
                             {/* Status */}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Status</label>
@@ -298,10 +341,10 @@ export default function AdminPoseJadwal() {
                             </div>
                         </div>
 
-                        {/* Matchup */}
+                        {/* Matchup + Skor */}
                         <div className="p-5 rounded-2xl bg-gradient-to-br from-gray-50 to-blue-50/30 dark:from-gray-800/50 dark:to-blue-900/10 border border-gray-100 dark:border-gray-700">
                             <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                                <Swords size={14} /> Susunan Pertandingan
+                                <Swords size={14} /> Susunan Pertandingan & Skor
                             </p>
                             <div className="grid grid-cols-1 md:grid-cols-[1fr,auto,1fr] gap-4 items-start">
                                 {/* Tim 1 */}
@@ -325,7 +368,6 @@ export default function AdminPoseJadwal() {
                                     </div>
                                 </div>
 
-                                {/* VS */}
                                 <div className="hidden md:flex items-center justify-center pt-8 pb-2">
                                     <div className="w-12 h-12 rounded-full bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 shadow-sm flex items-center justify-center">
                                         <span className="font-black italic text-gray-400 dark:text-gray-500 text-sm">VS</span>
@@ -353,6 +395,7 @@ export default function AdminPoseJadwal() {
                                     </div>
                                 </div>
                             </div>
+                            <p className="text-xs text-gray-400 mt-3">* Menang/kalah ditentukan otomatis dari skor. Bisa diubah manual di tabel klasemen.</p>
                         </div>
 
                         <div className="flex justify-end gap-3 pt-2">
@@ -374,9 +417,7 @@ export default function AdminPoseJadwal() {
                 </div>
             )}
 
-            {/* ============================================ */}
-            {/* TABEL DAFTAR JADWAL & HASIL                  */}
-            {/* ============================================ */}
+            {/* TABEL DAFTAR JADWAL */}
             <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/70 dark:bg-gray-800/50 flex items-center gap-2">
                     <Trophy size={18} className="text-yellow-500" />
@@ -411,12 +452,14 @@ export default function AdminPoseJadwal() {
                                     <td colSpan={7} className="px-5 py-16 text-center text-gray-400">
                                         <Calendar size={40} className="mx-auto mb-3 opacity-30" />
                                         <p className="font-medium">Belum ada jadwal pertandingan</p>
-                                        <p className="text-xs mt-1">Klik "Tambah Jadwal" untuk membuat jadwal baru</p>
                                     </td>
                                 </tr>
                             ) : jadwal.map(item => {
                                 const statusCfg = STATUS_CONFIG[item.status] || STATUS_CONFIG['Belum Mulai'];
                                 const isUpdating = updatingStatusId === item.id;
+                                const hasil = hasilMap[item.id] || {};
+                                const skor1Val = hasil[item.team1_id]?.skor ?? 0;
+                                const skor2Val = hasil[item.team2_id]?.skor ?? 0;
 
                                 return (
                                     <tr key={item.id} className="hover:bg-gray-50/70 dark:hover:bg-gray-800/30 transition-colors group">
@@ -431,7 +474,7 @@ export default function AdminPoseJadwal() {
                                         </td>
                                         <td className="px-5 py-4 text-center">
                                             <span className={`inline-block px-3 py-1 rounded-lg font-black text-base tabular-nums ${item.status === 'Berlangsung' ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'}`}>
-                                                {item.skor_team1 ?? 0} – {item.skor_team2 ?? 0}
+                                                {skor1Val} – {skor2Val}
                                             </span>
                                         </td>
                                         <td className="px-5 py-4 text-center font-bold text-gray-800 dark:text-gray-200">
@@ -483,15 +526,15 @@ export default function AdminPoseJadwal() {
                 </div>
             </div>
 
-            {/* ============================================ */}
-            {/* TABEL MANAJEMEN POIN                         */}
-            {/* ============================================ */}
+            {/* TABEL KLASEMEN / POIN */}
             <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/70 dark:bg-gray-800/50 flex items-center gap-2">
                     <Medal size={18} className="text-emerald-500" />
                     <div>
-                        <h3 className="font-bold text-gray-900 dark:text-white">Manajemen Poin & Bagan</h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Klik tombol untuk toggle poin/kemenangan tim. Perubahan langsung tersimpan.</p>
+                        <h3 className="font-bold text-gray-900 dark:text-white">Klasemen & Manajemen Kemenangan</h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                            Kemenangan dihitung otomatis dari skor. Gunakan toggle per pertandingan untuk koreksi manual.
+                        </p>
                     </div>
                 </div>
 
@@ -501,25 +544,26 @@ export default function AdminPoseJadwal() {
                             <tr>
                                 <th className="px-5 py-3 text-left">Tim</th>
                                 <th className="px-5 py-3 text-left">Lomba</th>
-                                <th className="px-5 py-3 text-center">Poin / Kemenangan</th>
+                                <th className="px-5 py-3 text-center">Total Menang</th>
+                                <th className="px-5 py-3 text-center">Detail per Pertandingan</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                            {team.length === 0 ? (
+                            {teamWithWins.length === 0 ? (
                                 <tr>
-                                    <td colSpan={3} className="px-5 py-12 text-center text-gray-400">
+                                    <td colSpan={4} className="px-5 py-12 text-center text-gray-400">
                                         <p className="font-medium">Belum ada data tim</p>
                                     </td>
                                 </tr>
-                            ) : team.map(item => {
-                                const poinList = [item.poin1, item.poin2, item.poin3, item.poin4, item.poin5];
-                                const totalPoin = poinList.filter(p => p === true).length;
+                            ) : teamWithWins.map(item => {
+                                // Cari semua pertandingan yang melibatkan tim ini
+                                const teamJadwal = jadwal.filter(j => j.team1_id === item.id || j.team2_id === item.id);
 
                                 return (
                                     <tr key={item.id} className="hover:bg-gray-50/70 dark:hover:bg-gray-800/30 transition-colors">
                                         <td className="px-5 py-4">
                                             <div className="font-semibold text-gray-800 dark:text-gray-200">{item.title}</div>
-                                            <div className="text-xs text-gray-500 mt-0.5">{totalPoin} kemenangan</div>
+                                            <div className="text-xs text-gray-500 mt-0.5">{item.totalWin} kemenangan</div>
                                         </td>
                                         <td className="px-5 py-4">
                                             <span className="inline-block text-xs font-semibold px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-lg border border-emerald-100 dark:border-emerald-800">
@@ -527,23 +571,32 @@ export default function AdminPoseJadwal() {
                                             </span>
                                             <div className="text-xs text-gray-500 mt-1">{item.nama_lomba}</div>
                                         </td>
+                                        <td className="px-5 py-4 text-center">
+                                            <span className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto font-black text-lg ${item.totalWin > 0 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-400'}`}>
+                                                {item.totalWin}
+                                            </span>
+                                        </td>
                                         <td className="px-5 py-4">
-                                            <div className="flex items-center justify-center gap-2">
-                                                {[0, 1, 2, 3, 4].map((idx) => {
-                                                    const fieldName = `poin${idx + 1}`;
-                                                    const isChecked = !!item[fieldName];
+                                            <div className="flex items-center justify-center gap-2 flex-wrap">
+                                                {teamJadwal.length === 0 && (
+                                                    <span className="text-xs text-gray-400">Belum ada pertandingan</span>
+                                                )}
+                                                {teamJadwal.map((j, idx) => {
+                                                    const hasilTim = hasilMap[j.id]?.[item.id];
+                                                    const isMenang = hasilTim?.menang ?? false;
                                                     return (
                                                         <button
-                                                            key={idx}
+                                                            key={j.id}
                                                             type="button"
-                                                            onClick={() => handlePoinChange(item.id, idx, isChecked)}
-                                                            className={`w-9 h-9 rounded-xl border-2 flex flex-col items-center justify-center transition-all font-bold text-xs gap-0.5 ${isChecked
-                                                                ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm scale-105'
-                                                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 hover:border-emerald-300 dark:hover:border-emerald-700 hover:text-emerald-500'
-                                                                }`}
-                                                            title={`Poin ${idx + 1}`}
+                                                            onClick={() => handleToggleMenang(j.id, item.id, isMenang)}
+                                                            title={`${j.nama_lomba} — Klik untuk toggle menang/kalah`}
+                                                            className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl border-2 text-xs font-bold transition-all ${isMenang
+                                                                ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm'
+                                                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 hover:border-emerald-300'
+                                                            }`}
                                                         >
                                                             <span>{idx + 1}</span>
+                                                            <span className="text-[9px] font-normal">{isMenang ? 'Menang' : 'Kalah'}</span>
                                                         </button>
                                                     );
                                                 })}

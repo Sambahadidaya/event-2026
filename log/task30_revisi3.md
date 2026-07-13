@@ -1,0 +1,5 @@
+ada beberapa revisi lagi, yaitu ;
+1. saya ingin pada halaman form ini saya tidak ingin pakai `/components/public/PageHero` tapi pakai `/components/public/SiteBackground` jadi background formnya langsung diambil dari `/components/public/SiteBackground` juga, dan perbaiki juga div formnya. 
+2. terus saya ingin kolom nimnya itu harus mengisi 9karakter tidak boleh kurang atau lebih
+3. terus dihalaman peserta wajib yaitu pada file `/components/panitia/AdminPesertaWajib.js`, saya ingin kolom statusnya diganti menjadi kolom tanggal, terus kolom verivikasinya isinya itu tombol verifikasi, yang logika atau desainnya sama seperti tabel kolom verifikasi pada halaman `/panitia/pose/register`.
+4. terus ada bug pada saat muncul pop up atau modal atau waktu menekan tombol lihat, yaitu navbar/header (div yang tombol humburger dan darkmode/lighmode) nya malah menimpa modal ini, dan ini berlaku diseluruh modal, kan harusnya waktu muncul modal ini semuanya harus berada dibelakang modal tapi ini tidak, dan jadinya susah untuk close (menekan tombol x) karna terhalang itu.

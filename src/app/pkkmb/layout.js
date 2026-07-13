@@ -18,6 +18,8 @@ export default function PkkmbLayout({ children }) {
 
         { href: '/pkkmb/kelompok', label: 'Kelompok' },
 
+        { href: '/pkkmb/jadwal', label: 'Jadwal' },
+
         { href: '/pkkmb/contact', label: 'Kontak' }
 
     ];

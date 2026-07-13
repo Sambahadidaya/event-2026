@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getFormRegister } from '@/api/supabase/peserta';
 import Link from 'next/link';
 import { ArrowRight, Trophy, Image as ImageIcon } from 'lucide-react';
 import PageHero from '@/components/public/PageHero';
@@ -14,12 +14,9 @@ export default function PoseRegisterPage() {
 
     useEffect(() => {
         const fetchForms = async () => {
-            const { data, error } = await supabase
-                .from('form_register')
-                .select('*')
-                .order('created_at', { ascending: false });
+            const data = await getFormRegister();
 
-            if (!error && data) {
+            if (data) {
                 setForms(data);
             }
             if (typeof window !== 'undefined') {

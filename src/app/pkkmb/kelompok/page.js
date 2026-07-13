@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Users, Search, ChevronDown, ChevronUp, Image as ImageIcon } from 'lucide-react';
 import PageHero from '@/components/public/PageHero';
-import { supabase } from '@/lib/supabase';
+import { getTeams } from '@/api/supabase/team';
 
 const InstagramIcon = ({ size = 14, className = "" }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -21,11 +21,7 @@ export default function PkkmbKelompok() {
 
     useEffect(() => {
         const fetchTeam = async () => {
-            const { data } = await supabase
-                .from('team')
-                .select('*, team_members(*)')
-                .eq('type', 'pkkmb')
-                .order('created_at', { ascending: false });
+            const data = await getTeams('pkkmb');
                 
             if (data) {
                 setTeam(data);

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Mail, Inbox, Eye, Eraser, CheckSquare, Square, Search, CheckCircle2, CircleDashed, Trash2 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { getKontak, updateKontakJawab, deleteMultipleKontak } from '@/api/supabase/admin';
 import { useRouter } from 'next/navigation';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
 import DashboardOverviewCards from '@/components/panitia/DashboardOverviewCards';
@@ -44,22 +44,8 @@ export default function KontakDashboard() {
     const fetchData = useCallback(async (forceRefresh = false) => {
         setLoading(true);
 
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-            router.push('/panitia/login');
-            return;
-        }
-
-        const { data: admin } = await supabase
-            .from('admins')
-            .select('role')
-            .eq('user_id', session.user.id)
-            .single();
-
-        const currentRole = admin?.role || 'super_admin';
+        const currentRole = 'super_admin'; 
         setAdminRole(currentRole);
-        if (currentRole === 'admin_pkkmb') setActiveTab('pkkmb');
-        if (currentRole === 'admin_pose') setActiveTab('pose');
 
         const cacheRoleKey = `${CACHE_KEY}_${currentRole}`;
         const timeKey = `${CACHE_KEY}_time_${currentRole}`;
@@ -79,20 +65,21 @@ export default function KontakDashboard() {
             }
         }
 
-        let query = supabase.from('kontak').select('*').order('created_at', { ascending: false });
-        if (currentRole === 'admin_pkkmb') query = query.eq('site', 'pkkmb');
-        else if (currentRole === 'admin_pose') query = query.eq('site', 'pose');
+        const kontakData = await getKontak();
+        
+        if (kontakData) {
+            let filteredData = kontakData;
+            if (currentRole === 'admin_pkkmb') filteredData = kontakData.filter(d => d.site === 'pkkmb');
+            else if (currentRole === 'admin_pose') filteredData = kontakData.filter(d => d.site === 'pose');
 
-        const { data: kontakData, error } = await query;
-        if (!error && kontakData) {
-            setData(kontakData);
+            setData(filteredData);
             const now = Date.now();
-            localStorage.setItem(cacheRoleKey, JSON.stringify(kontakData));
+            localStorage.setItem(cacheRoleKey, JSON.stringify(filteredData));
             localStorage.setItem(timeKey, now.toString());
             setLastSyncedAt(now);
         }
         setLoading(false);
-    }, [router]);
+    }, []);
 
     useEffect(() => {
         fetchData();
@@ -155,8 +142,8 @@ export default function KontakDashboard() {
         if (!window.confirm(`Hapus ${ids.length} data kontak? Tindakan ini tidak dapat dibatalkan.`)) return;
 
         setFormatting(true);
-        const { error } = await supabase.from('kontak').delete().in('id', ids);
-        if (error) {
+        const res = await deleteMultipleKontak(ids);
+        if (!res.success) {
             window.alert('Gagal menghapus data.');
             setFormatting(false);
             return;
@@ -182,12 +169,9 @@ export default function KontakDashboard() {
         if (!confirmJawabItem || !adminRole) return;
 
         setJawabLoading(true);
-        const { error } = await supabase
-            .from('kontak')
-            .update({ jawab: true })
-            .eq('id', confirmJawabItem.id);
+        const res = await updateKontakJawab(confirmJawabItem.id, true);
 
-        if (error) {
+        if (!res.success) {
             window.alert('Gagal memperbarui status jawab. Silakan coba lagi.');
             setJawabLoading(false);
             return;

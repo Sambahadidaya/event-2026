@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { Send, Loader2, Mail, CheckCircle2, AlertCircle, X } from 'lucide-react';
+import { Send, CheckCircle2, AlertCircle, X, Mail, Loader2 } from 'lucide-react';
 import { getTheme } from '@/lib/siteThemes';
+import { submitKontak } from '@/api/supabase/admin';
 
 export default function ContactForm({ site }) {
     const theme = getTheme(site);
@@ -83,18 +83,18 @@ export default function ContactForm({ site }) {
         const payloadEmail = contactMethod === 'email' ? formData.email : null;
         const payloadWhatsapp = contactMethod === 'whatsapp' ? formData.whatsapp : null;
 
-        const { error } = await supabase.from('kontak').insert([{
+        const res = await submitKontak({
             nama: formData.nama,
             email: payloadEmail || null,
             whatsapp: payloadWhatsapp || null,
             pesan: formData.pesan,
             site: site
-        }]);
+        });
 
         setLoading(false);
 
-        if (error) {
-            console.error('Submit error:', error);
+        if (!res.success) {
+            console.error('Submit error:', res.error);
             showToast('error', 'Pesan anda gagal terkirim, silahkan coba lagi.');
         } else {
             showToast('success', 'Pesan anda berhasil terkirim, kami akan segera menghubungi anda');

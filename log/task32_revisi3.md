@@ -1,0 +1,1 @@
+saya ingin menghapus fk tabel peserta mau itu dari form_id (dari form_wajib) atau dari kolom form_register_id(dari form register). jadi yang bisa menginput peserta itu tidak perlu dari form saja!

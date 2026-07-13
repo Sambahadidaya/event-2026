@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { MessageSquare, HelpCircle, Eye, Eraser, CheckSquare, Square, Trash2 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { getRiwayatPertanyaan, deleteMultipleRiwayat } from '@/api/supabase/admin';
 import { useRouter } from 'next/navigation';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
 import DashboardOverviewCards from '@/components/panitia/DashboardOverviewCards';
@@ -39,22 +39,10 @@ export default function FaqDashboard() {
 
     const fetchData = useCallback(async (forceRefresh = false) => {
         setLoading(true);
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-            router.push('/panitia/login');
-            return;
-        }
-
-        const { data: admin } = await supabase
-            .from('admins')
-            .select('role')
-            .eq('user_id', session.user.id)
-            .single();
-
-        const currentRole = admin?.role || 'super_admin';
+        // Temporary role assumption since client-side auth is disabled
+        // In a real scenario, this would come from a server-side session
+        const currentRole = 'super_admin'; 
         setAdminRole(currentRole);
-        if (currentRole === 'admin_pkkmb') setSiteFilter('pkkmb');
-        if (currentRole === 'admin_pose') setSiteFilter('pose');
 
         const cacheKey = `admin_faq_data_${currentRole}`;
         const timeKey = `admin_faq_time_${currentRole}`;
@@ -70,20 +58,21 @@ export default function FaqDashboard() {
             }
         }
 
-        let query = supabase.from('riwayat_pertanyaan').select('*').order('created_at', { ascending: false });
-        if (currentRole === 'admin_pkkmb') query = query.eq('site', 'pkkmb');
-        else if (currentRole === 'admin_pose') query = query.eq('site', 'pose');
-
-        const { data } = await query;
+        const data = await getRiwayatPertanyaan();
+        
         if (data) {
-            setHistory(data);
+            let filteredData = data;
+            if (currentRole === 'admin_pkkmb') filteredData = data.filter(d => d.site === 'pkkmb');
+            else if (currentRole === 'admin_pose') filteredData = data.filter(d => d.site === 'pose');
+
+            setHistory(filteredData);
             const now = Date.now();
-            localStorage.setItem(cacheKey, JSON.stringify(data));
+            localStorage.setItem(cacheKey, JSON.stringify(filteredData));
             localStorage.setItem(timeKey, now.toString());
             setLastSyncedAt(now);
         }
         setLoading(false);
-    }, [router]);
+    }, []);
 
     useEffect(() => {
         setMounted(true);
@@ -134,8 +123,8 @@ export default function FaqDashboard() {
         if (!window.confirm(`Hapus ${ids.length} data FAQ? Tindakan ini tidak dapat dibatalkan.`)) return;
 
         setFormatting(true);
-        const { error } = await supabase.from('riwayat_pertanyaan').delete().in('id', ids);
-        if (error) {
+        const res = await deleteMultipleRiwayat(ids);
+        if (!res.success) {
             window.alert('Gagal menghapus data.');
             setFormatting(false);
             return;

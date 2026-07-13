@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Calendar, Trophy, Medal, Check, X, Search } from 'lucide-react';
+import { Calendar, Trophy, Medal, Check, X } from 'lucide-react';
 import PageHero from '@/components/public/PageHero';
 import ScheduleBarrier from '@/components/public/ScheduleBarrier';
-import { supabase } from '@/lib/supabase';
+import { getTeams } from '@/api/supabase/team';
+import { getJadwalPertandingan, getHasilPertandingan } from '@/api/supabase/jadwal';
 import { JENIS_LOMBA, NAMA_LOMBA } from '@/lib/lombaData';
 
 // Komponen Countdown Timer
@@ -53,7 +54,7 @@ const LiveTimer = ({ startTime }) => {
             setTimeStr(`${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
         };
 
-        updateTimer(); // Initial call
+        updateTimer();
         const interval = setInterval(updateTimer, 1000);
         return () => clearInterval(interval);
     }, [startTime]);
@@ -75,30 +76,36 @@ const SUB_FILTERS = JENIS_LOMBA.reduce((acc, jenis) => {
 export default function PoseJadwal() {
     const [team, setTeam] = useState([]);
     const [jadwal, setJadwal] = useState([]);
+    const [hasilMap, setHasilMap] = useState({}); // { pertandingan_id: { team_id: { skor, menang } } }
+    const [winCountMap, setWinCountMap] = useState({}); // { team_id: totalWin }
     const [loading, setLoading] = useState(true);
 
-    const [mainFilter, setMainFilter] = useState('Olahraga'); // Default Olahraga
+    const [mainFilter, setMainFilter] = useState('Olahraga');
     const [subFilter, setSubFilter] = useState('Semua');
     const [statusFilter, setStatusFilter] = useState('Semua');
 
     useEffect(() => {
         const fetchData = async () => {
-            const { data: teamData } = await supabase
-                .from('team')
-                .select('*')
-                .eq('type', 'pose')
-                .eq('verivikasi', true);
-            if (teamData) {
-                setTeam(teamData);
-            }
+            const [teamData, jadwalData, hasilData] = await Promise.all([
+                getTeams('pose'),
+                getJadwalPertandingan(),
+                getHasilPertandingan()
+            ]);
 
-            const { data: jadwalData } = await supabase
-                .from('jadwal_pertandingan')
-                .select('*, team1:team1_id(*), team2:team2_id(*)')
-                .order('waktu', { ascending: true });
-
-            if (jadwalData) {
-                setJadwal(jadwalData);
+            if (teamData) setTeam(teamData.filter(t => t.verivikasi === true));
+            if (jadwalData) setJadwal(jadwalData);
+            if (hasilData) {
+                const hMap = {};
+                const wMap = {};
+                hasilData.forEach(h => {
+                    if (!hMap[h.pertandingan_id]) hMap[h.pertandingan_id] = {};
+                    hMap[h.pertandingan_id][h.team_id] = { skor: h.skor, menang: h.menang };
+                    if (h.menang) {
+                        wMap[h.team_id] = (wMap[h.team_id] || 0) + 1;
+                    }
+                });
+                setHasilMap(hMap);
+                setWinCountMap(wMap);
             }
 
             setLoading(false);
@@ -130,9 +137,7 @@ export default function PoseJadwal() {
         return filtered.sort((a, b) => {
             const weightA = statusWeight[a.status] || 4;
             const weightB = statusWeight[b.status] || 4;
-            if (weightA !== weightB) {
-                return weightA - weightB;
-            }
+            if (weightA !== weightB) return weightA - weightB;
             return new Date(a.waktu) - new Date(b.waktu);
         });
     }, [jadwal, subFilter, statusFilter]);
@@ -145,20 +150,19 @@ export default function PoseJadwal() {
         });
     }, [team, mainFilter, subFilter]);
 
+    // Klasemen dihitung dari hasil_pertandingan (winCountMap)
     const klasemenData = useMemo(() => {
-        const data = filteredTeam.map(t => {
-            let totalWin = 0;
-            if (t.poin1) totalWin++;
-            if (t.poin2) totalWin++;
-            if (t.poin3) totalWin++;
-            if (t.poin4) totalWin++;
-            if (t.poin5) totalWin++;
-            return { ...t, totalWin };
-        });
+        const data = filteredTeam.map(t => ({
+            ...t,
+            totalWin: winCountMap[t.id] || 0,
+            // Ambil daftar menang/kalah per pertandingan tim ini
+            matches: jadwal
+                .filter(j => j.team1_id === t.id || j.team2_id === t.id)
+                .map(j => hasilMap[j.id]?.[t.id] ?? null)
+        }));
 
-        // Urutkan dari win terbanyak (khusus kreativitas: win terbanyak = Juara 1)
         return data.sort((a, b) => b.totalWin - a.totalWin);
-    }, [filteredTeam]);
+    }, [filteredTeam, winCountMap, jadwal, hasilMap]);
 
     return (
         <ScheduleBarrier pageType="jadwal">
@@ -211,41 +215,46 @@ export default function PoseJadwal() {
                         </div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            {activeJadwal.map(j => (
-                                <div key={j.id} className="bg-gray-800/60 backdrop-blur-md rounded-2xl p-6 border border-gray-700 shadow-inner flex flex-col items-center relative overflow-hidden">
-                                    {/* Aksesoris Live */}
-                                    <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-50"></div>
+                            {activeJadwal.map(j => {
+                                const hasil = hasilMap[j.id] || {};
+                                const skor1Val = hasil[j.team1_id]?.skor ?? 0;
+                                const skor2Val = hasil[j.team2_id]?.skor ?? 0;
 
-                                    <div className="text-center text-xs font-bold text-orange-400 mb-6 tracking-widest uppercase bg-orange-900/30 px-3 py-1 rounded-full border border-orange-800/50">{j.nama_lomba}</div>
+                                return (
+                                    <div key={j.id} className="bg-gray-800/60 backdrop-blur-md rounded-2xl p-6 border border-gray-700 shadow-inner flex flex-col items-center relative overflow-hidden">
+                                        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-50"></div>
 
-                                    <div className="flex items-center justify-between w-full">
-                                        <div className="text-center flex-1 flex flex-col items-center">
-                                            {j.team1?.gambar ? (
-                                                <img src={j.team1.gambar} alt={j.team1.title} className="w-16 h-16 rounded-full object-cover border-2 border-gray-600 mb-3 shadow-md bg-gray-700" />
-                                            ) : (
-                                                <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 border-2 border-gray-600 mb-3 shadow-md text-xl font-bold">{j.team1?.title?.charAt(0) || '?'}</div>
-                                            )}
-                                            <div className="font-bold text-lg leading-tight">{j.team1?.title || 'TBD'}</div>
-                                        </div>
+                                        <div className="text-center text-xs font-bold text-orange-400 mb-6 tracking-widest uppercase bg-orange-900/30 px-3 py-1 rounded-full border border-orange-800/50">{j.nama_lomba}</div>
 
-                                        <div className="px-6 flex flex-col items-center">
-                                            <div className="text-4xl md:text-5xl font-black bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-400 tabular-nums tracking-tighter drop-shadow-sm">
-                                                {j.skor_team1} - {j.skor_team2}
+                                        <div className="flex items-center justify-between w-full">
+                                            <div className="text-center flex-1 flex flex-col items-center">
+                                                {j.team1?.gambar ? (
+                                                    <img src={j.team1.gambar} alt={j.team1.title} className="w-16 h-16 rounded-full object-cover border-2 border-gray-600 mb-3 shadow-md bg-gray-700" />
+                                                ) : (
+                                                    <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 border-2 border-gray-600 mb-3 shadow-md text-xl font-bold">{j.team1?.title?.charAt(0) || '?'}</div>
+                                                )}
+                                                <div className="font-bold text-lg leading-tight">{j.team1?.title || 'TBD'}</div>
                                             </div>
-                                            <LiveTimer startTime={j.started_at || j.waktu} />
-                                        </div>
 
-                                        <div className="text-center flex-1 flex flex-col items-center">
-                                            {j.team2?.gambar ? (
-                                                <img src={j.team2.gambar} alt={j.team2.title} className="w-16 h-16 rounded-full object-cover border-2 border-gray-600 mb-3 shadow-md bg-gray-700" />
-                                            ) : (
-                                                <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 border-2 border-gray-600 mb-3 shadow-md text-xl font-bold">{j.team2?.title?.charAt(0) || '?'}</div>
-                                            )}
-                                            <div className="font-bold text-lg leading-tight">{j.team2?.title || 'TBD'}</div>
+                                            <div className="px-6 flex flex-col items-center">
+                                                <div className="text-4xl md:text-5xl font-black bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-400 tabular-nums tracking-tighter drop-shadow-sm">
+                                                    {skor1Val} - {skor2Val}
+                                                </div>
+                                                <LiveTimer startTime={j.started_at || j.waktu} />
+                                            </div>
+
+                                            <div className="text-center flex-1 flex flex-col items-center">
+                                                {j.team2?.gambar ? (
+                                                    <img src={j.team2.gambar} alt={j.team2.title} className="w-16 h-16 rounded-full object-cover border-2 border-gray-600 mb-3 shadow-md bg-gray-700" />
+                                                ) : (
+                                                    <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 border-2 border-gray-600 mb-3 shadow-md text-xl font-bold">{j.team2?.title?.charAt(0) || '?'}</div>
+                                                )}
+                                                <div className="font-bold text-lg leading-tight">{j.team2?.title || 'TBD'}</div>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
@@ -292,23 +301,20 @@ export default function PoseJadwal() {
                                         {mainFilter === 'Kreativitas' ? (
                                             <th className="pb-3 font-semibold text-gray-500 dark:text-gray-400 text-center">Predikat</th>
                                         ) : (
-                                            <th className="pb-3 font-semibold text-gray-500 dark:text-gray-400 text-center">Poin</th>
+                                            <th className="pb-3 font-semibold text-gray-500 dark:text-gray-400 text-center">Menang</th>
                                         )}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                                     {klasemenData.map((t, i) => {
-                                        // Hitung juara utk kreativitas
-                                        let predikat = "Peserta";
+                                        let predikat = 'Peserta';
                                         if (mainFilter === 'Kreativitas') {
-                                            if (t.totalWin === 1) predikat = "Juara 1";
-                                            else if (t.totalWin === 2) predikat = "Juara 2";
-                                            else if (t.totalWin === 3) predikat = "Juara 3";
-                                            else if (t.totalWin === 4) predikat = "Juara Harapan 1";
-                                            else if (t.totalWin === 5) predikat = "Juara Harapan 2";
+                                            if (t.totalWin === 1) predikat = 'Juara 1';
+                                            else if (t.totalWin === 2) predikat = 'Juara 2';
+                                            else if (t.totalWin === 3) predikat = 'Juara 3';
+                                            else if (t.totalWin === 4) predikat = 'Juara Harapan 1';
+                                            else if (t.totalWin === 5) predikat = 'Juara Harapan 2';
                                         }
-
-                                        const points = [t.poin1, t.poin2, t.poin3, t.poin4, t.poin5].filter(p => p === true || p === false);
 
                                         return (
                                             <tr key={t.id} className="group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
@@ -339,12 +345,12 @@ export default function PoseJadwal() {
                                                         </span>
                                                     ) : (
                                                         <div className="flex items-center justify-center gap-1">
-                                                            {points.map((poin, idx) => (
-                                                                <div key={idx} className={`w-5 h-5 rounded-full flex items-center justify-center ${poin ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
-                                                                    {poin ? <Check size={10} strokeWidth={3} /> : <X size={10} strokeWidth={3} />}
+                                                            {t.matches.map((m, idx) => m !== null && (
+                                                                <div key={idx} className={`w-5 h-5 rounded-full flex items-center justify-center ${m.menang ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                                                                    {m.menang ? <Check size={10} strokeWidth={3} /> : <X size={10} strokeWidth={3} />}
                                                                 </div>
                                                             ))}
-                                                            {points.length === 0 && <span className="text-gray-400 text-xs">-</span>}
+                                                            {t.matches.filter(m => m !== null).length === 0 && <span className="text-gray-400 text-xs">-</span>}
                                                         </div>
                                                     )}
                                                 </td>
@@ -382,39 +388,45 @@ export default function PoseJadwal() {
 
                         <div className="space-y-4">
                             {displayJadwal.length > 0 ? (
-                                displayJadwal.map(j => (
-                                    <div key={j.id} className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 flex items-center justify-between">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <div className="text-xs text-orange-500 font-semibold">{j.nama_lomba}</div>
-                                                {j.status === 'Berlangsung' ? (
-                                                    <span className="text-[10px] font-bold text-red-600 bg-red-100 dark:bg-red-900/30 px-1.5 py-0.5 rounded animate-pulse">Live</span>
-                                                ) : j.status === 'Selesai' ? (
-                                                    <span className="text-[10px] font-bold text-green-600 bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded">Selesai</span>
-                                                ) : null}
-                                            </div>
-                                            <div className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2">
-                                                <span>{j.team1?.title || 'TBD'}</span>
-                                                {j.status === 'Selesai' || j.status === 'Berlangsung' ? (
-                                                    <span className="text-gray-900 dark:text-white font-black px-2">{j.skor_team1 ?? 0} - {j.skor_team2 ?? 0}</span>
-                                                ) : (
-                                                    <span className="text-gray-400 text-xs italic">vs</span>
-                                                )}
-                                                <span>{j.team2?.title || 'TBD'}</span>
-                                            </div>
-                                        </div>
-                                        <div className="text-right flex flex-col items-end gap-1">
-                                            <div className="text-xs font-medium text-gray-500 bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-lg inline-block">
-                                                {j.waktu ? new Date(j.waktu.substring(0, 16)).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
-                                            </div>
-                                            {j.status === 'Belum Mulai' && (
-                                                <div className="text-[11px] font-mono font-bold text-gray-400 bg-gray-50 dark:bg-gray-900 px-2 py-0.5 rounded border border-gray-200 dark:border-gray-700">
-                                                    <CountdownTimer targetTime={j.created_at} />
+                                displayJadwal.map(j => {
+                                    const hasil = hasilMap[j.id] || {};
+                                    const skor1Val = hasil[j.team1_id]?.skor ?? 0;
+                                    const skor2Val = hasil[j.team2_id]?.skor ?? 0;
+
+                                    return (
+                                        <div key={j.id} className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <div className="text-xs text-orange-500 font-semibold">{j.nama_lomba}</div>
+                                                    {j.status === 'Berlangsung' ? (
+                                                        <span className="text-[10px] font-bold text-red-600 bg-red-100 dark:bg-red-900/30 px-1.5 py-0.5 rounded animate-pulse">Live</span>
+                                                    ) : j.status === 'Selesai' ? (
+                                                        <span className="text-[10px] font-bold text-green-600 bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded">Selesai</span>
+                                                    ) : null}
                                                 </div>
-                                            )}
+                                                <div className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2">
+                                                    <span>{j.team1?.title || 'TBD'}</span>
+                                                    {j.status === 'Selesai' || j.status === 'Berlangsung' ? (
+                                                        <span className="text-gray-900 dark:text-white font-black px-2">{skor1Val} - {skor2Val}</span>
+                                                    ) : (
+                                                        <span className="text-gray-400 text-xs italic">vs</span>
+                                                    )}
+                                                    <span>{j.team2?.title || 'TBD'}</span>
+                                                </div>
+                                            </div>
+                                            <div className="text-right flex flex-col items-end gap-1">
+                                                <div className="text-xs font-medium text-gray-500 bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-lg inline-block">
+                                                    {j.waktu ? new Date(j.waktu.substring(0, 16)).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
+                                                </div>
+                                                {j.status === 'Belum Mulai' && (
+                                                    <div className="text-[11px] font-mono font-bold text-gray-400 bg-gray-50 dark:bg-gray-900 px-2 py-0.5 rounded border border-gray-200 dark:border-gray-700">
+                                                        <CountdownTimer targetTime={j.waktu} />
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))
+                                    );
+                                })
                             ) : (
                                 <div className="text-center py-10 text-gray-500 border border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
                                     Belum ada jadwal yang akan datang.

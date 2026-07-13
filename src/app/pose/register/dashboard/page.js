@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getUserTeams } from '@/api/supabase/team';
 import { Trophy, ArrowLeft, Clock, CheckCircle2, XCircle, Search, Plus } from 'lucide-react';
 import Link from 'next/link';
 
@@ -17,13 +17,9 @@ export default function PublicDashboardRegister() {
                 return;
             }
 
-            const { data, error } = await supabase
-                .from('team')
-                .select('*, team_members(count)')
-                .eq('user_token', token)
-                .order('created_at', { ascending: false });
+            const data = await getUserTeams(token);
 
-            if (data && !error) {
+            if (data) {
                 setTeam(data);
             }
             setLoading(false);

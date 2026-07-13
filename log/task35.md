@@ -1,0 +1,8 @@
+fokus ke halaman leandingpgae yaitu pada file HomeLanding.js
+saya ingin pada div atau halaman hero,
+saya ingin div logo atau image itu saya ingin tetap dibawah (seperti pada tampilan mobile), terus saya ingin div images itu ada 2 yaitu untuk logo dan maskot, dan didalam div itu dibawah fotonya ada tombol untuk lihat detail filosofinya.
+dan ketika dibuka maka muncul pop up yang terdiri dari gambar (maskot/logo), dan judul terus keterangan filosofinya. yang layoutnya jika pada tampilan mobile maka kebawah jika tampilan desktop maka berdampingan. dan khusus untuk logo itu bisa digeser atau ada tombol < > untuk berpindah halaman, sedangkan untuk maskot itu tidak bisa digeser. karna untuk logo itu saya ingin dipecah dan ada banyak filosofinya (kayak semacam slide gitu) terus untuk maskot itu ya tetep satu. dan untuk filosofinya saya ingin menggunakan font yang berbeda dengan judul.
+terus saya juga ingin memperbaiki tampilan atau pembungkus atau semua div karna terasa kurang enak dilihat, dan masih terlihat cirikhas ainya.
+terus untuk stats saya ingin khusus untuk yang berupa angka saya ingin ada animasi hitung dari 0-angka tersebut jika halaman tersebut sudah di scroll.
+terus saya juga ingin ketika pertama kali dimaut/discrol maka div div itu muncul satu persatu dari bawah keatas dengan transisi.
+terus saya ingin halaman portal bisa diakses cuman dari mengklik tombol kembali ke portal dari website pkkmb, dan jika website pose tombol kembali ke portal itu ditiadakan.

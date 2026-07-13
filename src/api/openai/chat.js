@@ -1,5 +1,7 @@
+'use server';
+
 import { openai } from '@/lib/openai';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 
 /**
  * Menghasilkan jawaban AI secara dinamis.
@@ -11,6 +13,10 @@ import { supabase } from '@/lib/supabase';
  */
 export const generateAnswer = async (text, faqData, siteType) => {
     try {
+        if (!text || !siteType) {
+            throw new Error('Parameter text dan siteType wajib diisi');
+        }
+
         const siteName = siteType === 'pose' ? 'POSE (Pekan Olahraga dan Seni)' : 'PKKMB (Pengenalan Kehidupan Kampus bagi Mahasiswa Baru)';
 
         // Bangun konteks FAQ sebagai referensi
@@ -40,16 +46,28 @@ ATURAN PENTING:
 2. Jika pertanyaan user TIDAK BERKAITAN sama sekali dengan ${siteName} atau topik kampus (misalnya soal cuaca, politik, coding, dll), jawab dengan sopan bahwa kamu tidak bisa membantu dan hanya bisa membantu seputar ${siteName} dan arahkan user ke menu Kontak jika butuh bantuan lebih lanjut.
 3. Tambahkan "[FAQ_MATCH]" di AKHIR jawabanmu jika pertanyaan berkaitan dengan data FAQ. Tambahkan "[NOT_FAQ]" di akhir jika tidak berkaitan. Tag ini WAJIB ada di setiap jawaban.`;
 
-        const response = await openai.chat.completions.create({
-            model: "gpt-5.4-mini",
+        // Menyimpan logic dummy dari task33 yang menampilkan log di server console
+        const {
+            data,
+            response
+        } = await openai.chat.completions.create({
+            model: "gpt-5.4-mini", // pastikan modelnya sesuai (gpt-4o-mini / 3.5-turbo biasanya)
             messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: text }
             ],
             temperature: 0.7,
-        });
+            max_completion_tokens: 500,
 
-        const rawAnswer = response.choices[0].message.content.trim();
+        }).withResponse(); // Added .withResponse() from dummy code
+
+        console.log("===== DATA OPENAI (CHATBOT) =====");
+        console.log("Token Usage :", data.usage);
+        console.log("Status :", response.status);
+        console.log("Request ID :", response.headers.get("x-request-id"));
+        console.log("Processing :", response.headers.get("openai-processing-ms"));
+
+        const rawAnswer = data.choices[0].message.content.trim();
 
         // Parse flag dari jawaban AI
         const isFaqMatched = rawAnswer.includes('[FAQ_MATCH]');
@@ -69,7 +87,11 @@ ATURAN PENTING:
 
 export const saveChatHistory = async (pertanyaan, jawaban, site, isFaqMatched = false) => {
     try {
-        const { data, error } = await supabase.from('riwayat_pertanyaan').insert([{
+        if (!pertanyaan || !jawaban || !site) {
+            throw new Error('Parameter pertanyaan, jawaban, dan site wajib diisi');
+        }
+
+        const { data, error } = await supabaseAdmin.from('riwayat_pertanyaan').insert([{
             pertanyaan,
             jawaban,
             site,
@@ -79,7 +101,7 @@ export const saveChatHistory = async (pertanyaan, jawaban, site, isFaqMatched = 
         if (error) throw error;
         return data;
     } catch (error) {
-        console.error("Supabase Error:", error);
+        console.error("Supabase Error (History):", error);
         // Supress error so it doesn't crash the chatbot if tracking fails
     }
 };

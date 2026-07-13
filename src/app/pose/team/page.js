@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Users, Search, ChevronDown, ChevronUp, Image as ImageIcon, Check, X, ShieldCheck } from 'lucide-react';
 import PageHero from '@/components/public/PageHero';
 import ScheduleBarrier from '@/components/public/ScheduleBarrier';
-import { supabase } from '@/lib/supabase';
+import { getVerifiedPoseTeams, getTeams } from '@/api/supabase/team';
 import { JENIS_LOMBA, NAMA_LOMBA } from '@/lib/lombaData';
 
 const InstagramIcon = ({ size = 14, className = "" }) => (
@@ -33,14 +33,12 @@ export default function PoseTeam() {
 
     useEffect(() => {
         const fetchData = async () => {
-            const { data } = await supabase
-                .from('team')
-                .select('*, team_members(*)')
-                .eq('type', 'pose')
-                .eq('verivikasi', true) // Filter verified teams only
-                .order('created_at', { ascending: false });
+            const data = await getTeams('pose');
+            
             if (data) {
-                setTeam(data);
+                // Filter verified only on client since getTeams already includes members
+                const verifiedTeams = data.filter(t => t.verivikasi === true);
+                setTeam(verifiedTeams);
             }
             setLoading(false);
         };

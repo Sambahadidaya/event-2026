@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getBerita } from '@/api/supabase/berita';
 import { Bell } from 'lucide-react';
 import PageHero from '@/components/public/PageHero';
 import AnnouncementTimeline from '@/components/public/AnnouncementTimeline';
@@ -23,11 +23,7 @@ export default function PkkmbPemberitahuan() {
                 return;
             }
 
-            const { data } = await supabase
-                .from('berita')
-                .select('*')
-                .eq('type', 'pkkmb')
-                .order('created_at', { ascending: false });
+            const data = await getBerita('pkkmb');
 
             if (data) {
                 setBerita(data);

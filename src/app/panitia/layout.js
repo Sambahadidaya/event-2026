@@ -4,8 +4,10 @@ import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import ThemeToggle from '@/components/ThemeToggle';
-import { User, LayoutDashboard, FileText, ChevronDown, ChevronRight, LogOut, ShieldAlert, Menu, BarChart3, MessageCircle, Mail, Newspaper, Users, Monitor } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { User, LayoutDashboard, FileText, ChevronDown, ChevronRight, LogOut, ShieldAlert, Menu, BarChart3, MessageCircle, Mail, Newspaper, Users, Monitor, Lock, Calendar, Settings, BookOpen, FileCheck } from 'lucide-react';
+import { logoutAdmin, getCurrentAdmin } from '@/api/supabase/auth';
+import { updateAdminStatus } from '@/api/supabase/admin';
+import { hasAccess } from '@/lib/adminRoleData';
 
 export default function PanitiaLayout({ children }) {
     const [isDesktop, setIsDesktop] = useState(true);
@@ -32,14 +34,15 @@ export default function PanitiaLayout({ children }) {
 
     const handleAutoLogout = async () => {
         if (adminData?.user_id) {
-            await supabase.from('admins').update({ is_online: false }).eq('user_id', adminData.user_id);
+            await logoutAdmin(adminData.user_id);
+        } else {
+             await logoutAdmin();
         }
-        await handleLogout();
     };
 
     const updateHeartbeat = async (userId) => {
         if (userId) {
-            await supabase.from('admins').update({ last_active: new Date().toISOString() }).eq('user_id', userId);
+            await updateAdminStatus(userId, { last_active: new Date().toISOString() });
         }
     };
 
@@ -65,28 +68,22 @@ export default function PanitiaLayout({ children }) {
         if (pathname === '/panitia/login') return;
 
         const fetchAdminData = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
+            // Simplified session check using cookies since auth is server-side now
+            const match = document.cookie.match(/(^| )sb-access-token=([^;]+)/);
+            if (!match) {
                 router.push('/panitia/login');
                 return;
             }
 
-            const { data: admin } = await supabase
-                .from('admins')
-                .select('*')
-                .eq('user_id', session.user.id)
-                .single();
-
-            if (admin) {
-                setAdminData(admin);
-
-                // Set initial status online and start heartbeat
-                await supabase.from('admins').update({ is_online: true, last_active: new Date().toISOString() }).eq('id', admin.id);
-
-                heartbeatInterval.current = setInterval(() => {
-                    updateHeartbeat(session.user.id);
-                }, 60000); // every 1 minute
+            const adminUser = await getCurrentAdmin();
+            if (adminUser) {
+                setAdminData(adminUser);
+            } else {
+                setLoading(false);
+                router.push('/panitia/login');
+                return;
             }
+
             setLoading(false);
         };
 
@@ -112,10 +109,12 @@ export default function PanitiaLayout({ children }) {
 
     const handleLogout = async () => {
         if (adminData?.user_id) {
-            await supabase.from('admins').update({ is_online: false }).eq('user_id', adminData.user_id);
+            await logoutAdmin(adminData.user_id);
+        } else {
+             await logoutAdmin();
         }
-        await supabase.auth.signOut();
         document.cookie = "sb-access-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        setAdminData(null);
         router.push('/panitia/login');
     };
 
@@ -123,20 +122,8 @@ export default function PanitiaLayout({ children }) {
         return <>{children}</>;
     }
 
-    const isSuperAdmin = adminData?.role === 'super_admin';
-    const canAccessPkkmb = isSuperAdmin || adminData?.role === 'admin_pkkmb';
-    const canAccessPose = isSuperAdmin || adminData?.role === 'admin_pose';
-
     // Route guards
-    if (adminData && pathname.startsWith('/panitia/pkkmb') && !canAccessPkkmb) {
-        router.replace('/panitia/dashboard/trafik');
-        return null;
-    }
-    if (adminData && pathname.startsWith('/panitia/pose') && !canAccessPose) {
-        router.replace('/panitia/dashboard/trafik');
-        return null;
-    }
-    if (adminData && pathname.startsWith('/panitia/admin') && !isSuperAdmin) {
+    if (adminData && !hasAccess(adminData.role, pathname)) {
         router.replace('/panitia/dashboard/trafik');
         return null;
     }
@@ -150,8 +137,50 @@ export default function PanitiaLayout({ children }) {
     const collapsed = sidebarCollapsed && isDesktop;
     const closeMobile = () => setMobileSidebarOpen(false);
 
+    const NavLink = ({ href, icon: Icon, label, colorTheme = 'blue' }) => {
+        const access = adminData ? hasAccess(adminData.role, href) : false;
+        const active = isActive(href);
+
+        let activeClasses = '';
+        let hoverClasses = 'hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200 text-slate-500 dark:text-slate-400';
+
+        if (colorTheme === 'blue') {
+            activeClasses = 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold';
+        } else if (colorTheme === 'emerald') {
+            activeClasses = 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-semibold';
+        } else if (colorTheme === 'violet') {
+            activeClasses = 'bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 font-semibold';
+        }
+
+        if (!access) {
+            return (
+                <li>
+                    <div
+                        className={`relative flex items-center ${collapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2'} rounded-lg bg-slate-100/50 dark:bg-slate-800/30 text-slate-400/70 dark:text-slate-500/50 cursor-not-allowed group overflow-hidden select-none`}
+                        title="Tidak ada akses"
+                    >
+                        <div className={`flex items-center w-full transition-opacity duration-300 group-hover:opacity-10`}>
+                            {collapsed ? <Icon size={16} /> : <span className="flex items-center"><Icon size={16} className="inline mr-3" /> {label}</span>}
+                        </div>
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <Lock size={18} className="text-slate-400 dark:text-slate-500" />
+                        </div>
+                    </div>
+                </li>
+            );
+        }
+
+        return (
+            <li>
+                <Link href={href} onClick={closeMobile} title={label} className={`flex items-center ${collapsed ? 'justify-center px-2 py-2.5' : 'block px-3 py-2'} rounded-lg transition-colors ${active ? activeClasses : hoverClasses}`}>
+                    {collapsed ? <Icon size={16} /> : <span className="flex items-center"><Icon size={16} className="inline mr-3" /> {label}</span>}
+                </Link>
+            </li>
+        );
+    };
+
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex overflow-hidden transition-colors duration-500">
+        <div className="h-screen w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex overflow-hidden transition-colors duration-500">
             {!isDesktop && mobileSidebarOpen && (
                 <div
                     className="fixed inset-0 bg-black/50 z-30 backdrop-blur-sm"
@@ -199,22 +228,10 @@ export default function PanitiaLayout({ children }) {
                             {!collapsed && (menuOpen.dashboard ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
                         </button>
                         <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.dashboard ? 'max-h-48 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
-                            <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-12 pr-3'} py-1 space-y-1.5 text-sm`}>
-                                <li>
-                                    <Link href="/panitia/dashboard/trafik" onClick={closeMobile} title="Trafik Kunjungan" className={`flex items-center ${collapsed ? 'justify-center px-2 py-2.5' : 'block px-3 py-2'} rounded-lg transition-colors ${isActive('/panitia/dashboard/trafik') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'}`}>
-                                        {collapsed ? <BarChart3 size={16} /> : 'Trafik Kunjungan'}
-                                    </Link>
-                                </li>
-                                <li>
-                                    <Link href="/panitia/dashboard/faq" onClick={closeMobile} title="FAQ Chatbot" className={`flex items-center ${collapsed ? 'justify-center px-2 py-2.5' : 'block px-3 py-2'} rounded-lg transition-colors ${isActive('/panitia/dashboard/faq') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'}`}>
-                                        {collapsed ? <MessageCircle size={16} /> : 'FAQ Chatbot'}
-                                    </Link>
-                                </li>
-                                <li>
-                                    <Link href="/panitia/dashboard/kontak" onClick={closeMobile} title="Kontak" className={`flex items-center ${collapsed ? 'justify-center px-2 py-2.5' : 'block px-3 py-2'} rounded-lg transition-colors ${isActive('/panitia/dashboard/kontak') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'}`}>
-                                        {collapsed ? <Mail size={16} /> : 'Kontak'}
-                                    </Link>
-                                </li>
+                            <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
+                                <NavLink href="/panitia/dashboard/trafik" icon={BarChart3} label="Trafik Kunjungan" />
+                                <NavLink href="/panitia/dashboard/faq" icon={MessageCircle} label="FAQ Chatbot" />
+                                <NavLink href="/panitia/dashboard/kontak" icon={Mail} label="Kontak" />
                             </ul>
                         </div>
                     </div>
@@ -224,119 +241,76 @@ export default function PanitiaLayout({ children }) {
                             <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Manajemen Konten</p>
                         )}
 
-                        {canAccessPkkmb && (
-                            <>
-                                <button
-                                    onClick={() => toggleMenu('pkkmb')}
-                                    title="PKKMB"
-                                    className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
-                                >
-                                    <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
-                                        <FileText size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
-                                        {!collapsed && 'PKKMB'}
-                                    </span>
-                                    {!collapsed && (menuOpen.pkkmb ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
-                                </button>
-                                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.pkkmb ? 'max-h-48 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
-                                    <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-12 pr-3'} py-1 space-y-1.5 text-sm`}>
-                                        <li>
-                                            <Link href="/panitia/pkkmb/berita" onClick={closeMobile} title="Manajemen Berita PKKMB" className={`flex items-center ${collapsed ? 'justify-center px-2 py-2.5' : 'block px-3 py-2'} rounded-lg transition-colors ${isActive('/panitia/pkkmb/berita') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'}`}>
-                                                {sidebarCollapsed ? <Newspaper size={16} /> : 'Manajemen Berita'}
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link href="/panitia/pkkmb/team" onClick={closeMobile} title="Manajemen Team PKKMB" className={`flex items-center ${collapsed ? 'justify-center px-2 py-2.5' : 'block px-3 py-2'} rounded-lg transition-colors ${isActive('/panitia/pkkmb/team') ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'}`}>
-                                                {sidebarCollapsed ? <Users size={16} /> : 'Manajemen Team'}
-                                            </Link>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </>
-                        )}
+                        <button
+                            onClick={() => toggleMenu('pkkmb')}
+                            title="PKKMB"
+                            className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
+                        >
+                            <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
+                                <FileText size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
+                                {!collapsed && 'PKKMB'}
+                            </span>
+                            {!collapsed && (menuOpen.pkkmb ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
+                        </button>
+                        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.pkkmb ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                            <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
+                                <NavLink href="/panitia/pkkmb/berita" icon={Newspaper} label="Manajemen Berita" />
+                                <NavLink href="/panitia/pkkmb/team" icon={Users} label="Manajemen Team" />
+                                <NavLink href="/panitia/pkkmb/form_wajib" icon={FileText} label="Manajemen Form Wajib" />
+                                <NavLink href="/panitia/pkkmb/peserta_wajib" icon={Users} label="Data Peserta Wajib" />
+                                <NavLink href="/panitia/pkkmb/jadwal_acara" icon={Calendar} label="Manajemen Jadwal Acara" />
+                                <NavLink href="/panitia/pkkmb/materi" icon={BookOpen} label="Manajemen Materi" />
+                                <NavLink href="/panitia/pkkmb/tugas" icon={FileCheck} label="Review Tugas" />
+                            </ul>
+                        </div>
 
-                        {canAccessPose && (
-                            <>
-                                <button
-                                    onClick={() => toggleMenu('pose')}
-                                    title="POSE"
-                                    className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
-                                >
-                                    <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
-                                        <FileText size={18} className="text-slate-400 group-hover:text-emerald-500 transition-colors shrink-0" />
-                                        {!collapsed && 'POSE'}
-                                    </span>
-                                    {!collapsed && (menuOpen.pose ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
-                                </button>
-                                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.pose ? 'max-h-86 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
-                                    <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-12 pr-3'} py-1 space-y-1.5 text-sm`}>
-                                        <li>
-                                            <Link href="/panitia/pose/jadwal_acara" onClick={closeMobile} title="Manajemen Jadwal Acara POSE" className={`flex items-center ${collapsed ? 'justify-center px-2 py-2.5' : 'block px-3 py-2'} rounded-lg transition-colors ${isActive('/panitia/pose/jadwal_acara') ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'}`}>
-                                                {sidebarCollapsed ? <Newspaper size={16} /> : 'Manajemen Jadwal Acara'}
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link href="/panitia/pose/berita" onClick={closeMobile} title="Manajemen Berita POSE" className={`flex items-center ${collapsed ? 'justify-center px-2 py-2.5' : 'block px-3 py-2'} rounded-lg transition-colors ${isActive('/panitia/pose/berita') ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'}`}>
-                                                {sidebarCollapsed ? <Users size={16} /> : 'Manajemen Berita'}
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link href="/panitia/pose/peserta" onClick={closeMobile} title="Manajemen Peserta POSE" className={`flex items-center ${collapsed ? 'justify-center px-2 py-2.5' : 'block px-3 py-2'} rounded-lg transition-colors ${isActive('/panitia/pose/peserta') ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'}`}>
-                                                {sidebarCollapsed ? <Users size={16} /> : 'Manajemen Peserta'}
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link href="/panitia/pose/team" onClick={closeMobile} title="Manajemen Team POSE" className={`flex items-center ${collapsed ? 'justify-center px-2 py-2.5' : 'block px-3 py-2'} rounded-lg transition-colors ${isActive('/panitia/pose/team') ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'}`}>
-                                                {sidebarCollapsed ? <Users size={16} /> : 'Manajemen Team'}
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link href="/panitia/pose/form_register" onClick={closeMobile} title="Manajemen Form Register POSE" className={`flex items-center ${collapsed ? 'justify-center px-2 py-2.5' : 'block px-3 py-2'} rounded-lg transition-colors ${isActive('/panitia/pose/form_register') ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'}`}>
-                                                {sidebarCollapsed ? <Users size={16} /> : 'Manajemen Form Register'}
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link href="/panitia/pose/register" onClick={closeMobile} title="Manajemen Register POSE" className={`flex items-center ${collapsed ? 'justify-center px-2 py-2.5' : 'block px-3 py-2'} rounded-lg transition-colors ${isActive('/panitia/pose/register') ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'}`}>
-                                                {sidebarCollapsed ? <Users size={16} /> : 'Manajemen Register'}
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link href="/panitia/pose/jadwal_pertandingan" onClick={closeMobile} title="Manajemen Jadwal Pertandingan POSE" className={`flex items-center ${collapsed ? 'justify-center px-2 py-2.5' : 'block px-3 py-2'} rounded-lg transition-colors ${isActive('/panitia/pose/jadwal_pertandingan') ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'}`}>
-                                                {sidebarCollapsed ? <Users size={16} /> : 'Manajemen Jadwal Pertandingan'}
-                                            </Link>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </>
-                        )}
+                        <button
+                            onClick={() => toggleMenu('pose')}
+                            title="POSE"
+                            className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
+                        >
+                            <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
+                                <FileText size={18} className="text-slate-400 group-hover:text-emerald-500 transition-colors shrink-0" />
+                                {!collapsed && 'POSE'}
+                            </span>
+                            {!collapsed && (menuOpen.pose ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
+                        </button>
+                        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.pose ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                            <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
+                                <NavLink href="/panitia/pose/jadwal_acara" icon={Calendar} label="Manajemen Jadwal Acara" colorTheme="emerald" />
+                                <NavLink href="/panitia/pose/berita" icon={Newspaper} label="Manajemen Berita" colorTheme="emerald" />
+                                <NavLink href="/panitia/pose/peserta" icon={Users} label="Manajemen Peserta" colorTheme="emerald" />
+                                <NavLink href="/panitia/pose/team" icon={Users} label="Manajemen Team" colorTheme="emerald" />
+                                <NavLink href="/panitia/pose/form_register" icon={FileText} label="Manajemen Form Register" colorTheme="emerald" />
+                                <NavLink href="/panitia/pose/register" icon={FileText} label="Manajemen Register" colorTheme="emerald" />
+                                <NavLink href="/panitia/pose/jadwal_pertandingan" icon={Calendar} label="Manajemen Jadwal Pertandingan" colorTheme="emerald" />
+                                <NavLink href="/panitia/pose/form_wajib" icon={FileText} label="Manajemen Form Wajib" colorTheme="emerald" />
+                                <NavLink href="/panitia/pose/peserta_wajib" icon={Users} label="Data Peserta Wajib" colorTheme="emerald" />
+                            </ul>
+                        </div>
                     </div>
 
-                    {isSuperAdmin && (
-                        <div className="mb-6">
-                            {!collapsed && (
-                                <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Manajemen Admin</p>
-                            )}
-                            <button
-                                onClick={() => toggleMenu('admin')}
-                                title="Admin"
-                                className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
-                            >
-                                <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
-                                    <ShieldAlert size={18} className="text-slate-400 group-hover:text-violet-500 transition-colors shrink-0" />
-                                    {!collapsed && 'Admin'}
-                                </span>
-                                {!collapsed && (menuOpen.admin ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
-                            </button>
-                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.admin ? 'max-h-40 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
-                                <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-12 pr-3'} py-1 space-y-1.5 text-sm`}>
-                                    <li>
-                                        <Link href="/panitia/admin/status" onClick={closeMobile} title="Status Admin" className={`flex items-center ${collapsed ? 'justify-center px-2 py-2.5' : 'block px-3 py-2'} rounded-lg transition-colors ${isActive('/panitia/admin/status') ? 'bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 font-semibold' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'}`}>
-                                            {sidebarCollapsed ? <ShieldAlert size={16} /> : 'Status Admin'}
-                                        </Link>
-                                    </li>
-                                </ul>
-                            </div>
+                    <div className="mb-6">
+                        {!collapsed && (
+                            <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Manajemen Admin</p>
+                        )}
+                        <button
+                            onClick={() => toggleMenu('admin')}
+                            title="Admin"
+                            className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
+                        >
+                            <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
+                                <ShieldAlert size={18} className="text-slate-400 group-hover:text-violet-500 transition-colors shrink-0" />
+                                {!collapsed && 'Admin'}
+                            </span>
+                            {!collapsed && (menuOpen.admin ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
+                        </button>
+                        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.admin ? 'max-h-40 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                            <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
+                                <NavLink href="/panitia/admin/status" icon={ShieldAlert} label="Status Admin" colorTheme="violet" />
+                            </ul>
                         </div>
-                    )}
+                    </div>
                 </nav>
 
                 <div className={`border-t border-slate-200 dark:border-slate-800/60 bg-white dark:bg-slate-900 ${collapsed ? 'p-2' : 'p-4'}`}>
@@ -375,9 +349,17 @@ export default function PanitiaLayout({ children }) {
                     <ThemeToggle />
                 </header>
 
-                <div className="flex-1 overflow-y-auto p-4 sm:p-8 custom-scrollbar relative z-0">
-                    <div className="max-w-7xl mx-auto">
-                        {children}
+                <div className="flex-1 overflow-y-auto p-4 sm:p-8 custom-scrollbar relative">
+                    <div className="max-w-7xl mx-auto min-h-full flex flex-col">
+                        <div className="flex-1">
+                            {children}
+                        </div>
+                        {/* Footer */}
+                        <footer className="mt-8 py-6 border-t border-slate-200 dark:border-slate-800 text-center">
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                                &copy; {new Date().getFullYear()} Portal Kampus. Hak Cipta Dilindungi.
+                            </p>
+                        </footer>
                     </div>
                 </div>
             </main>

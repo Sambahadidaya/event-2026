@@ -1,6 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// Memanggil variabel environment yang HANYA ADA DI SERVER
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Praktik terbaik: Beri nama 'supabaseAdmin' agar kamu selalu ingat 
+// bahwa ini memiliki hak akses penuh dan bisa menembus RLS.
+export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);

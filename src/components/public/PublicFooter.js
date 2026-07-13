@@ -1,3 +1,5 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { Mail, ExternalLink } from 'lucide-react';
@@ -72,13 +74,20 @@ export default function PublicFooter({ site, links }) {
 
                         <div className="mt-8 pt-6 border-t border-white/5 w-full md:hidden"></div>
 
-                        <Link
-                            href="/"
-                            className="inline-flex items-center gap-2 text-xs font-medium text-white/40 hover:text-white/90 transition-colors mt-2 md:mt-6 group"
-                        >
-                            <span>Kembali ke Portal Kampus</span>
-                            <ExternalLink size={14} className="group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" />
-                        </Link>
+                        {site === 'pkkmb' && (
+                            <Link
+                                href="/"
+                                onClick={() => {
+                                    if (typeof window !== 'undefined') {
+                                        sessionStorage.setItem('portal_access', 'true');
+                                    }
+                                }}
+                                className="inline-flex items-center gap-2 text-xs font-medium text-white/40 hover:text-white/90 transition-colors mt-2 md:mt-6 group"
+                            >
+                                <span>Kembali ke Portal Kampus</span>
+                                <ExternalLink size={14} className="group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" />
+                            </Link>
+                        )}
                     </div>
                 </div>
 

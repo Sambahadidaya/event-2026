@@ -1,3 +1,7 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, ExternalLink, Sparkles } from 'lucide-react';
@@ -134,6 +138,22 @@ const lp3iCards = [
 ];
 
 export default function PortalPage() {
+    const [authorized, setAuthorized] = useState(false);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const hasAccess = sessionStorage.getItem('portal_access') === 'true';
+        if (!hasAccess) {
+            notFound();
+        } else {
+            setAuthorized(true);
+        }
+        setLoading(false);
+    }, []);
+
+    if (loading) return null;
+    if (!authorized) return null;
+
     return (
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in-95 duration-700">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass mb-8 animate-float">

@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Bot, Headset, X, Send, HelpCircle, Maximize2, Minimize2 } from 'lucide-react';
 import { getFaqBySite, getRandomQuestions } from '@/lib/faqData';
-import { generateAnswer, saveChatHistory } from '@/api/chatbot';
+import { generateAnswer, saveChatHistory } from '@/api/openai/chat';
+import { usePathname } from 'next/navigation';
 
 // Menyisipkan custom keyframes untuk animasi melayang acak dan titik berpikir
 const customStyles = `
@@ -81,6 +82,7 @@ export default function SamsChatbot() {
     const [siteType, setSiteType] = useState('pkkmb');
     const [remainingMessages, setRemainingMessages] = useState(10);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const pathname = usePathname();
 
     // Idle Popup States
     const [showIdlePopup, setShowIdlePopup] = useState(false);
@@ -186,6 +188,10 @@ export default function SamsChatbot() {
             setIsTyping(false);
         }
     };
+
+    if (pathname && pathname.startsWith('/pkkmb/materi/')) {
+        return null;
+    }
 
     return (
         <>

@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { recordTrafik } from '@/api/supabase/admin';
 
 export default function ClientTracker() {
     const pathname = usePathname();
@@ -29,16 +29,8 @@ export default function ClientTracker() {
                 // Save to localStorage immediately to prevent double counting during async request
                 localStorage.setItem(storageKey, now.toString());
 
-                // Insert to database
-                const { error } = await supabase
-                    .from('trafik_kunjungan')
-                    .insert([{ site }]);
-
-                if (error) {
-                    console.error('Error tracking visit:', error);
-                    // Revert localStorage if failed so it tries again next time
-                    localStorage.removeItem(storageKey);
-                }
+                // Insert to database using server action
+                await recordTrafik(site);
             }
         };
 

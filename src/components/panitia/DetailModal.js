@@ -6,7 +6,7 @@ export default function DetailModal({ open, onClose, title, fields = [] }) {
     if (!open) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
             <div className="relative bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 w-full sm:max-w-lg max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom sm:fade-in duration-200">
                 <div className="sticky top-0 flex items-center justify-between p-4 sm:p-5 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">

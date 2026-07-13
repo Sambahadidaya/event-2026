@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getJadwalAcara, upsertJadwalAcara, deleteJadwalAcara } from '@/api/supabase/jadwal';
 import { Calendar, Plus, Edit2, Trash2, CheckSquare, X, RefreshCw } from 'lucide-react';
 
 export default function AdminPoseJadwalAcara() {
@@ -17,14 +17,9 @@ export default function AdminPoseJadwalAcara() {
 
     const fetchData = async () => {
         setLoading(true);
-        const { data, error } = await supabase
-            .from('jadwal_acara')
-            .select('*')
-            .eq('site', 'pose')
-            .order('waktu_mulai', { ascending: true });
-
+        const data = await getJadwalAcara();
         if (data) {
-            setJadwalList(data);
+            setJadwalList(data.filter(d => d.site === 'pose'));
         }
         setLoading(false);
     };
@@ -66,15 +61,10 @@ export default function AdminPoseJadwalAcara() {
             waktu_selesai: new Date(waktuSelesai + 'Z').toISOString(),
         };
 
-        let error;
-        if (editingId) {
-            ({ error } = await supabase.from('jadwal_acara').update(payload).eq('id', editingId));
-        } else {
-            ({ error } = await supabase.from('jadwal_acara').insert([payload]));
-        }
+        const res = await upsertJadwalAcara(payload, editingId);
 
-        if (error) {
-            alert('Gagal menyimpan jadwal: ' + error.message);
+        if (!res.success) {
+            alert('Gagal menyimpan jadwal: ' + res.error);
         } else {
             resetForm();
             fetchData();
@@ -84,9 +74,9 @@ export default function AdminPoseJadwalAcara() {
 
     const handleDelete = async (id) => {
         if (!confirm('Hapus jadwal ini?')) return;
-        const { error } = await supabase.from('jadwal_acara').delete().eq('id', id);
-        if (error) {
-            alert('Gagal menghapus: ' + error.message);
+        const res = await deleteJadwalAcara(id);
+        if (!res.success) {
+            alert('Gagal menghapus: ' + res.error);
         } else {
             fetchData();
         }

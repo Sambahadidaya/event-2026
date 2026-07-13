@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getBerita, upsertBerita, deleteBerita, deleteMultipleBerita } from '@/api/supabase/berita';
 import { RefreshCw, Plus, Trash2, Search, FileText, Edit2, CheckSquare, X } from 'lucide-react';
 
 export default function AdminPkkmb() {
@@ -32,7 +32,7 @@ export default function AdminPkkmb() {
             return;
         }
 
-        const { data } = await supabase.from('berita').select('*').eq('type', 'pkkmb').order('created_at', { ascending: false });
+        const data = await getBerita('pkkmb');
         if (data) {
             setBerita(data);
             localStorage.setItem('pkkmb_berita', JSON.stringify(data));
@@ -66,22 +66,13 @@ export default function AdminPkkmb() {
             custom_date: customDate || null 
         };
 
-        if (editingId) {
-            const { error } = await supabase.from('berita').update(payload).eq('id', editingId);
-            if (!error) {
-                cancelEdit();
-                handleRefresh();
-            } else {
-                alert('Gagal mengupdate: ' + error.message);
-            }
+        const res = await upsertBerita(payload, editingId);
+
+        if (res.success) {
+            cancelEdit();
+            handleRefresh();
         } else {
-            const { error } = await supabase.from('berita').insert([payload]);
-            if (!error) {
-                cancelEdit();
-                handleRefresh();
-            } else {
-                alert('Gagal menyimpan: ' + error.message);
-            }
+            alert('Gagal menyimpan: ' + res.error);
         }
         setIsSubmitting(false);
     };
@@ -103,14 +94,14 @@ export default function AdminPkkmb() {
 
     const handleDelete = async (id) => {
         if (!confirm('Apakah Anda yakin ingin menghapus berita ini secara permanen?')) return;
-        await supabase.from('berita').delete().eq('id', id);
-        handleRefresh();
+        const res = await deleteBerita(id);
+        if (res.success) handleRefresh();
     };
 
     const handleBulkDelete = async () => {
         if (!confirm(`Hapus ${selectedIds.length} data terpilih secara permanen?`)) return;
-        await supabase.from('berita').delete().in('id', selectedIds);
-        handleRefresh();
+        const res = await deleteMultipleBerita(selectedIds);
+        if (res.success) handleRefresh();
     };
 
     const toggleSelectAll = (e) => {

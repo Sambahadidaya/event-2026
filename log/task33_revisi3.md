@@ -1,0 +1,1 @@
+sekarang bugnya menjadi ketika selain superadmin login itu malah ngstack dispinner (loading), meskipun sudah login ke halaman panitia/dashboard/trafik tapi tetap stack di spinner dan tidak bisa mengakses halaman tersebut. padahal kalau pakai akun superadmin normal.

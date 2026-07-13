@@ -10,7 +10,7 @@ import { getTheme } from '@/lib/siteThemes';
 import logoPkkmb from '@/assets/logopkkmb.png';
 import logoPose from '@/assets/logopose.jpg';
 
-export default function PublicHeader({ site, links }) {
+export default function PublicHeader({ site, links = [] }) {
     const [isOpen, setIsOpen] = useState(false);
     const pathname = usePathname();
     const theme = getTheme(site);
@@ -39,6 +39,10 @@ export default function PublicHeader({ site, links }) {
     }, [isOpen]);
 
     const hoverColor = isPkkmb ? 'hover:text-[#30A0E0]' : 'hover:text-[#FCBF49]';
+
+    if (pathname && pathname.startsWith('/pkkmb/materi/')) {
+        return null;
+    }
 
     return (
         <>

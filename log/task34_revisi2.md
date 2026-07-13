@@ -1,0 +1,4 @@
+fokus ke halaman materi pkkmb, ada beberapa perubahan dan bug;
+1. pada navbar/hedaer yang ada tombol halaman atau antara darkmode/lighmode atau yang ada logo itu saya ingin dihilangkan untuk halaman materi ini karna bentrok dengan navbar baru yaitu seperti tombol kembali ke jadwal atau tombol antara materi dan tugas.
+2. terus begitu juga untuk chatbotsams saya ingin dihilangkan untuk halaman ini karna sama seperti navbar tadi yaitu menjadi bentrok dengan chatbot baru.
+3. terus dichatbot baru ini ada bug saat pada halaman mobile yaitu menjadi terasa aneh tampilannya dan juga dichatbot baru ini tidak perlu tombol untuk memperbesar sharescreen. dan juga dichatbot baru ini ketika berinteraksi jadi aneh seperti tidak bisa menggunakan spasi terus chat user malah berada dikiri bukan dikanan (malah memakai div jawaban ai) terus ketika mengirim chat malah melompat ke ujung bawah halaman,dll.
