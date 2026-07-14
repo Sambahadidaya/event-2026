@@ -1,0 +1,3 @@
+fokus ke halaman login tepatnya pada saat scan.
+ada bug yaitu kenapa waktu aku scan malah diam seperti terus memproses, padahal harusnya langsung masuk ke halaman dashboard sesuai role panitia masing-masing dan sesuai data panitianya di database. jadi ketika pakai scan itu otomatis langsung masuk sesuai dengan id admin didatabase yang sudah konek dengan auth user (kolom user_id) nya. 
+terus div atau scan ini masih kurang enak dilihat dan juga saya ingin kamera scan ini hanya aktif dikamera belakang saja, dan buat tampilan scan nya jadi lebih bagus lagi. dan juga saya ingin memberi tombol untuk scan qrcode ini dengan kirim file qrcode nya. intinya perbaiki halaman login bagian scan.

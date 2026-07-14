@@ -65,7 +65,8 @@ export default function PanitiaLayout({ children }) {
         const fetchAdminData = async () => {
             // Simplified session check using cookies since auth is server-side now
             const match = document.cookie.match(/(^| )sb-access-token=([^;]+)/);
-            if (!match) {
+            const qrMatch = document.cookie.match(/(^| )sb-qr-token=([^;]+)/);
+            if (!match && !qrMatch) {
                 router.push('/panitia/login');
                 return;
             }

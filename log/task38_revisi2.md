@@ -1,0 +1,1 @@
+sekarang saya ingin waktu login pakai scan dan pakai upload file qrcode itu bisa dicrop dan bisa diatur cropnya agar qrcode yang ditangkap pas ditengah dan tidak terpotong. dan ketika dicrop maka akan diproses ulang (discan ulang). intinya seperti google lens

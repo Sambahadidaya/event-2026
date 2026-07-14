@@ -1,0 +1,2 @@
+sekarang fokus ke auth saat pakai metode scan qrcode.
+jadi saya ingin ketika login menggunakan scan itu mau dari scan atau upload file qrcode langsung bisa masuk yang secara tidak langsung saya login ini berhasil tanpa memasukan password dan hanya mencocokan kolom qrcode dengan id authnya yaitu kolom user_id dan email. Kan kalau pakai username itu cuman mencocokan nama lalu mengambil email dan user_idnya tapi tetap menggunakan password, nah kalau qrcode itu saya ingin mencocokannya dengan qrcode lalu otomatis login tanpa password.
