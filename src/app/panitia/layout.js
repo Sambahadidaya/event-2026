@@ -23,21 +23,16 @@ export default function PanitiaLayout({ children }) {
 
     const activityTimer = useRef(null);
     const heartbeatInterval = useRef(null);
+    const handleLogoutRef = useRef(null);
 
     // Activity tracking for auto logout (5 minutes = 300,000 ms)
     const INACTIVITY_LIMIT = 300000;
 
     const resetActivityTimer = () => {
         if (activityTimer.current) clearTimeout(activityTimer.current);
-        activityTimer.current = setTimeout(handleAutoLogout, INACTIVITY_LIMIT);
-    };
-
-    const handleAutoLogout = async () => {
-        if (adminData?.user_id) {
-            await logoutAdmin(adminData.user_id);
-        } else {
-             await logoutAdmin();
-        }
+        activityTimer.current = setTimeout(() => {
+            if (handleLogoutRef.current) handleLogoutRef.current();
+        }, INACTIVITY_LIMIT);
     };
 
     const updateHeartbeat = async (userId) => {
@@ -111,12 +106,15 @@ export default function PanitiaLayout({ children }) {
         if (adminData?.user_id) {
             await logoutAdmin(adminData.user_id);
         } else {
-             await logoutAdmin();
+            await logoutAdmin();
         }
         document.cookie = "sb-access-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
         setAdminData(null);
         router.push('/panitia/login');
     };
+
+    // Keep ref in sync for auto-logout timer
+    handleLogoutRef.current = handleLogout;
 
     if (pathname === '/panitia/login') {
         return <>{children}</>;
@@ -286,6 +284,29 @@ export default function PanitiaLayout({ children }) {
                                 <NavLink href="/panitia/pose/jadwal_pertandingan" icon={Calendar} label="Manajemen Jadwal Pertandingan" colorTheme="emerald" />
                                 <NavLink href="/panitia/pose/form_wajib" icon={FileText} label="Manajemen Form Wajib" colorTheme="emerald" />
                                 <NavLink href="/panitia/pose/peserta_wajib" icon={Users} label="Data Peserta Wajib" colorTheme="emerald" />
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div className="mb-6">
+                        {!collapsed && (
+                            <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">PJ Lomba</p>
+                        )}
+                        <button
+                            onClick={() => toggleMenu('pj_lomba')}
+                            title="PJ Lomba"
+                            className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
+                        >
+                            <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
+                                <ShieldAlert size={18} className="text-slate-400 group-hover:text-violet-500 transition-colors shrink-0" />
+                                {!collapsed && 'PJ Lomba'}
+                            </span>
+                            {!collapsed && (menuOpen.pj_lomba ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
+                        </button>
+                        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.pj_lomba ? 'max-h-40 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                            <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
+                                <NavLink href="/panitia/pj_lomba/dashboard" icon={ShieldAlert} label="Dashboard" colorTheme="violet" />
+                                <NavLink href="/panitia/pj_lomba/form_register" icon={ShieldAlert} label="Manajemen Register" colorTheme="violet" />
                             </ul>
                         </div>
                     </div>

@@ -297,3 +297,27 @@ export const checkPesertaPkkmbByNim = async (nim) => {
         return null;
     }
 };
+
+export const checkPesertaPoseWajibByNim = async (nim) => {
+    try {
+        if (!nim) throw new Error('NIM is required');
+
+        const { data, error } = await supabaseAdmin
+            .from('peserta')
+            .select('id, nama, nim')
+            .eq('site_type', 'pose')
+            .eq('jenis_form', 'wajib')
+            .eq('nim', nim)
+            .single();
+
+        if (error) {
+            if (error.code === 'PGRST116') return null;
+            throw error;
+        }
+
+        return data;
+    } catch (error) {
+        console.error("Error checking peserta pose wajib by nim:", error);
+        return null;
+    }
+};

@@ -50,12 +50,18 @@ export const KAMPUS_DATA = [
     'Kampus Pekanbaru',
     'Kampus Padang',
     'Kampus Langsa',
+    'Lainnya'
 ];
 
 export const STATUS_BAYAR_DATA = [
     'Sudah Bayar',
     'Belum Bayar',
     'Pending'
+];
+
+export const METODE_BAYAR_DATA = [
+    'QRIS',
+    'Kas'
 ];
 export const STATUS_VERIFIKASI_DATA = [
     'Disetujui',
@@ -70,6 +76,41 @@ export const KAMPUS_PRODI_CODES = {
         '03': 'Akuntansi',
         '04': 'Hubungan Masyarakat',
         '41': 'Bisnis Digital'
+    },
+    'Kampus Tasikmalaya': {
+        '01': 'Manajemen Informatika',
+        '02': 'Akuntansi',
+        '03': 'Hubungan Masyarakat',
+        '04': 'Administrasi Bisnis',
+        '05': 'Teknik Komputer'
+    },
+    'Kampus Cirebon': {
+        '01': 'Manajemen Informatika',
+        '02': 'Akuntansi',
+        '03': 'Hubungan Masyarakat',
+        '04': 'Administrasi Bisnis',
+        '05': 'Teknik Komputer'
+    },
+    'Kampus Pekanbaru': {
+        '01': 'Manajemen Informatika',
+        '02': 'Akuntansi',
+        '03': 'Hubungan Masyarakat',
+        '04': 'Administrasi Bisnis',
+        '05': 'Teknik Komputer'
+    },
+    'Kampus Padang': {
+        '01': 'Manajemen Informatika',
+        '02': 'Akuntansi',
+        '03': 'Hubungan Masyarakat',
+        '04': 'Administrasi Bisnis',
+        '05': 'Teknik Komputer'
+    },
+    'Kampus Langsa': {
+        '01': 'Manajemen Informatika',
+        '02': 'Akuntansi',
+        '03': 'Hubungan Masyarakat',
+        '04': 'Administrasi Bisnis',
+        '05': 'Teknik Komputer'
     }
 };
 

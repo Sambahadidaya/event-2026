@@ -1,0 +1,11 @@
+saya sudah menjalankan perintah sql berikut
+```sql
+ALTER TABLE peserta
+ADD COLUMN jenis_form VARCHAR(10);
+```
+fokus ke halaman form, saya ingin ketika user menginput form wajib maka akan datanya akan tersimpan biasa dan ditabel peserta (database) kolom jenis_form akan otomatis terisi dengan wajib, dan jika user menginputnya yang form register maka otomatis kolom jenis_form akan terisi dengan register.
+terus ada bug pada form register yaitu datanya malah tidak terkirim ke database peserta padahalkan harusnya form register itu tersimpan ke 3 database yaitu tabel team, team_members, dan peserta. yang dimana tabel peserta itu disimpannya dari data yang dimasukan ke team_members yaitu kolom nama dan kode, yang kolom kode ini masuk ke tabel pesertanya dipecah yaitu pada tabel peserta kolom nim dari full kode terus kolom prodi dan angkatan hasil dari pecahan seperti logika pada form wajib. dan juga di inputan form register ini data kolom email_wa dan kampus tidak tersimpan ke peserta.
+terus untuk form register ini jika kategorinya dosen maka kode ditabel team_members itu isinya "Dosen+(2angka)" contohnya Dosen01, yang disimpan ke tabel pesertanya kolom kampus,prodi,angkatan itu semua disimpannya cuman Dosen kalau untuk kolom nimnya berupa "Dosen01" juga. dan begitu juga ketika kategorinya umum, maka kode ditabel team_members itu isinya "Umum+(2angka)" contohnya Umum01, yang disimpan ke tabel pesertanya kolom kampus,prodi,angkatan itu semua disimpannya cuman Umum kalau untuk kolom nimnya berupa "Umum01" juga.
+teru saya ingin untuk form regiter khususnya dari jenis lomba kreativitas (sesuai dengan lombaData.js) saya ingin datanya dicari dulu atau pencocokan dulu antara nim yang diinputkan dengan nim yang ada didatabase peserta, jadi pada jenis lomba kreativitas hanya bisa daftar jika datanya sudah ada (pernah ngisi form wajib dengan sitenya pose).
+terus saya ingin jika kategorinya mahasiswa terus saat memilih kampusnya itu isinya "lainnya" maka akan ada inputan lagi untuk menentukan dikampus mana yang inputannya itu bisa diisi terserah dan tidak mengikuti drop down yang ada, dan jika memilihnya selain "lainnya" maka inputannya mengikuti drop down yang ada.
+terus untuk pemecahan kode atau nim ini sesuai dengan yang sudah ditentukan difile lombaData.js karna tiap kampus pecahannya bisa berbeda.

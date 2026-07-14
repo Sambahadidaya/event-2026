@@ -419,6 +419,18 @@ ALTER TABLE peserta
 DROP COLUMN IF EXISTS form_id,
 DROP COLUMN IF EXISTS form_register_id;
 
+ALTER TABLE peserta
+ADD COLUMN jenis_form VARCHAR(10);
+
+ALTER TABLE form_register
+ADD COLUMN nominal INT;
+ALTER TABLE form_wajib
+ADD COLUMN nominal INT;
+
+ALTER TABLE peserta
+ADD COLUMN IF NOT EXISTS metode_pembayaran VARCHAR(10);
+ALTER TABLE peserta
+ADD COLUMN IF NOT EXISTS metode_pembayaran VARCHAR(10);
 ```
 
 ---
@@ -462,6 +474,11 @@ DROP COLUMN IF EXISTS form_register_id;
 │   │   │   │       └── page.js
 │   │   │   ├── login/
 │   │   │   │   └── page.js
+│   │   │   ├── pj_lomba/
+│   │   │   │   ├── dashboard/
+│   │   │   │   │   └── page.js
+│   │   │   │   └── form_register/
+│   │   │   │       └── page.js
 │   │   │   ├── pkkmb/
 │   │   │   │   ├── berita/
 │   │   │   │   │   └── page.js

@@ -27,6 +27,7 @@ export default function FormRegisterDashboard() {
     const [keterangan, setKeterangan] = useState('');
     const [imageFile, setImageFile] = useState(null);
     const [butuhBukti, setButuhBukti] = useState(true);
+    const [nominal, setNominal] = useState('');
     const [createLoading, setCreateLoading] = useState(false);
 
     const router = useRouter();
@@ -103,11 +104,14 @@ export default function FormRegisterDashboard() {
 
         const linkId = nanoid(64);
 
+        const finalNominal = butuhBukti ? (nominal ? parseInt(nominal, 10) : null) : 0;
+
         const res = await upsertFormRegister({
             jenis_lomba: jenisLomba,
             nama_lomba: namaLomba,
             keterangan: keterangan,
             butuh_bukti: butuhBukti,
+            nominal: finalNominal,
             link_id: linkId,
             gambar: gambarUrl
         });
@@ -122,6 +126,7 @@ export default function FormRegisterDashboard() {
             setNamaLomba('');
             setKeterangan('');
             setButuhBukti(true);
+            setNominal('');
             setImageFile(null);
             window.alert('Berhasil membuat form pendaftaran baru!');
         }
@@ -327,6 +332,20 @@ export default function FormRegisterDashboard() {
                                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Wajib Upload Bukti Pembayaran</span>
                                 </label>
                             </div>
+
+                            {butuhBukti && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nominal Pembayaran (Opsional)</label>
+                                    <input
+                                        type="number"
+                                        value={nominal}
+                                        onChange={(e) => setNominal(e.target.value)}
+                                        placeholder="Contoh: 50000"
+                                        min="0"
+                                        className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                                    />
+                                </div>
+                            )}
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Gambar Header (Opsional)</label>

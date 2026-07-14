@@ -22,6 +22,7 @@ export default function AdminFormWajib({ siteType }) {
 
     const [judul, setJudul] = useState('');
     const [keterangan, setKeterangan] = useState('');
+    const [nominal, setNominal] = useState('');
     const [imageFile, setImageFile] = useState(null);
     const [createLoading, setCreateLoading] = useState(false);
 
@@ -94,6 +95,7 @@ export default function AdminFormWajib({ siteType }) {
         const res = await upsertFormWajib({
             judul: judul,
             keterangan: keterangan,
+            nominal: nominal ? parseInt(nominal, 10) : null,
             link_id: linkId,
             site: siteType,
             gambar: gambarUrl
@@ -110,6 +112,7 @@ export default function AdminFormWajib({ siteType }) {
             setShowCreateModal(false);
             setJudul('');
             setKeterangan('');
+            setNominal('');
             setImageFile(null);
             window.alert('Berhasil membuat form pendaftaran wajib!');
         }
@@ -282,6 +285,18 @@ export default function AdminFormWajib({ siteType }) {
                                     placeholder="Opsional. Masukkan informasi penting untuk peserta."
                                     rows="3"
                                     className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nominal Pembayaran (Opsional)</label>
+                                <input
+                                    type="number"
+                                    value={nominal}
+                                    onChange={(e) => setNominal(e.target.value)}
+                                    placeholder="Contoh: 50000"
+                                    min="0"
+                                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
                                 />
                             </div>
 

@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import { uploadFile as serverUploadFile } from '@/api/supabase/storage';
-import { insertPeserta, insertPesertaBatch } from '@/api/supabase/peserta';
+import { insertPeserta, insertPesertaBatch, checkPesertaPoseWajibByNim } from '@/api/supabase/peserta';
 import { insertTeamPublic, insertTeamMembers } from '@/api/supabase/team';
 import { Trophy, Plus, Trash2, Users, Send, Info, Image as ImageIcon, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { KAMPUS_DATA, parseNIM } from '@/lib/lombaData';
+import { KAMPUS_DATA, METODE_BAYAR_DATA, parseNIM } from '@/lib/lombaData';
 import { nanoid } from 'nanoid';
 
 const isValidInput = (str) => {
@@ -20,7 +20,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
     // isWajib=false -> Pendaftaran Lomba (team, table: team & team_members)
 
     const [kategori, setKategori] = useState('Mahasiswa'); // Mahasiswa, Dosen, Umum
-    
+
     // Team Fields (Only for Lomba)
     const [teamName, setTeamName] = useState('');
     const [teamContent, setTeamContent] = useState('');
@@ -31,16 +31,17 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
 
     // Members (For Wajib, it's just 1 member always)
     const [members, setMembers] = useState([
-        { nama: '', nim: '', kampus: '', email_wa: '', jabatan: 'Pendaftar' }
+        { nama: '', nim: '', kampus: '', kampusLainnya: '', email_wa: '', jabatan: '' }
     ]);
-    
+
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
+    const [metodePembayaran, setMetodePembayaran] = useState('');
 
     const requiresBukti = isWajib || formConfig?.butuh_bukti !== false;
 
     const handleAddMember = () => {
-        setMembers([...members, { nama: '', nim: '', kampus: '', email_wa: '', jabatan: '' }]);
+        setMembers([...members, { nama: '', nim: '', kampus: '', kampusLainnya: '', email_wa: '', jabatan: '' }]);
     };
 
     const handleRemoveMember = (index) => {
@@ -52,7 +53,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
     const handleMemberChange = (index, field, value) => {
         const newMembers = [...members];
         newMembers[index][field] = value;
-        
+
         // Auto parse NIM if field is NIM and kategori is Mahasiswa
         if (field === 'nim' && value.length >= 9) {
             const parsed = parseNIM(value, newMembers[index].kampus);
@@ -61,7 +62,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                 // but we could store it if we wanted to show it.
             }
         }
-        
+
         setMembers(newMembers);
     };
 
@@ -83,7 +84,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                 return window.alert("Karakter tidak diperbolehkan pada input Nama/Deskripsi.");
             }
         }
-        
+
         for (const m of members) {
             if (!isValidInput(m.nama) || !isValidInput(m.jabatan) || !isValidInput(m.email_wa)) {
                 return window.alert("Karakter tidak diperbolehkan pada input anggota.");
@@ -91,14 +92,32 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
             if (kategori === 'Mahasiswa') {
                 if (!isValidInput(m.nim)) return window.alert("Karakter tidak valid pada NIM.");
                 if (m.nim.length !== 9) return window.alert("NIM harus berisi persis 9 karakter.");
+                if (m.kampus === 'Lainnya' && !m.kampusLainnya) {
+                    return window.alert("Mohon sebutkan nama kampus jika memilih 'Lainnya'.");
+                }
             }
         }
-        
+
         if (requiresBukti && !buktiBayarFile) {
             return window.alert("Mohon unggah bukti pembayaran.");
         }
 
         setSubmitting(true);
+
+        if (!isWajib && formConfig?.jenis_lomba === 'Kreativitas' && kategori === 'Mahasiswa') {
+            try {
+                for (const m of members) {
+                    const exists = await checkPesertaPoseWajibByNim(m.nim);
+                    if (!exists) {
+                        setSubmitting(false);
+                        return window.alert(`Pendaftaran gagal: NIM ${m.nim} atas nama ${m.nama} belum terdaftar pada Form Wajib POSE.`);
+                    }
+                }
+            } catch (error) {
+                setSubmitting(false);
+                return window.alert("Terjadi kesalahan saat memverifikasi NIM.");
+            }
+        }
 
         try {
             // Upload images
@@ -107,7 +126,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                 buktiUrl = await uploadFileHelper(buktiBayarFile, 'bukti-bayar');
             }
             let logoUrl = null;
-            
+
             if (!isWajib && logoFile) {
                 logoUrl = await uploadFileHelper(logoFile, 'team-images');
             }
@@ -116,23 +135,27 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                 // INSERT KE peserta
                 const m = members[0];
                 const isMhs = kategori === 'Mahasiswa';
+                const finalKampusWajib = isMhs ? (m.kampus === 'Lainnya' ? m.kampusLainnya : m.kampus) : kategori;
                 let parsedNIM = null;
-                if (isMhs && m.nim && m.kampus) {
-                    parsedNIM = parseNIM(m.nim, m.kampus);
+                if (isMhs && m.nim && finalKampusWajib) {
+                    parsedNIM = parseNIM(m.nim, finalKampusWajib);
                 }
 
                 const pesertaPayload = {
                     kategori: kategori,
                     nama: m.nama,
-                    kampus: isMhs ? m.kampus : kategori,
+                    kampus: finalKampusWajib,
                     nim: isMhs ? m.nim : kategori,
                     prodi: isMhs && parsedNIM ? parsedNIM.prodiName : kategori,
                     angkatan: isMhs && parsedNIM ? parsedNIM.angkatan : kategori,
                     email_wa: m.email_wa,
                     bukti_bayar: buktiUrl,
                     status_pembayaran: 'Pending',
-                    site_type: formConfig?.site || null
+                    site_type: formConfig?.site || 'pose',
+                    jenis_form: 'wajib'
                 };
+
+                    pesertaPayload.metode_pembayaran = metodePembayaran || null;
 
                 const res = await insertPeserta(pesertaPayload);
                 if (!res.success) throw new Error(res.error);
@@ -140,10 +163,10 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
             } else {
                 // INSERT KE team, team_members, & peserta
                 let token = localStorage.getItem('pose_user_token');
-                
+
                 // Cek apakah token dari cache adalah UUID yang valid (panjang 36 karakter dengan format spesifik)
                 const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token);
-                
+
                 if (!token || !isValidUUID) {
                     token = crypto.randomUUID();
                     localStorage.setItem('pose_user_token', token);
@@ -167,15 +190,19 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                 const teamMembersToInsert = [];
                 const pesertaToInsert = [];
 
-                for (const m of members) {
+                for (let i = 0; i < members.length; i++) {
+                    const m = members[i];
                     const isMhs = kategori === 'Mahasiswa';
+                    const finalKampusReg = isMhs ? (m.kampus === 'Lainnya' ? m.kampusLainnya : m.kampus) : kategori;
                     let parsedNIM = null;
-                    if (isMhs && m.nim && m.kampus) {
-                        parsedNIM = parseNIM(m.nim, m.kampus);
+                    if (isMhs && m.nim && finalKampusReg) {
+                        parsedNIM = parseNIM(m.nim, finalKampusReg);
                     }
-                    
-                    const finalKampus = isMhs ? m.kampus : kategori;
-                    const finalNim = isMhs ? m.nim : kategori;
+
+                    const duaAngka = String(i + 1).padStart(2, '0');
+                    const nonMhsKode = `${kategori}${duaAngka}`;
+
+                    const finalNim = isMhs ? m.nim : nonMhsKode;
                     const finalProdi = isMhs && parsedNIM ? parsedNIM.prodiName : kategori;
                     const finalAngkatan = isMhs && parsedNIM ? parsedNIM.angkatan : kategori;
 
@@ -189,14 +216,16 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                     pesertaToInsert.push({
                         kategori: kategori,
                         nama: m.nama,
-                        kampus: finalKampus,
+                        kampus: finalKampusReg,
                         nim: finalNim,
                         prodi: finalProdi,
                         angkatan: finalAngkatan,
                         email_wa: m.email_wa,
                         bukti_bayar: buktiUrl,
                         status_pembayaran: 'Pending',
-                        site_type: formConfig?.site || null
+                        site_type: formConfig?.site || null,
+                        jenis_form: 'register',
+                        metode_pembayaran: metodePembayaran || null
                     });
                 }
 
@@ -279,7 +308,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
             )}
 
             <form onSubmit={handleSubmit} className="p-6 sm:p-10 space-y-8">
-                
+
                 {/* Switch Kategori (Hanya untuk Lomba) */}
                 {!isWajib && (
                     <div className="p-5 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
@@ -287,10 +316,10 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                         <div className="flex gap-4">
                             {['Mahasiswa', 'Dosen', 'Umum'].map(cat => (
                                 <label key={cat} className="flex items-center gap-2 cursor-pointer">
-                                    <input 
-                                        type="radio" 
-                                        name="kategori" 
-                                        value={cat} 
+                                    <input
+                                        type="radio"
+                                        name="kategori"
+                                        value={cat}
                                         checked={kategori === cat}
                                         onChange={(e) => setKategori(e.target.value)}
                                         className="w-4 h-4 text-blue-600"
@@ -312,7 +341,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nama Tim / Nama Perwakilan *</label>
-                                <input 
+                                <input
                                     type="text" required value={teamName} onChange={(e) => setTeamName(e.target.value)}
                                     placeholder="Masukkan nama tim..."
                                     className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
@@ -320,7 +349,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tagline / Deskripsi Tim (Opsional)</label>
-                                <input 
+                                <input
                                     type="text" value={teamContent} onChange={(e) => setTeamContent(e.target.value)}
                                     placeholder="Deskripsi singkat..."
                                     className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
@@ -328,7 +357,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Logo Tim / Ikon (Opsional)</label>
-                                <input 
+                                <input
                                     type="file" accept="image/*" onChange={(e) => setLogoFile(e.target.files[0])}
                                     className="w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-gray-100 dark:file:bg-gray-800 file:text-gray-700 dark:file:text-gray-300 hover:file:bg-gray-200"
                                 />
@@ -352,7 +381,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                     {members.map((member, index) => (
                         <div key={index} className="p-5 sm:p-6 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 rounded-2xl relative group transition-all">
                             {!isWajib && index > 0 && (
-                                <button 
+                                <button
                                     type="button" onClick={() => handleRemoveMember(index)}
                                     className="absolute -top-3 -right-3 bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 p-2 rounded-full shadow hover:bg-red-200"
                                     title="Hapus Anggota"
@@ -360,18 +389,18 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                                     <Trash2 size={16} />
                                 </button>
                             )}
-                            
+
                             {!isWajib && (
                                 <h4 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
                                     <span className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 text-xs flex items-center justify-center">{index + 1}</span>
-                                    {index === 0 ? 'Data Anggota Utama / Pendaftar' : `Data Anggota ${index}`}
+                                    {index === 0 ? 'Data Anggota Utama ' : `Data Anggota ${index}`}
                                 </h4>
                             )}
-                            
+
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Nama Lengkap *</label>
-                                    <input 
+                                    <input
                                         type="text" required value={member.nama} onChange={(e) => handleMemberChange(index, 'nama', e.target.value)}
                                         className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                                     />
@@ -379,7 +408,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                                 {!isWajib && (
                                     <div>
                                         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Jabatan *</label>
-                                        <input 
+                                        <input
                                             type="text" required value={member.jabatan} onChange={(e) => handleMemberChange(index, 'jabatan', e.target.value)}
                                             placeholder="Contoh: Ketua, Striker, Anggota"
                                             className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
@@ -388,7 +417,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                                 )}
                                 <div>
                                     <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">WhatsApp / Email *</label>
-                                    <input 
+                                    <input
                                         type="text" required value={member.email_wa} onChange={(e) => handleMemberChange(index, 'email_wa', e.target.value)}
                                         className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                                     />
@@ -398,17 +427,24 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                                     <>
                                         <div>
                                             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Kampus *</label>
-                                            <select 
+                                            <select
                                                 required value={member.kampus} onChange={(e) => handleMemberChange(index, 'kampus', e.target.value)}
                                                 className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                                             >
                                                 <option value="" disabled>Pilih Kampus</option>
                                                 {KAMPUS_DATA.map(k => <option key={k} value={k}>{k}</option>)}
                                             </select>
+                                            {member.kampus === 'Lainnya' && (
+                                                <input
+                                                    type="text" required value={member.kampusLainnya || ''} onChange={(e) => handleMemberChange(index, 'kampusLainnya', e.target.value)}
+                                                    placeholder="Sebutkan nama kampus"
+                                                    className="w-full px-3 py-2 mt-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            )}
                                         </div>
                                         <div>
                                             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">NIM *</label>
-                                            <input 
+                                            <input
                                                 type="text" required value={member.nim} onChange={(e) => handleMemberChange(index, 'nim', e.target.value)}
                                                 placeholder="Contoh: 202502014"
                                                 minLength={9}
@@ -428,8 +464,8 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                     ))}
 
                     {!isWajib && (
-                        <button 
-                            type="button" 
+                        <button
+                            type="button"
                             onClick={handleAddMember}
                             className="w-full py-4 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl text-gray-500 hover:text-blue-600 hover:border-blue-300 dark:hover:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/10 flex items-center justify-center gap-2 font-medium transition-all"
                         >
@@ -437,23 +473,42 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                         </button>
                     )}
                 </div>
-                
+
                 {/* Bukti Pembayaran */}
                 {requiresBukti && (
                     <div className="space-y-4 pt-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bukti Pembayaran (Wajib) *</label>
-                            <input 
-                                type="file" required accept="image/*" onChange={(e) => setBuktiBayarFile(e.target.files[0])}
-                                className="w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                            />
+                            <div className="flex items-start gap-4">
+                                <input
+                                    type="file" required accept="image/*" onChange={(e) => setBuktiBayarFile(e.target.files[0])}
+                                    className="flex-1 text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                />
+                                {formConfig?.nominal != null && formConfig.nominal > 0 && (
+                                    <div className="shrink-0 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-xl text-sm">
+                                        <span className="text-amber-700 dark:text-amber-300 font-semibold">Nominal: Rp{formConfig.nominal.toLocaleString('id-ID')}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Metode Pembayaran *</label>
+                            <select
+                                required
+                                value={metodePembayaran}
+                                onChange={(e) => setMetodePembayaran(e.target.value)}
+                                className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="" disabled>Pilih Metode Pembayaran</option>
+                                {METODE_BAYAR_DATA.map(m => <option key={m} value={m}>{m}</option>)}
+                            </select>
                         </div>
                     </div>
                 )}
 
                 <div className="pt-6 border-t border-gray-100 dark:border-gray-800">
-                    <button 
-                        type="submit" 
+                    <button
+                        type="submit"
                         disabled={submitting}
                         className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl font-bold text-lg flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
                     >
