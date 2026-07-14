@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Calendar, Users, Building2, Bell, MessageCircle, Trophy, Palette, Flame, ArrowRight, Sparkles, X, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { Calendar, Users, Building2, Bell, MessageCircle, Trophy, BookOpen, Palette, Flame, ArrowRight, Sparkles, X, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { getTheme } from '@/lib/siteThemes';
 import WaveDivider from '@/components/public/WaveDivider';
 
@@ -41,19 +41,24 @@ const siteContent = {
         subtitle: 'Pengenalan Kehidupan Kampus bagi Mahasiswa Baru',
         description: 'Selamat datang, generasi baru Politeknik LP3I! PKKMB adalah gerbang awal perjalanan akademismu — temukan pengumuman, kelompok, dan informasi penting di sini.',
         stats: [
-            { icon: Calendar, label: 'Tanggal Acara', value: '15–17 Agustus' },
-            { icon: Users, label: 'Mahasiswa Baru', value: '500+' },
-            { icon: Building2, label: 'Program Studi', value: '8 Prodi' },
+            { icon: Calendar, label: 'Tanggal Acara', value: '21 - 26 September' },
+            { icon: Users, label: 'Mahasiswa Baru', value: '300+' },
+            { icon: Building2, label: 'Program Studi', value: '11 Prodi' },
+            { icon: Building2, label: 'Cabang Kampus', value: '6 Cabang' },
         ],
         features: [
             { icon: Bell, title: 'Pemberitahuan', desc: 'Pengumuman resmi dan info terbaru seputar kegiatan PKKMB.', href: '/pkkmb/pemberitahuan' },
             { icon: Users, title: 'Kelompok', desc: 'Cek pembagian kelompok dan daftar anggota kelompokmu.', href: '/pkkmb/kelompok' },
+            { icon: BookOpen, title: 'Materi', desc: 'Cek jadwal Materi PKKMB.', href: '/pkkmb/jadwal' },
             { icon: MessageCircle, title: 'Kontak', desc: 'Hubungi panitia jika ada pertanyaan seputar PKKMB.', href: '/pkkmb/contact' },
         ],
         timeline: [
             { day: 'Hari 1', title: 'Opening & Perkenalan', desc: 'Upacara pembukaan, sambutan pimpinan, dan pengenalan kampus.' },
             { day: 'Hari 2', title: 'Kegiatan Inti', desc: 'Workshop, team building, dan pengenalan organisasi kemahasiswaan.' },
-            { day: 'Hari 3', title: 'Penutupan', desc: 'Presentasi kelompok, penyerahan sertifikat, dan closing ceremony.' },
+            { day: 'Hari 3', title: 'Kegiatan Inti', desc: 'Workshop, team building, dan pengenalan organisasi kemahasiswaan.' },
+            { day: 'Hari 4', title: 'Kegiatan Inti', desc: 'Workshop, team building, dan pengenalan organisasi kemahasiswaan.' },
+            { day: 'Hari 5', title: 'Kegiatan Inti', desc: 'Workshop, team building, dan pengenalan organisasi kemahasiswaan.' },
+            { day: 'Hari 6', title: 'Penutupan', desc: 'Presentasi kelompok, penyerahan sertifikat, dan closing ceremony.' },
         ],
     },
     pose: {
@@ -62,13 +67,15 @@ const siteContent = {
         subtitle: 'Pekan Olahraga dan Seni',
         description: 'Raih prestasi, tunjukkan bakat! POSE adalah ajang bergengsi antarprodi — olahraga, seni, dan semangat juara dalam satu panggung.',
         stats: [
-            { icon: Calendar, label: 'Tanggal Acara', value: '20–25 Oktober' },
-            { icon: Trophy, label: 'Cabang Olahraga', value: '12 Cabang' },
-            { icon: Palette, label: 'Cabang Seni', value: '8 Cabang' },
+            { icon: Calendar, label: 'Tanggal Acara', value: '15 - 26 September' },
+            { icon: Trophy, label: 'Cabang lomba', value: '15 Cabang' },
+            { icon: Palette, label: 'Jenis Lomba', value: '3 Jenis' },
         ],
         features: [
             { icon: Bell, title: 'Pemberitahuan', desc: 'Jadwal pertandingan, hasil lomba, dan pengumuman resmi POSE.', href: '/pose/pemberitahuan' },
-            { icon: Users, title: 'Tim & Jadwal', desc: 'Lihat susunan tim dan jadwal pertandingan setiap cabang.', href: '/pose/team' },
+            { icon: Users, title: 'Tim', desc: 'Cek susunan tim pertandingan setiap cabang.', href: '/pose/team' },
+            { icon: Trophy, title: 'Klasemen', desc: 'Cek klasemen pertandingan setiap cabang.', href: '/pose/klasemen' },
+            { icon: Flame, title: 'Sertifikat', desc: 'Cek sertifikat juara lomba.', href: '/pose/sertifikat' },
             { icon: MessageCircle, title: 'Kontak', desc: 'Hubungi panitia POSE untuk pendaftaran dan informasi.', href: '/pose/contact' },
         ],
         timeline: [
@@ -224,7 +231,7 @@ const PhilosophyModal = ({ isOpen, onClose, type, theme }) => {
             <div className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-500 flex flex-col md:flex-row max-h-[90vh]">
 
                 {/* Image Section */}
-                <div 
+                <div
                     className="relative w-full md:w-1/2 p-8 md:p-12 flex items-center justify-center bg-gray-50 dark:bg-slate-800/50"
                     onTouchStart={handleTouchStart}
                     onTouchMove={handleTouchMove}
@@ -250,11 +257,11 @@ const PhilosophyModal = ({ isOpen, onClose, type, theme }) => {
                             {/* Slide Indicators */}
                             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
                                 {logoSlides.map((_, idx) => (
-                                    <button 
-                                        key={idx} 
+                                    <button
+                                        key={idx}
                                         onClick={() => setSlideIndex(idx)}
                                         aria-label={`Go to slide ${idx + 1}`}
-                                        className={`w-2.5 h-2.5 rounded-full transition-all cursor-pointer ${idx === slideIndex ? 'bg-blue-600 w-6' : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400'}`} 
+                                        className={`w-2.5 h-2.5 rounded-full transition-all cursor-pointer ${idx === slideIndex ? 'bg-blue-600 w-6' : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400'}`}
                                     />
                                 ))}
                             </div>
