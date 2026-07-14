@@ -7,11 +7,12 @@ export const loginAdmin = async (identifier, password, loginMethod) => {
     try {
         let loginEmail = identifier;
         let loginAdminId = null;
+        let adminRole = null;
 
         if (loginMethod === 'nama') {
             const { data: adminData, error: adminError } = await supabaseAdmin
                 .from('admins')
-                .select('id, email')
+                .select('id, email, role')
                 .ilike('nama', identifier)
                 .single();
 
@@ -20,15 +21,19 @@ export const loginAdmin = async (identifier, password, loginMethod) => {
             }
             loginEmail = adminData.email;
             loginAdminId = adminData.id;
+            adminRole = adminData.role;
         } else {
             // Jika login pakai email, ambil admin id pertama yang cocok
             const { data: adminData } = await supabaseAdmin
                 .from('admins')
-                .select('id')
+                .select('id, role')
                 .eq('email', identifier)
                 .limit(1)
                 .single();
-            if (adminData) loginAdminId = adminData.id;
+            if (adminData) {
+                loginAdminId = adminData.id;
+                adminRole = adminData.role;
+            }
         }
 
         const { data, error: signInError } = await supabaseAdmin.auth.signInWithPassword({
@@ -52,9 +57,38 @@ export const loginAdmin = async (identifier, password, loginMethod) => {
             cookieStore.set('sb-admin-id', loginAdminId, { path: '/', maxAge: 3600 });
         }
 
-        return { success: true, data };
+        return { success: true, data, adminRole };
     } catch (error) {
         console.error("Login error:", error);
+        return { success: false, error: error.message };
+    }
+};
+
+export const loginAdminWithQR = async (qrString) => {
+    try {
+        const { data: adminData, error: adminError } = await supabaseAdmin
+            .from('admins')
+            .select('id, user_id, role')
+            .eq('qrcode', qrString)
+            .single();
+
+        if (adminError || !adminData) {
+            return { success: false, error: 'QR Code tidak valid atau tidak ditemukan.' };
+        }
+
+        // Update status online
+        await supabaseAdmin
+            .from('admins')
+            .update({ is_online: true, last_active: new Date().toISOString() })
+            .eq('id', adminData.id);
+
+        const cookieStore = await cookies();
+        cookieStore.set('sb-qr-token', qrString, { path: '/', maxAge: 3600 });
+        cookieStore.set('sb-admin-id', adminData.id, { path: '/', maxAge: 3600 });
+
+        return { success: true, adminRole: adminData.role };
+    } catch (error) {
+        console.error("QR Login error:", error);
         return { success: false, error: error.message };
     }
 };
@@ -71,6 +105,7 @@ export const logoutAdmin = async (userId) => {
         const cookieStore = await cookies();
         cookieStore.delete('sb-access-token');
         cookieStore.delete('sb-admin-id');
+        cookieStore.delete('sb-qr-token');
         return { success: true };
     } catch (error) {
          console.error("Logout error:", error);
@@ -83,6 +118,19 @@ export const getCurrentAdmin = async () => {
         const cookieStore = await cookies();
         const token = cookieStore.get('sb-access-token')?.value;
         const adminId = cookieStore.get('sb-admin-id')?.value;
+        const qrToken = cookieStore.get('sb-qr-token')?.value;
+
+        if (qrToken) {
+             const { data: adminData, error: adminError } = await supabaseAdmin
+                 .from('admins')
+                 .select('*')
+                 .eq('qrcode', qrToken)
+                 .single();
+             if (adminData && !adminError) {
+                 if (adminId && adminData.id !== adminId) return null;
+                 return adminData;
+             }
+        }
 
         if (!token) return null;
 

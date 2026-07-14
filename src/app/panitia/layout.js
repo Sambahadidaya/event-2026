@@ -277,10 +277,9 @@ export default function PanitiaLayout({ children }) {
                             <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
                                 <NavLink href="/panitia/pose/jadwal_acara" icon={Calendar} label="Manajemen Jadwal Acara" colorTheme="emerald" />
                                 <NavLink href="/panitia/pose/berita" icon={Newspaper} label="Manajemen Berita" colorTheme="emerald" />
-                                <NavLink href="/panitia/pose/peserta" icon={Users} label="Manajemen Peserta" colorTheme="emerald" />
+                                <NavLink href="/panitia/pose/peserta" icon={Users} label="Data Seluruh Peserta" colorTheme="emerald" />
                                 <NavLink href="/panitia/pose/team" icon={Users} label="Manajemen Team" colorTheme="emerald" />
                                 <NavLink href="/panitia/pose/form_register" icon={FileText} label="Manajemen Form Register" colorTheme="emerald" />
-                                <NavLink href="/panitia/pose/register" icon={FileText} label="Manajemen Register" colorTheme="emerald" />
                                 <NavLink href="/panitia/pose/jadwal_pertandingan" icon={Calendar} label="Manajemen Jadwal Pertandingan" colorTheme="emerald" />
                                 <NavLink href="/panitia/pose/form_wajib" icon={FileText} label="Manajemen Form Wajib" colorTheme="emerald" />
                                 <NavLink href="/panitia/pose/peserta_wajib" icon={Users} label="Data Peserta Wajib" colorTheme="emerald" />

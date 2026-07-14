@@ -2,9 +2,12 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { loginAdmin } from '@/api/supabase/auth';
+import { loginAdmin, loginAdminWithQR } from '@/api/supabase/auth';
+import { rolePermissions } from '@/lib/adminRoleData';
 import ThemeToggle from '@/components/ThemeToggle';
-import { Shield, Mail, Lock, ArrowRight, User } from 'lucide-react';
+import { Shield, Mail, Lock, ArrowRight, User, ScanLine } from 'lucide-react';
+import { Html5QrcodeScanner } from 'html5-qrcode';
+import { useEffect } from 'react';
 
 export default function PanitiaLogin() {
     const [loginMethod, setLoginMethod] = useState('email');
@@ -12,7 +15,50 @@ export default function PanitiaLogin() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [showScanner, setShowScanner] = useState(false);
     const router = useRouter();
+
+    useEffect(() => {
+        let scanner = null;
+        if (showScanner) {
+            scanner = new Html5QrcodeScanner('reader', {
+                qrbox: { width: 250, height: 250 },
+                fps: 5,
+            });
+
+            const success = async (result) => {
+                scanner.clear();
+                setShowScanner(false);
+                setLoading(true);
+                setError(null);
+
+                const res = await loginAdminWithQR(result);
+                if (res.success) {
+                    const role = res.adminRole;
+                    let redirectUrl = '/panitia/dashboard/trafik';
+                    if (role && role !== 'super_admin' && rolePermissions[role] && rolePermissions[role].length > 0) {
+                        redirectUrl = rolePermissions[role][0];
+                    }
+                    router.push(redirectUrl);
+                } else {
+                    setError(res.error);
+                    setLoading(false);
+                }
+            };
+
+            const errorFn = (err) => {
+                // Ignore constant scan errors
+            };
+
+            scanner.render(success, errorFn);
+        }
+
+        return () => {
+            if (scanner) {
+                scanner.clear().catch(e => console.error("Failed to clear scanner", e));
+            }
+        };
+    }, [showScanner, router]);
 
     const handleIdentifierChange = (e) => {
         const value = e.target.value;
@@ -40,7 +86,13 @@ export default function PanitiaLogin() {
             return;
         }
 
-        router.push('/panitia/dashboard/trafik');
+        const role = res.adminRole;
+        let redirectUrl = '/panitia/dashboard/trafik';
+        if (role && role !== 'super_admin' && rolePermissions[role] && rolePermissions[role].length > 0) {
+            redirectUrl = rolePermissions[role][0];
+        }
+
+        router.push(redirectUrl);
     };
 
     return (
@@ -118,20 +170,44 @@ export default function PanitiaLogin() {
                             />
                         </div>
                     </div>
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="group w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:from-slate-400 disabled:to-slate-500 text-white p-4 rounded-2xl font-bold shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/40 transition-all mt-8 flex justify-center items-center active:scale-[0.98]"
-                    >
-                        {loading ? (
-                            <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                        ) : (
-                            <>
-                                <span>Masuk Sistem</span>
-                                <ArrowRight size={20} className="ml-2 group-hover:translate-x-1 transition-transform" />
-                            </>
-                        )}
-                    </button>
+                    {showScanner ? (
+                        <div className="space-y-6">
+                            <div id="reader" className="w-full bg-white dark:bg-slate-900 rounded-2xl overflow-hidden shadow-sm"></div>
+                            <button
+                                type="button"
+                                onClick={() => setShowScanner(false)}
+                                className="w-full py-3 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition-all hover:bg-slate-300 dark:hover:bg-slate-700"
+                            >
+                                Batal Scan
+                            </button>
+                        </div>
+                    ) : (
+                        <>
+                            <button
+                                type="button"
+                                onClick={() => setShowScanner(true)}
+                                className="group w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 p-4 rounded-2xl font-bold transition-all flex justify-center items-center"
+                            >
+                                <ScanLine size={20} className="mr-2" />
+                                <span>Scan QR Code</span>
+                            </button>
+                            
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="group w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:from-slate-400 disabled:to-slate-500 text-white p-4 rounded-2xl font-bold shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/40 transition-all mt-4 flex justify-center items-center active:scale-[0.98]"
+                            >
+                                {loading ? (
+                                    <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                                ) : (
+                                    <>
+                                        <span>Masuk Sistem</span>
+                                        <ArrowRight size={20} className="ml-2 group-hover:translate-x-1 transition-transform" />
+                                    </>
+                                )}
+                            </button>
+                        </>
+                    )}
                 </form>
             </div>
         </div>
