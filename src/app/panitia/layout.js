@@ -7,7 +7,7 @@ import ThemeToggle from '@/components/ThemeToggle';
 import { User, LayoutDashboard, FileText, ChevronDown, ChevronRight, LogOut, ShieldAlert, Menu, BarChart3, MessageCircle, Mail, Newspaper, Users, Monitor, Lock, Calendar, Settings, BookOpen, FileCheck } from 'lucide-react';
 import { logoutAdmin, getCurrentAdmin } from '@/api/supabase/auth';
 import { updateAdminStatus } from '@/api/supabase/admin';
-import { hasAccess } from '@/lib/adminRoleData';
+import { hasAccess, rolePermissions } from '@/lib/adminRoleData';
 
 export default function PanitiaLayout({ children }) {
     const [isDesktop, setIsDesktop] = useState(true);
@@ -62,14 +62,13 @@ export default function PanitiaLayout({ children }) {
     useEffect(() => {
         if (pathname === '/panitia/login') return;
 
+        // Reset loading on each navigation so the guard waits for fresh admin data
+        setLoading(true);
+
         const fetchAdminData = async () => {
             // Simplified session check using cookies since auth is server-side now
-            const match = document.cookie.match(/(^| )sb-access-token=([^;]+)/);
-            const qrMatch = document.cookie.match(/(^| )sb-qr-token=([^;]+)/);
-            if (!match && !qrMatch) {
-                router.push('/panitia/login');
-                return;
-            }
+            // Pengecekan cookie via document.cookie dihapus karena token bersifat HttpOnly
+            // Kita langsung mengandalkan server action getCurrentAdmin()
 
             const adminUser = await getCurrentAdmin();
             if (adminUser) {
@@ -121,14 +120,33 @@ export default function PanitiaLayout({ children }) {
         return <>{children}</>;
     }
 
-    // Route guards
-    if (adminData && !hasAccess(adminData.role, pathname)) {
-        router.replace('/panitia/dashboard/trafik');
-        return null;
-    }
-
     if (loading) {
         return <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>;
+    }
+
+    if (!adminData && pathname !== '/panitia/login') {
+        return <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>;
+    }
+
+    // Route guards — redirect to first accessible route for the role
+    if (adminData && !hasAccess(adminData.role, pathname)) {
+        const role = adminData.role;
+        const perms = rolePermissions[role];
+        let fallback = '/panitia/login';
+        if (perms && perms.length > 0) {
+            if (perms.includes('*')) {
+                // super_admin can access everything, but if somehow here, send to trafik
+                fallback = '/panitia/dashboard/trafik';
+            } else {
+                // Find the first allowed route that is NOT the current pathname (avoid loops)
+                fallback = perms[0];
+            }
+        }
+        // Only redirect if fallback differs from current path to avoid infinite loops
+        if (fallback !== pathname) {
+            router.replace(fallback);
+        }
+        return null;
     }
 
     const toggleMenu = (key) => setMenuOpen(prev => ({ ...prev, [key]: !prev[key] }));

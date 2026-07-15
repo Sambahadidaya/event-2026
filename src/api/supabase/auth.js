@@ -32,7 +32,7 @@ export const loginAdmin = async (identifier, password, loginMethod) => {
                 .eq('email', identifier)
                 .limit(1)
                 .single();
-                
+
             if (adminData) {
                 adminDbData = adminData;
                 loginAdminId = adminData.id;
@@ -51,7 +51,7 @@ export const loginAdmin = async (identifier, password, loginMethod) => {
         if (adminDbData.lockout_until) {
             const lockoutTime = new Date(adminDbData.lockout_until).getTime();
             const now = new Date().getTime();
-            
+
             if (now < lockoutTime) {
                 const remaining = Math.ceil((lockoutTime - now) / 1000);
                 return { success: false, error: 'Terlalu banyak percobaan gagal.', cooldown: remaining };
@@ -69,9 +69,9 @@ export const loginAdmin = async (identifier, password, loginMethod) => {
             let newLockoutUntil = null;
             let newFirstFailedAt = adminDbData.first_failed_at;
             let isBlocked = false;
-            
+
             const now = new Date();
-            
+
             // Reset hitungan jika sudah lebih dari 1 jam sejak gagal pertama
             if (newFirstFailedAt) {
                 const firstFailedTime = new Date(newFirstFailedAt).getTime();
@@ -113,14 +113,15 @@ export const loginAdmin = async (identifier, password, loginMethod) => {
         // Reset rate limit info saat berhasil login
         await supabaseAdmin
             .from('admins')
-            .update({ 
-                is_online: true, 
+            .update({
+                is_online: true,
                 last_active: new Date().toISOString(),
                 failed_attempts: 0,
                 lockout_until: null,
-                first_failed_at: null
+                first_failed_at: null,
+                user_id: data.user.id
             })
-            .eq('user_id', data.user.id);
+            .eq('id', loginAdminId);
 
         const cookieStore = await cookies();
         cookieStore.set('sb-access-token', data.session.access_token, { path: '/', maxAge: 3600 });
@@ -212,13 +213,13 @@ export const loginAdminWithQR = async (qrString) => {
         // Update status online
         await supabaseAdmin
             .from('admins')
-            .update({ is_online: true, last_active: new Date().toISOString() })
-            .eq('user_id', authData.user.id);
+            .update({ is_online: true, last_active: new Date().toISOString(), user_id: authData.user.id })
+            .eq('id', adminData.id);
 
         const cookieStore = await cookies();
         cookieStore.set('sb-access-token', authData.session.access_token, { path: '/', maxAge: 3600 });
         cookieStore.set('sb-admin-id', adminData.id, { path: '/', maxAge: 3600 });
-        
+
         // Hapus token qr sementara jika ada (sudah tidak diperlukan karena kita punya akses token sesungguhnya)
         cookieStore.delete('sb-qr-token');
 

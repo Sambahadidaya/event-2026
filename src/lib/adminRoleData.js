@@ -46,9 +46,6 @@ Object.keys(LOMBA_ROLE_MAP).forEach(roleKey => {
 export const rolePermissions = {
   super_admin: ['*'],
   admin_pkkmb: [
-    '/panitia/dashboard/trafik',
-    '/panitia/dashboard/faq',
-    '/panitia/dashboard/kontak',
     '/panitia/pkkmb/berita',
     '/panitia/pkkmb/team',
     '/panitia/pkkmb/form_wajib',
@@ -58,9 +55,6 @@ export const rolePermissions = {
     '/panitia/pkkmb/tugas',
   ],
   admin_pose: [
-    '/panitia/dashboard/trafik',
-    '/panitia/dashboard/faq',
-    '/panitia/dashboard/kontak',
     '/panitia/pose/jadwal_acara',
     '/panitia/pose/berita',
     '/panitia/pose/peserta',
@@ -75,22 +69,13 @@ export const rolePermissions = {
     '/panitia/pj_lomba/form_register',
   ],
   admin_pose_form: [
-    '/panitia/dashboard/trafik',
-    '/panitia/dashboard/faq',
-    '/panitia/dashboard/kontak',
     '/panitia/pose/form_register'
   ],
   admin_pose_jadwal: [
-    '/panitia/dashboard/trafik',
-    '/panitia/dashboard/faq',
-    '/panitia/dashboard/kontak',
     '/panitia/pose/jadwal_acara',
     '/panitia/pose/jadwal_pertandingan'
   ],
   admin_pose_keuangan: [
-    '/panitia/dashboard/trafik',
-    '/panitia/dashboard/faq',
-    '/panitia/dashboard/kontak',
     '/panitia/pose/keuangan'
   ],
   // Spread dynamically generated PJ Lomba roles
