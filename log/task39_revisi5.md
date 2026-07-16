@@ -1,0 +1,2 @@
+ada bug kecil yaitu didiv penyambung antar halaman itu kadang menghilang kadang bintik bintik kadang jadi aneh kadang jadi seperti pixel gitu, perbaiki dan buatlah yang bagus dan semenarik mungkin tapi tetap bergelombang, dan bug penyambung ini juga berlaku dengan penyambung dengan footer.
+terus saya ingin menambah durasi animasi kan awalnya cuman 2 detik menjadi 4 detik. dan saya ingin animasi ini berjalan atau aktif ketika halaman atau div itu muncul, jadi tidak selalu aktif.

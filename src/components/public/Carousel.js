@@ -8,7 +8,7 @@ export default function Carousel({
     renderItem,
     animated = true,
     autoPlay = true,
-    autoplayDelay = 2000,
+    autoplayDelay = 4000,
     className = ''
 }) {
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -18,8 +18,22 @@ export default function Carousel({
     const startX = useRef(null);
     const timerRef = useRef(null);
     const containerRef = useRef(null);
+    const observerRef = useRef(null);
+    const [isVisible, setIsVisible] = useState(false);
 
     const len = items.length;
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(([entry]) => {
+            setIsVisible(entry.isIntersecting);
+        }, { threshold: 0.1 });
+        
+        if (observerRef.current) {
+            observer.observe(observerRef.current);
+        }
+        
+        return () => observer.disconnect();
+    }, []);
 
     useEffect(() => {
         setWindowWidth(window.innerWidth);
@@ -38,13 +52,13 @@ export default function Carousel({
 
     // Autoplay
     useEffect(() => {
-        if (animated && autoPlay && !isHovered && !isDragging) {
+        if (animated && autoPlay && !isHovered && !isDragging && isVisible) {
             timerRef.current = setInterval(nextSlide, autoplayDelay);
         }
         return () => {
             if (timerRef.current) clearInterval(timerRef.current);
         };
-    }, [animated, isHovered, isDragging, autoplayDelay, nextSlide]);
+    }, [animated, autoPlay, isHovered, isDragging, isVisible, autoplayDelay, nextSlide]);
 
     // Drag/Swipe handlers
     const handleDragStart = (clientX) => {
@@ -64,7 +78,7 @@ export default function Carousel({
     if (!animated) {
         // Static scrollable mode (Jelajahi)
         return (
-            <div className={`relative w-full overflow-hidden pb-16 ${className}`}>
+            <div ref={observerRef} className={`relative w-full overflow-hidden pb-16 ${className}`}>
                 <div
                     ref={containerRef}
                     className="flex overflow-x-auto snap-x snap-mandatory gap-4 sm:gap-6 pb-4 px-4 md:px-8 [&::-webkit-scrollbar]:hidden"
@@ -134,6 +148,7 @@ export default function Carousel({
     // Animated Coverflow Mode
     return (
         <div
+            ref={observerRef}
             className={`relative w-full h-[420px] sm:h-[480px] pb-12 flex items-center justify-center overflow-hidden ${className} select-none touch-pan-y cursor-grab active:cursor-grabbing`}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => {
