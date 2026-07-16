@@ -557,6 +557,7 @@ ADD COLUMN IF NOT EXISTS metode_pembayaran VARCHAR(10);
 │   │   ├── ThemeToggle.js
 │   │   ├── public/
 │   │   │   ├── AnnouncementTimeline.js
+│   │   │   ├── Carousel.js
 │   │   │   ├── FormRegistration.js
 │   │   │   ├── HomeLanding.js
 │   │   │   ├── PageHero.js

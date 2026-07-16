@@ -19,6 +19,19 @@ import logoPart3 from '@/assets/logo_pkkmb/pecah-matahari.png';
 import logoPart4 from '@/assets/logo_pkkmb/pecah-motif.png';
 import logoPart5 from '@/assets/logo_pkkmb/pecah-titik+gelombang.png';
 
+// POSE Mascot
+import maskotPose from '@/assets/maskotpose.png';
+
+// Logo Parts POSE
+import logoPoseUtama from '@/assets/logo_pose/logo.png';
+import logoPosePart1 from '@/assets/logo_pose/pecah-gelombang handap lagu.png';
+import logoPosePart2 from '@/assets/logo_pose/pecah-lagu.png';
+import logoPosePart3 from '@/assets/logo_pose/pecah-matahari.png';
+import logoPosePart4 from '@/assets/logo_pose/pecah-motif.png';
+import logoPosePart5 from '@/assets/logo_pose/pecah-titik+gelombang.png';
+
+import Carousel from '@/components/public/Carousel';
+
 const logoSlides = [
     { image: logoPkkmbUtama, title: 'Kesatuan Logo', desc: 'Logo ini mencerminkan semangat juang dan kebersamaan seluruh elemen mahasiswa baru Politeknik LP3I.' },
     { image: logoPart1, title: 'Gelombang Bawah', desc: 'Melambangkan fondasi yang kuat dan pergerakan yang dinamis menuju masa depan yang cerah.' },
@@ -28,10 +41,25 @@ const logoSlides = [
     { image: logoPart5, title: 'Titik dan Gelombang', desc: 'Sinergi antara fokus pada tujuan dan fleksibilitas dalam menghadapi berbagai rintangan.' },
 ];
 
-const mascotInfo = {
+const logoSlidesPose = [
+    { image: logoPoseUtama, title: 'Kesatuan Logo', desc: 'Logo ini mencerminkan semangat sportivitas dan kreativitas mahasiswa Politeknik LP3I dalam ajang POSE.' },
+    { image: logoPosePart1, title: 'Gelombang Bawah', desc: 'Melambangkan pergerakan dinamis dan kekuatan mental yang tangguh dalam berkompetisi.' },
+    { image: logoPosePart2, title: 'Bentuk Lagu', desc: 'Harmoni seni dan olahraga yang menyatukan berbagai talenta mahasiswa.' },
+    { image: logoPosePart3, title: 'Matahari', desc: 'Pancaran energi kemenangan dan semangat pantang menyerah.' },
+    { image: logoPosePart4, title: 'Motif Tradisional', desc: 'Menjunjung tinggi nilai budaya dan sportivitas kearifan lokal.' },
+    { image: logoPosePart5, title: 'Titik dan Gelombang', desc: 'Fokus pada pencapaian prestasi dengan adaptasi yang cepat.' },
+];
+
+const mascotInfoPkkmb = {
     image: maskotPkkmb,
     title: 'Maskot PKKMB 2026',
     desc: 'Maskot ini mencerminkan karakter mahasiswa yang cerdas, tangguh, adaptif, dan selalu bersemangat dalam meraih prestasi, baik secara akademik maupun non-akademik di lingkungan Politeknik LP3I.'
+};
+
+const mascotInfoPose = {
+    image: maskotPose,
+    title: 'Maskot POSE 2026',
+    desc: 'Maskot ini melambangkan jiwa kompetitif, kreativitas tanpa batas, dan energi muda yang membara dalam bidang olahraga dan seni di lingkungan Politeknik LP3I.'
 };
 
 const siteContent = {
@@ -171,7 +199,7 @@ const StatCard = ({ stat, theme }) => {
             <div className="w-14 h-14 rounded-full mx-auto mb-5 flex items-center justify-center bg-white/50 dark:bg-slate-800/50 border border-gray-200 dark:border-white/10 group-hover:scale-110 transition-transform duration-500 shadow-sm">
                 <stat.icon size={24} className="text-gray-700 dark:text-gray-300" />
             </div>
-            <p className={`text-3xl md:text-4xl font-black mb-2 tracking-tight bg-clip-text text-transparent bg-gradient-to-r ${theme.gradientText}`}>
+            <p className="text-3xl md:text-4xl font-black mb-2 tracking-tight text-gray-900 dark:text-white">
                 {isSingleNumber ? `${count}${suffix}` : stat.value}
             </p>
             <p className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.15em]">
@@ -182,7 +210,7 @@ const StatCard = ({ stat, theme }) => {
 };
 
 // Philosophy Modal Component
-const PhilosophyModal = ({ isOpen, onClose, type, theme }) => {
+const PhilosophyModal = ({ isOpen, onClose, type, theme, isPkkmb }) => {
     const [slideIndex, setSlideIndex] = useState(0);
     const touchStartX = useRef(null);
     const touchEndX = useRef(null);
@@ -200,14 +228,16 @@ const PhilosophyModal = ({ isOpen, onClose, type, theme }) => {
     if (!isOpen) return null;
 
     const isLogo = type === 'logo';
-    const currentData = isLogo ? logoSlides[slideIndex] : mascotInfo;
+    const slides = isPkkmb ? logoSlides : logoSlidesPose;
+    const mascot = isPkkmb ? mascotInfoPkkmb : mascotInfoPose;
+    const currentData = isLogo ? slides[slideIndex] : mascot;
 
     const nextSlide = () => {
-        if (isLogo) setSlideIndex((prev) => (prev + 1) % logoSlides.length);
+        if (isLogo) setSlideIndex((prev) => (prev + 1) % slides.length);
     };
 
     const prevSlide = () => {
-        if (isLogo) setSlideIndex((prev) => (prev - 1 + logoSlides.length) % logoSlides.length);
+        if (isLogo) setSlideIndex((prev) => (prev - 1 + slides.length) % slides.length);
     };
 
     const handleTouchStart = (e) => {
@@ -256,7 +286,7 @@ const PhilosophyModal = ({ isOpen, onClose, type, theme }) => {
 
                             {/* Slide Indicators */}
                             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                                {logoSlides.map((_, idx) => (
+                                {slides.map((_, idx) => (
                                     <button
                                         key={idx}
                                         onClick={() => setSlideIndex(idx)}
@@ -347,50 +377,48 @@ export default function HomeLanding({ site }) {
 
                     {/* Bottom: Images & Philosophy */}
                     <RevealWrapper delay={200}>
-                        <div className={`grid ${isPkkmb ? 'md:grid-cols-2 gap-8 md:gap-16 max-w-4xl' : 'grid-cols-1 max-w-sm'} mx-auto items-end`}>
+                        <div className="grid grid-cols-2 gap-4 md:gap-8 max-w-4xl mx-auto items-end mt-12 md:mt-16">
                             {/* Logo Box */}
                             <div className="flex flex-col items-center">
-                                <div className={`relative glass p-10 md:p-12 rounded-[3rem] shadow-2xl ${theme.ring} mb-6 w-full flex justify-center group hover:scale-[1.02] transition-transform duration-500`}>
+                                <div className={`relative glass p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] shadow-2xl ${theme.ring} mb-4 md:mb-6 w-full flex justify-center group hover:scale-[1.02] transition-transform duration-500`}>
                                     <div className={`absolute -inset-4 rounded-[3.5rem] blur-2xl opacity-40 ${theme.blob1} group-hover:opacity-60 transition-opacity`} />
                                     <Image
                                         src={content.logo}
                                         alt={`Logo ${content.title}`}
                                         width={240}
                                         height={240}
-                                        className="relative w-48 h-48 md:w-56 md:h-56 object-contain drop-shadow-2xl"
+                                        className="relative w-32 h-32 sm:w-48 sm:h-48 md:w-56 md:h-56 object-contain drop-shadow-2xl"
                                         priority
                                     />
                                 </div>
                                 <button
                                     onClick={() => openModal('logo')}
-                                    className="flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold text-gray-700 dark:text-gray-200 bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-700 backdrop-blur-md transition-all shadow-sm ring-1 ring-black/5 dark:ring-white/10"
+                                    className="flex items-center gap-2 px-4 md:px-6 py-2 md:py-2.5 rounded-full text-xs md:text-sm font-bold text-gray-700 dark:text-gray-200 bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-700 backdrop-blur-md transition-all shadow-sm ring-1 ring-black/5 dark:ring-white/10 cursor-pointer"
                                 >
-                                    <Search size={16} /> Filosofi Logo
+                                    <Search size={16} className="hidden sm:block" /> Filosofi Logo
                                 </button>
                             </div>
 
-                            {/* Mascot Box (Only PKKMB) */}
-                            {isPkkmb && (
-                                <div className="flex flex-col items-center mt-12 md:mt-0">
-                                    <div className={`relative glass p-10 md:p-12 rounded-[3rem] shadow-2xl ${theme.ring} mb-6 w-full flex justify-center group hover:scale-[1.02] transition-transform duration-500`}>
-                                        <div className={`absolute -inset-4 rounded-[3.5rem] blur-2xl opacity-40 ${theme.blob2} group-hover:opacity-60 transition-opacity`} />
-                                        <Image
-                                            src={maskotPkkmb}
-                                            alt="Maskot PKKMB"
-                                            width={240}
-                                            height={240}
-                                            className="relative w-48 h-48 md:w-56 md:h-56 object-contain drop-shadow-2xl"
-                                            priority
-                                        />
-                                    </div>
-                                    <button
-                                        onClick={() => openModal('mascot')}
-                                        className="flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold text-gray-700 dark:text-gray-200 bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-700 backdrop-blur-md transition-all shadow-sm ring-1 ring-black/5 dark:ring-white/10"
-                                    >
-                                        <Search size={16} /> Filosofi Maskot
-                                    </button>
+                            {/* Mascot Box */}
+                            <div className="flex flex-col items-center">
+                                <div className={`relative glass p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] shadow-2xl ${theme.ring} mb-4 md:mb-6 w-full flex justify-center group hover:scale-[1.02] transition-transform duration-500`}>
+                                    <div className={`absolute -inset-4 rounded-[3.5rem] blur-2xl opacity-40 ${theme.blob2} group-hover:opacity-60 transition-opacity`} />
+                                    <Image
+                                        src={isPkkmb ? mascotInfoPkkmb.image : mascotInfoPose.image}
+                                        alt={`Maskot ${content.title}`}
+                                        width={240}
+                                        height={240}
+                                        className="relative w-32 h-32 sm:w-48 sm:h-48 md:w-56 md:h-56 object-contain drop-shadow-2xl"
+                                        priority
+                                    />
                                 </div>
-                            )}
+                                <button
+                                    onClick={() => openModal('mascot')}
+                                    className="flex items-center gap-2 px-4 md:px-6 py-2 md:py-2.5 rounded-full text-xs md:text-sm font-bold text-gray-700 dark:text-gray-200 bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-700 backdrop-blur-md transition-all shadow-sm ring-1 ring-black/5 dark:ring-white/10 cursor-pointer"
+                                >
+                                    <Search size={16} className="hidden sm:block" /> Filosofi Maskot
+                                </button>
+                            </div>
                         </div>
                     </RevealWrapper>
                 </div>
@@ -408,10 +436,12 @@ export default function HomeLanding({ site }) {
                             </h2>
                             <p className="text-gray-500 dark:text-gray-400 text-base md:text-lg max-w-2xl mx-auto">{content.subtitle}</p>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-                            {content.stats.map((stat) => (
-                                <StatCard key={stat.label} stat={stat} theme={theme} />
-                            ))}
+                        <div className="mt-8">
+                            <Carousel
+                                items={content.stats}
+                                animated={true}
+                                renderItem={(stat) => <StatCard stat={stat} theme={theme} />}
+                            />
                         </div>
                     </RevealWrapper>
                 </div>
@@ -428,28 +458,31 @@ export default function HomeLanding({ site }) {
                             </h2>
                             <p className="text-gray-500 dark:text-gray-400 text-base md:text-lg max-w-2xl mx-auto">Akses cepat ke halaman penting untuk menunjang kegiatanmu</p>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-                            {content.features.map((feat, i) => (
-                                <RevealWrapper key={feat.href} delay={i * 100}>
+                        <div className="mt-8">
+                            <Carousel
+                                items={content.features}
+                                animated={true}
+                                autoPlay={false}
+                                renderItem={(feat) => (
                                     <Link
                                         href={feat.href}
-                                        className="glass rounded-[2rem] p-8 md:p-10 group hover:-translate-y-2 transition-all duration-500 hover:shadow-2xl hover:shadow-black/5 flex flex-col h-full border border-white/40 dark:border-white/10 relative overflow-hidden"
+                                        className="glass rounded-[2rem] p-6 md:p-8 group hover:-translate-y-2 transition-all duration-500 hover:shadow-2xl hover:shadow-black/5 flex flex-col h-full border border-white/40 dark:border-white/10 relative overflow-hidden h-[280px]"
                                     >
                                         <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${theme.gradient} opacity-5 blur-2xl rounded-full group-hover:opacity-10 transition-opacity`} />
-                                        <div className="w-14 h-14 rounded-full mb-6 flex items-center justify-center bg-white/50 dark:bg-slate-800/50 border border-gray-200 dark:border-white/10 group-hover:scale-110 transition-transform duration-500 shadow-sm">
-                                            <feat.icon size={24} className="text-gray-700 dark:text-gray-300" />
+                                        <div className="w-12 h-12 rounded-full mb-4 flex items-center justify-center bg-white/50 dark:bg-slate-800/50 border border-gray-200 dark:border-white/10 group-hover:scale-110 transition-transform duration-500 shadow-sm">
+                                            <feat.icon size={20} className="text-gray-700 dark:text-gray-300" />
                                         </div>
-                                        <h3 className="text-xl font-black text-gray-900 dark:text-white mb-3">
+                                        <h3 className="text-lg md:text-xl font-black text-gray-900 dark:text-white mb-2">
                                             {feat.title}
                                         </h3>
-                                        <p className="text-gray-500 dark:text-gray-400 text-base leading-relaxed flex-1">{feat.desc}</p>
-                                        <div className="mt-6 flex items-center gap-2 text-sm font-bold text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+                                        <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed flex-1">{feat.desc}</p>
+                                        <div className="mt-4 flex items-center gap-2 text-xs font-bold text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
                                             <span>Buka halaman</span>
-                                            <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                                            <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                                         </div>
                                     </Link>
-                                </RevealWrapper>
-                            ))}
+                                )}
+                            />
                         </div>
                     </RevealWrapper>
                 </div>
@@ -461,7 +494,21 @@ export default function HomeLanding({ site }) {
                 <div className="w-full max-w-6xl mx-auto px-4 md:px-8 pt-20 pb-24">
                     <RevealWrapper>
                         <div className="text-center mb-16">
-                            <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-4 border ${theme.badge}`}>
+                            <style>{`
+                                @keyframes subtle-float {
+                                    0%, 100% { transform: translateY(0); }
+                                    50% { transform: translateY(-4px); }
+                                }
+                                .animate-subtle-float {
+                                    animation: subtle-float 3s ease-in-out infinite;
+                                }
+                                @media (max-width: 640px) {
+                                    .animate-subtle-float {
+                                        animation: none;
+                                    }
+                                }
+                            `}</style>
+                            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-4 border border-gray-900 dark:border-white text-gray-900 dark:text-white animate-subtle-float">
                                 <Flame size={14} />
                                 Rangkaian Acara
                             </span>
@@ -469,29 +516,31 @@ export default function HomeLanding({ site }) {
                                 Jadwal Kegiatan
                             </h2>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-                            {content.timeline.map((item, i) => (
-                                <RevealWrapper key={item.day} delay={i * 100}>
-                                    <div className="relative glass rounded-[2rem] p-8 md:p-10 overflow-hidden group hover:shadow-xl transition-all duration-500 border border-white/40 dark:border-white/10">
+                        <div className="mt-8">
+                            <Carousel
+                                items={content.timeline}
+                                animated={true}
+                                renderItem={(item, i) => (
+                                    <div className="relative glass rounded-[2rem] p-6 md:p-8 overflow-hidden group hover:shadow-xl transition-all duration-500 border border-white/40 dark:border-white/10 h-[250px] md:h-[280px] flex flex-col justify-center">
                                         <div className={`absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r ${theme.gradient} opacity-70 group-hover:opacity-100 transition-opacity`} />
-                                        <span className={`inline-block text-sm font-black uppercase tracking-widest mb-3 bg-clip-text text-transparent bg-gradient-to-r ${theme.gradientText}`}>
+                                        <span className={`inline-block text-xs font-black uppercase tracking-widest mb-2 bg-clip-text text-transparent bg-gradient-to-r ${theme.gradientText}`}>
                                             {item.day}
                                         </span>
-                                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3 leading-snug">{item.title}</h3>
-                                        <p className="text-gray-500 dark:text-gray-400 text-base leading-relaxed relative z-10">{item.desc}</p>
-                                        <span className="absolute bottom-0 right-4 text-8xl font-black text-gray-900/[0.03] dark:text-white/[0.02] select-none pointer-events-none group-hover:scale-110 transition-transform duration-500 leading-none">
+                                        <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-2 leading-snug">{item.title}</h3>
+                                        <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed relative z-10">{item.desc}</p>
+                                        <span className="absolute bottom-2 right-4 text-6xl md:text-8xl font-black text-gray-900/[0.03] dark:text-white/[0.02] select-none pointer-events-none group-hover:scale-110 transition-transform duration-500 leading-none">
                                             {i + 1}
                                         </span>
                                     </div>
-                                </RevealWrapper>
-                            ))}
+                                )}
+                            />
                         </div>
                     </RevealWrapper>
                 </div>
                 <WaveDivider fillClass={theme.waveToFooter} />
             </section>
 
-            <PhilosophyModal isOpen={modalConfig.isOpen} onClose={closeModal} type={modalConfig.type} theme={theme} />
+            <PhilosophyModal isOpen={modalConfig.isOpen} onClose={closeModal} type={modalConfig.type} theme={theme} isPkkmb={isPkkmb} />
         </div>
     );
 }

@@ -1,0 +1,1 @@
+ada sedikit tambahan yaitu saya ingin dibawah setiap card (div) itu ada nomornya contoh nya saja ada 1, 2, 3, 4, 5, 6, dan seterusnya sesuai jumlah card/div nya, dan juga disamping nomor itu ada tombol next dan previos. jadi perbaikilah dan tampilannya semenarik mungkin

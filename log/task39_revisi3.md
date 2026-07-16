@@ -1,0 +1,1 @@
+saya ingin yang bisa render 3 div sekaligus itu ketika ukurannya diatas lg dan jika dibawah lg maka tetap 1 seperti awal. terus untuk bagian divnya itu saya ingin blur nya sedikit lagi karna terlalu gelap.

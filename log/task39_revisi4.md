@@ -1,0 +1,1 @@
+itu angka halamannya belum disesuaikan, angka itu bisa seperti 1-3/4 itu jika tampilannya lebih besar dari lg dan jika lebih kecil dari lg maka angka tersebut menjadi 1/4.sesuai dengan div yang muncul/tidak blur.
