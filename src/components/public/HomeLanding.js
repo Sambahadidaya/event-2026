@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Calendar, Users, Building2, Bell, MessageCircle, Trophy, BookOpen, Palette, Flame, ArrowRight, Sparkles, X, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { Calendar, Users, Building2, Bell, MessageCircle, Trophy, BookOpen, Palette, Flame, ArrowRight, Sparkles, X, ChevronLeft, ChevronRight, Search, ArrowUpWideNarrow } from 'lucide-react';
 import { getTheme } from '@/lib/siteThemes';
 import WaveDivider from '@/components/public/WaveDivider';
 
@@ -24,11 +24,6 @@ import maskotPose from '@/assets/maskotpose.png';
 
 // Logo Parts POSE
 import logoPoseUtama from '@/assets/logo_pose/logo.png';
-import logoPosePart1 from '@/assets/logo_pose/pecah-gelombang handap lagu.png';
-import logoPosePart2 from '@/assets/logo_pose/pecah-lagu.png';
-import logoPosePart3 from '@/assets/logo_pose/pecah-matahari.png';
-import logoPosePart4 from '@/assets/logo_pose/pecah-motif.png';
-import logoPosePart5 from '@/assets/logo_pose/pecah-titik+gelombang.png';
 
 import Carousel from '@/components/public/Carousel';
 
@@ -43,11 +38,6 @@ const logoSlides = [
 
 const logoSlidesPose = [
     { image: logoPoseUtama, title: 'Kesatuan Logo', desc: 'Logo ini mencerminkan semangat sportivitas dan kreativitas mahasiswa Politeknik LP3I dalam ajang POSE.' },
-    { image: logoPosePart1, title: 'Gelombang Bawah', desc: 'Melambangkan pergerakan dinamis dan kekuatan mental yang tangguh dalam berkompetisi.' },
-    { image: logoPosePart2, title: 'Bentuk Lagu', desc: 'Harmoni seni dan olahraga yang menyatukan berbagai talenta mahasiswa.' },
-    { image: logoPosePart3, title: 'Matahari', desc: 'Pancaran energi kemenangan dan semangat pantang menyerah.' },
-    { image: logoPosePart4, title: 'Motif Tradisional', desc: 'Menjunjung tinggi nilai budaya dan sportivitas kearifan lokal.' },
-    { image: logoPosePart5, title: 'Titik dan Gelombang', desc: 'Fokus pada pencapaian prestasi dengan adaptasi yang cepat.' },
 ];
 
 const mascotInfoPkkmb = {
@@ -395,7 +385,7 @@ export default function HomeLanding({ site }) {
                                     onClick={() => openModal('logo')}
                                     className="flex items-center gap-2 px-4 md:px-6 py-2 md:py-2.5 rounded-full text-xs md:text-sm font-bold text-gray-700 dark:text-gray-200 bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-700 backdrop-blur-md transition-all shadow-sm ring-1 ring-black/5 dark:ring-white/10 cursor-pointer"
                                 >
-                                    <Search size={16} className="hidden sm:block" /> Filosofi Logo
+                                    <ArrowUpWideNarrow size={16} className="sm:block" /> Lihat Filosofi Logo
                                 </button>
                             </div>
 
@@ -416,7 +406,7 @@ export default function HomeLanding({ site }) {
                                     onClick={() => openModal('mascot')}
                                     className="flex items-center gap-2 px-4 md:px-6 py-2 md:py-2.5 rounded-full text-xs md:text-sm font-bold text-gray-700 dark:text-gray-200 bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-700 backdrop-blur-md transition-all shadow-sm ring-1 ring-black/5 dark:ring-white/10 cursor-pointer"
                                 >
-                                    <Search size={16} className="hidden sm:block" /> Filosofi Maskot
+                                    <ArrowUpWideNarrow size={16} className="sm:block" /> Lihat Filosofi Maskot
                                 </button>
                             </div>
                         </div>

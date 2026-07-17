@@ -69,7 +69,8 @@ export const rolePermissions = {
     '/panitia/pj_lomba/form_register',
   ],
   admin_pose_form: [
-    '/panitia/pose/form_register'
+    '/panitia/pose/form_register',
+    '/panitia/pose/form_wajib'
   ],
   admin_pose_jadwal: [
     '/panitia/pose/jadwal_acara',
