@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { uploadFile as serverUploadFile } from '@/api/supabase/storage';
-import { insertPeserta, insertPesertaBatch, checkPesertaPoseWajibByNim } from '@/api/supabase/peserta';
+import { insertPeserta, insertPesertaBatch, checkPesertaPoseWajibByNim, checkPesertaPoseWajibByNimAndKampus } from '@/api/supabase/peserta';
 import { insertTeamPublic, insertTeamMembers } from '@/api/supabase/team';
 import { Trophy, Plus, Trash2, Users, Send, Info, Image as ImageIcon, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -31,7 +31,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
 
     // Members (For Wajib, it's just 1 member always)
     const [members, setMembers] = useState([
-        { nama: '', nim: '', kampus: '', kampusLainnya: '', email_wa: '', jabatan: '' }
+        { nama: '', nim: '', kampus: '', kampusLainnya: '', email_wa: '', kontakType: 'whatsapp', jabatan: '' }
     ]);
 
     const [submitting, setSubmitting] = useState(false);
@@ -41,7 +41,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
     const requiresBukti = isWajib || formConfig?.butuh_bukti !== false;
 
     const handleAddMember = () => {
-        setMembers([...members, { nama: '', nim: '', kampus: '', kampusLainnya: '', email_wa: '', jabatan: '' }]);
+        setMembers([...members, { nama: '', nim: '', kampus: '', kampusLainnya: '', email_wa: '', kontakType: 'whatsapp', jabatan: '' }]);
     };
 
     const handleRemoveMember = (index) => {
@@ -86,7 +86,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
         }
 
         for (const m of members) {
-            if (!isValidInput(m.nama) || !isValidInput(m.jabatan) || !isValidInput(m.email_wa)) {
+            if (!isValidInput(m.nama) || !isValidInput(m.jabatan) || (!requiresBukti ? false : !isValidInput(m.email_wa))) {
                 return window.alert("Karakter tidak diperbolehkan pada input anggota.");
             }
             if (kategori === 'Mahasiswa') {
@@ -94,6 +94,19 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                 if (m.nim.length !== 9) return window.alert("NIM harus berisi persis 9 karakter.");
                 if (m.kampus === 'Lainnya' && !m.kampusLainnya) {
                     return window.alert("Mohon sebutkan nama kampus jika memilih 'Lainnya'.");
+                }
+            }
+            if (requiresBukti) {
+                if (m.kontakType === 'email') {
+                    const emailRegex = /^[a-zA-Z0-9@.]+$/;
+                    if (!emailRegex.test(m.email_wa)) {
+                        return window.alert(`Format email tidak valid untuk anggota ${m.nama}. Hanya huruf, angka, @, dan . yang diizinkan.`);
+                    }
+                } else {
+                    const waRegex = /^[0-9]+$/;
+                    if (!waRegex.test(m.email_wa)) {
+                        return window.alert(`Format WhatsApp tidak valid untuk anggota ${m.nama}. Hanya angka yang diizinkan.`);
+                    }
                 }
             }
         }
@@ -104,7 +117,28 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
 
         setSubmitting(true);
 
-        if (!isWajib && formConfig?.jenis_lomba === 'Kreativitas' && kategori === 'Mahasiswa') {
+        const fetchedWajibData = [];
+
+        if (!isWajib && !requiresBukti && kategori === 'Mahasiswa') {
+            try {
+                for (const m of members) {
+                    const finalKampusReg = m.kampus === 'Lainnya' ? m.kampusLainnya : m.kampus;
+                    const exists = await checkPesertaPoseWajibByNimAndKampus(m.nim, finalKampusReg);
+                    if (!exists) {
+                        setSubmitting(false);
+                        return window.alert(`Pendaftaran gagal: NIM ${m.nim} dan Kampus ${finalKampusReg} atas nama ${m.nama} belum terdaftar pada Form Wajib POSE.`);
+                    }
+                    if (exists.status_pembayaran !== 'Lunas') {
+                        setSubmitting(false);
+                        return window.alert(`Pendaftaran gagal: Pembayaran Form Wajib untuk NIM ${m.nim} belum Lunas (Status: ${exists.status_pembayaran || 'Pending'}).`);
+                    }
+                    fetchedWajibData.push(exists);
+                }
+            } catch (error) {
+                setSubmitting(false);
+                return window.alert("Terjadi kesalahan saat memverifikasi NIM dan Kampus.");
+            }
+        } else if (!isWajib && formConfig?.jenis_lomba === 'Kreativitas' && kategori === 'Mahasiswa') {
             try {
                 for (const m of members) {
                     const exists = await checkPesertaPoseWajibByNim(m.nim);
@@ -213,6 +247,8 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                         kode: finalNim
                     });
 
+                    const mDataWajib = !requiresBukti && kategori === 'Mahasiswa' ? fetchedWajibData[i] : null;
+
                     pesertaToInsert.push({
                         kategori: kategori,
                         nama: m.nama,
@@ -220,12 +256,12 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                         nim: finalNim,
                         prodi: finalProdi,
                         angkatan: finalAngkatan,
-                        email_wa: m.email_wa,
-                        bukti_bayar: buktiUrl,
-                        status_pembayaran: 'Pending',
-                        site_type: formConfig?.site || null,
+                        email_wa: mDataWajib ? mDataWajib.email_wa : m.email_wa,
+                        bukti_bayar: mDataWajib ? mDataWajib.bukti_bayar : buktiUrl,
+                        status_pembayaran: mDataWajib ? mDataWajib.status_pembayaran : 'Pending',
+                        site_type: formConfig?.site || 'pose',
                         jenis_form: 'register',
-                        metode_pembayaran: metodePembayaran || null
+                        metode_pembayaran: mDataWajib ? mDataWajib.metode_pembayaran : (metodePembayaran || null)
                     });
                 }
 
@@ -237,6 +273,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
             }
 
             setSuccess(true);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch (error) {
             console.error('Submission error:', error);
             window.alert('Gagal mengirim pendaftaran. Pastikan data sudah benar atau coba lagi nanti.');
@@ -253,7 +290,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Pendaftaran Berhasil!</h2>
                 <p className="text-gray-600 dark:text-gray-400 mb-8">
-                    Data berhasil didaftarkan untuk {formConfig.nama_lomba || formConfig.judul}.
+                    Pendaftaran berhasil dan sedang dalam verifikasi. Jika valid maka akan dikirim pemberitahuan ke email atau whatsapp yang sudah dimasukan tadi.
                 </p>
                 <div className="space-y-3">
                     <Link href="/" className="inline-flex items-center justify-center w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-colors">
@@ -295,13 +332,15 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
             {/* Keterangan */}
             {formConfig.keterangan && (
                 <div className="p-6 sm:px-10 sm:pt-10 border-b border-gray-100 dark:border-gray-800">
-                    <div className="flex gap-3 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/50">
-                        <Info className="text-blue-500 shrink-0 mt-0.5" size={20} />
-                        <div>
-                            <h4 className="font-semibold text-blue-800 dark:text-blue-300 mb-1">Informasi & Ketentuan</h4>
-                            <p className="text-sm text-blue-700 dark:text-blue-400 whitespace-pre-wrap leading-relaxed">
-                                {formConfig.keterangan}
-                            </p>
+                    <div className="p-6 rounded-2xl bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 border border-indigo-100/50 dark:border-indigo-800/30 shadow-inner">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-800/50 flex items-center justify-center">
+                                <Info className="text-indigo-600 dark:text-indigo-400" size={20} />
+                            </div>
+                            <h4 className="text-lg font-bold text-indigo-900 dark:text-indigo-300">Informasi & Ketentuan</h4>
+                        </div>
+                        <div className="prose prose-sm dark:prose-invert max-w-none prose-p:text-indigo-800/80 dark:prose-p:text-indigo-200/80 prose-p:leading-relaxed">
+                            <p className="whitespace-pre-wrap">{formConfig.keterangan}</p>
                         </div>
                     </div>
                 </div>
@@ -311,22 +350,25 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
 
                 {/* Switch Kategori (Hanya untuk Lomba) */}
                 {!isWajib && (
-                    <div className="p-5 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800">
-                        <h4 className="font-bold text-gray-900 dark:text-white mb-3">Kategori Pendaftar</h4>
-                        <div className="flex gap-4">
-                            {['Mahasiswa', 'Dosen', 'Umum'].map(cat => (
-                                <label key={cat} className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        name="kategori"
-                                        value={cat}
-                                        checked={kategori === cat}
-                                        onChange={(e) => setKategori(e.target.value)}
-                                        className="w-4 h-4 text-blue-600"
-                                    />
-                                    <span className="text-sm text-gray-700 dark:text-gray-300">{cat}</span>
-                                </label>
-                            ))}
+                    <div className="p-6 rounded-3xl bg-gray-50/50 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-800">
+                        <h4 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                            <span className="w-1.5 h-5 bg-blue-500 rounded-full"></span>
+                            Kategori Pendaftar
+                        </h4>
+                        <div className="relative flex p-1.5 bg-gray-200/50 dark:bg-gray-900/50 rounded-2xl">
+                            {['Mahasiswa', 'Dosen', 'Umum'].map((cat, idx) => {
+                                const isActive = kategori === cat;
+                                return (
+                                    <button
+                                        key={cat}
+                                        type="button"
+                                        onClick={() => setKategori(cat)}
+                                        className={`relative flex-1 py-3 text-sm font-semibold rounded-xl transition-all duration-300 ${isActive ? 'text-blue-700 dark:text-blue-300 shadow-sm bg-white dark:bg-gray-800' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}
+                                    >
+                                        {cat}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
                 )}
@@ -415,13 +457,34 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                                         />
                                     </div>
                                 )}
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">WhatsApp / Email *</label>
-                                    <input
-                                        type="text" required value={member.email_wa} onChange={(e) => handleMemberChange(index, 'email_wa', e.target.value)}
-                                        className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </div>
+                                {requiresBukti && (
+                                    <div>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">WhatsApp / Email *</label>
+                                            <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleMemberChange(index, 'kontakType', 'whatsapp')}
+                                                    className={`px-2 py-1 text-[10px] font-semibold rounded-md transition-all ${member.kontakType === 'whatsapp' ? 'bg-white dark:bg-gray-700 text-green-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                                >
+                                                    WhatsApp
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleMemberChange(index, 'kontakType', 'email')}
+                                                    className={`px-2 py-1 text-[10px] font-semibold rounded-md transition-all ${member.kontakType === 'email' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                                >
+                                                    Email
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <input
+                                            type="text" required value={member.email_wa} onChange={(e) => handleMemberChange(index, 'email_wa', e.target.value)}
+                                            placeholder={member.kontakType === 'whatsapp' ? "Contoh: 08123456789" : "Contoh: nama@email.com"}
+                                            className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 transition-all"
+                                        />
+                                    </div>
+                                )}
 
                                 {kategori === 'Mahasiswa' && (
                                     <>
@@ -476,33 +539,45 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
 
                 {/* Bukti Pembayaran */}
                 {requiresBukti && (
-                    <div className="space-y-4 pt-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bukti Pembayaran (Wajib) *</label>
-                            <div className="flex items-start gap-4">
-                                <input
-                                    type="file" required accept="image/*" onChange={(e) => setBuktiBayarFile(e.target.files[0])}
-                                    className="flex-1 text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                                />
-                                {formConfig?.nominal != null && formConfig.nominal > 0 && (
-                                    <div className="shrink-0 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-xl text-sm">
-                                        <span className="text-amber-700 dark:text-amber-300 font-semibold">Nominal: Rp{formConfig.nominal.toLocaleString('id-ID')}</span>
-                                    </div>
-                                )}
+                    <div className="p-6 rounded-3xl bg-gray-50/50 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-800 space-y-6">
+                        <h4 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <span className="w-1.5 h-5 bg-amber-500 rounded-full"></span>
+                            Pembayaran & Berkas
+                        </h4>
+                        
+                        <div className="flex flex-col md:flex-row md:items-end gap-6">
+                            <div className="flex-1">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Upload Bukti Pembayaran *</label>
+                                <div className="relative">
+                                    <input
+                                        type="file" required accept="image/*,application/pdf" onChange={(e) => setBuktiBayarFile(e.target.files[0])}
+                                        className="w-full text-sm text-gray-500 file:mr-4 file:py-3 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/30 dark:file:text-blue-400 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900 transition-all cursor-pointer"
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div className="flex-1">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Metode Pembayaran *</label>
+                                <select
+                                    required
+                                    value={metodePembayaran}
+                                    onChange={(e) => setMetodePembayaran(e.target.value)}
+                                    className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer appearance-none"
+                                >
+                                    <option value="" disabled>Pilih Bank / E-Wallet</option>
+                                    {METODE_BAYAR_DATA.map(m => <option key={m} value={m}>{m}</option>)}
+                                </select>
                             </div>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Metode Pembayaran *</label>
-                            <select
-                                required
-                                value={metodePembayaran}
-                                onChange={(e) => setMetodePembayaran(e.target.value)}
-                                className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                            >
-                                <option value="" disabled>Pilih Metode Pembayaran</option>
-                                {METODE_BAYAR_DATA.map(m => <option key={m} value={m}>{m}</option>)}
-                            </select>
-                        </div>
+
+                        {formConfig?.nominal != null && formConfig.nominal > 0 && (
+                            <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200/60 dark:border-amber-800/50 flex justify-between items-center">
+                                <span className="text-amber-800 dark:text-amber-200 font-medium">Total Tagihan (Sesuai Kategori)</span>
+                                <span className="text-lg md:text-xl font-bold text-amber-600 dark:text-amber-400">
+                                    Rp {formConfig.nominal.toLocaleString('id-ID')}
+                                </span>
+                            </div>
+                        )}
                     </div>
                 )}
 

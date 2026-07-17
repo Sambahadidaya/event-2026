@@ -82,8 +82,13 @@ export default function PJLombaFormRegister() {
         // Map peserta into teams by matching names
         const enrichedTeams = (teamData || []).map(team => {
             // Find peserta that belong to this team's members
-            const memberNames = (team.team_members || []).map(m => m.nama);
-            const matchedPeserta = registerPeserta.filter(p => memberNames.includes(p.nama));
+            const memberNames = (team.team_members || []).map(m => m.nama?.toLowerCase().trim());
+            const memberCodes = (team.team_members || []).map(m => m.kode?.toLowerCase().trim());
+            
+            const matchedPeserta = registerPeserta.filter(p => 
+                memberNames.includes(p.nama?.toLowerCase().trim()) || 
+                (p.nim && memberCodes.includes(p.nim?.toLowerCase().trim()))
+            );
 
             return {
                 ...team,
