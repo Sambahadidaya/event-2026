@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getBerita, upsertBerita, deleteBerita, deleteMultipleBerita } from '@/api/supabase/berita';
+import { getBerita } from '@/api/supabase/public/berita';
+import { upsertBerita, deleteBerita, deleteMultipleBerita } from '@/api/supabase/admin/berita';
 import { RefreshCw, Plus, Trash2, Search, FileText, Edit2, CheckSquare, X } from 'lucide-react';
 
 export default function AdminPoseBerita() {

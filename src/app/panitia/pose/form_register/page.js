@@ -3,7 +3,8 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { FileText, Search, Plus, Link as LinkIcon, Image as ImageIcon, Trash2, Copy } from 'lucide-react';
 import { uploadFile } from '@/api/supabase/storage';
-import { getFormRegister, upsertFormRegister, deleteFormRegister } from '@/api/supabase/peserta';
+import { getFormRegister } from '@/api/supabase/public/peserta';
+import { upsertFormRegister, deleteFormRegister } from '@/api/supabase/admin/peserta';
 import { useRouter } from 'next/navigation';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
 import DashboardSelect from '@/components/panitia/DashboardSelect';
@@ -28,6 +29,7 @@ export default function FormRegisterDashboard() {
     const [imageFile, setImageFile] = useState(null);
     const [butuhBukti, setButuhBukti] = useState(true);
     const [nominal, setNominal] = useState('');
+    const [kategoriPendaftar, setKategoriPendaftar] = useState(['Mahasiswa LP3I', 'Dosen', 'Umum']);
     const [createLoading, setCreateLoading] = useState(false);
 
     const router = useRouter();
@@ -77,6 +79,10 @@ export default function FormRegisterDashboard() {
             window.alert('Mohon lengkapi jenis dan nama lomba.');
             return;
         }
+        if (kategoriPendaftar.length === 0) {
+            window.alert('Mohon pilih minimal 1 kategori pendaftar.');
+            return;
+        }
 
         setCreateLoading(true);
 
@@ -112,6 +118,7 @@ export default function FormRegisterDashboard() {
             keterangan: keterangan,
             butuh_bukti: butuhBukti,
             nominal: finalNominal,
+            kategori_pendaftar: kategoriPendaftar.join(','),
             link_id: linkId,
             gambar: gambarUrl
         });
@@ -127,6 +134,7 @@ export default function FormRegisterDashboard() {
             setKeterangan('');
             setButuhBukti(true);
             setNominal('');
+            setKategoriPendaftar(['Mahasiswa LP3I', 'Dosen', 'Umum']);
             setImageFile(null);
             window.alert('Berhasil membuat form pendaftaran baru!');
         }
@@ -269,7 +277,7 @@ export default function FormRegisterDashboard() {
             {/* Create Modal */}
             {showCreateModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
-                    <form onSubmit={handleCreateForm} className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-lg flex flex-col overflow-hidden border border-gray-100 dark:border-gray-800">
+                    <form onSubmit={handleCreateForm} className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-lg flex flex-col border border-gray-100 dark:border-gray-800 max-h-[90vh] overflow-hidden">
                         <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
                             <h3 className="font-bold text-lg text-gray-900 dark:text-white flex items-center gap-2">
                                 <Plus size={20} className="text-blue-500" /> Buat Form Baru
@@ -278,7 +286,7 @@ export default function FormRegisterDashboard() {
                                 &times;
                             </button>
                         </div>
-                        <div className="p-4 sm:p-6 space-y-4">
+                        <div className="p-4 sm:p-6 space-y-5 overflow-y-auto custom-scrollbar">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jenis Lomba</label>
                                 <select 
@@ -322,13 +330,50 @@ export default function FormRegisterDashboard() {
                             </div>
 
                             <div>
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input 
-                                        type="checkbox" 
-                                        checked={butuhBukti}
-                                        onChange={(e) => setButuhBukti(e.target.checked)}
-                                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                                    />
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Kategori Pendaftar (Minimal 1)</label>
+                                <div className="space-y-2">
+                                    {['Mahasiswa LP3I', 'Dosen', 'Umum'].map(kat => (
+                                        <label key={kat} className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                                            <div className="relative flex items-center justify-center">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={kategoriPendaftar.includes(kat)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setKategoriPendaftar([...kategoriPendaftar, kat]);
+                                                        } else {
+                                                            setKategoriPendaftar(kategoriPendaftar.filter(k => k !== kat));
+                                                        }
+                                                    }}
+                                                    className="peer sr-only"
+                                                />
+                                                <div className="w-5 h-5 border-2 border-gray-300 dark:border-gray-600 rounded peer-checked:bg-blue-600 peer-checked:border-blue-600 transition-all flex items-center justify-center">
+                                                    <svg className="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{kat}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                                    <div className="relative flex items-center justify-center">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={butuhBukti}
+                                            onChange={(e) => setButuhBukti(e.target.checked)}
+                                            className="peer sr-only"
+                                        />
+                                        <div className="w-5 h-5 border-2 border-gray-300 dark:border-gray-600 rounded peer-checked:bg-blue-600 peer-checked:border-blue-600 transition-all flex items-center justify-center">
+                                            <svg className="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                        </div>
+                                    </div>
                                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Wajib Upload Bukti Pembayaran</span>
                                 </label>
                             </div>

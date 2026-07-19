@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getFormRegister } from '@/api/supabase/peserta';
+import { getFormRegister } from '@/api/supabase/public/peserta';
 import Link from 'next/link';
 import { ArrowRight, Trophy, Image as ImageIcon } from 'lucide-react';
 import PageHero from '@/components/public/PageHero';

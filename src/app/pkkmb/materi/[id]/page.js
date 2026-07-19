@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getMateriById, insertTugas } from '@/api/supabase/materi';
-import { checkPesertaPkkmbByNim } from '@/api/supabase/peserta';
+import { getMateriById, insertTugas } from '@/api/supabase/public/materi';
+import { checkPesertaPkkmbByNim } from '@/api/supabase/public/peserta';
 import { uploadFile } from '@/api/supabase/storage';
 import { ArrowLeft, BookOpen, FileCheck2, User, Calendar as CalendarIcon, Upload, X, Loader2 } from 'lucide-react';
 import SamsMateriBot from '@/components/SamsMateriBot';

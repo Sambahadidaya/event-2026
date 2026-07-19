@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Send, CheckCircle2, AlertCircle, X, Mail, Loader2 } from 'lucide-react';
 import { getTheme } from '@/lib/siteThemes';
-import { submitKontak } from '@/api/supabase/admin';
+import { submitKontak } from '@/api/supabase/public/admin';
 
 export default function ContactForm({ site }) {
     const theme = getTheme(site);

@@ -1,0 +1,206 @@
+'use server';
+
+import { supabaseAdmin } from '@/lib/supabase';
+import { checkAdminAuth, insertAuditLog } from './audit';
+
+export const getPeserta = async (siteType) => {
+    try {
+        const { user, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        const { data, error } = await supabaseAdmin
+            .from('peserta')
+            .select('*')
+            .eq('site_type', siteType)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error("Internal Log - Error fetching peserta:", error);
+        return [];
+    }
+};
+
+export const updateStatusPembayaranPeserta = async (id, status) => {
+    try {
+        const { user, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        if (!id || !status) throw new Error('ID and Status are required');
+
+        const { error } = await supabaseAdmin
+            .from('peserta')
+            .update({ status_pembayaran: status })
+            .eq('id', id);
+
+        if (error) throw error;
+        
+        await insertAuditLog(user.email, 'UPDATE_STATUS_PEMBAYARAN_PESERTA', id, `Status updated to ${status}`);
+
+        return { success: true };
+    } catch (error) {
+        console.error("Internal Log - Error updating peserta:", error);
+        return { success: false, error: 'Terjadi kesalahan internal pada server' };
+    }
+};
+
+export const deletePeserta = async (id) => {
+    try {
+        const { user, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        if (!id) throw new Error('ID is required');
+
+        const { error } = await supabaseAdmin
+            .from('peserta')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+        
+        await insertAuditLog(user.email, 'DELETE_PESERTA', id, `Peserta deleted`);
+
+        return { success: true };
+    } catch (error) {
+        console.error("Internal Log - Error deleting peserta:", error);
+        return { success: false, error: 'Terjadi kesalahan internal pada server' };
+    }
+};
+
+export const deleteMultiplePeserta = async (ids) => {
+    try {
+        const { user, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        if (!ids || !Array.isArray(ids)) throw new Error('IDs array is required');
+
+        const { error } = await supabaseAdmin
+            .from('peserta')
+            .delete()
+            .in('id', ids);
+
+        if (error) throw error;
+        
+        await insertAuditLog(user.email, 'DELETE_MULTIPLE_PESERTA', null, `Deleted IDs: ${ids.join(', ')}`);
+
+        return { success: true };
+    } catch (error) {
+        console.error("Internal Log - Error deleting multiple peserta:", error);
+        return { success: false, error: 'Terjadi kesalahan internal pada server' };
+    }
+};
+
+
+
+export const upsertFormWajib = async (payload, id = null) => {
+    try {
+        const { user, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        if (!payload) throw new Error('Payload is required');
+
+        if (id) {
+            const { data, error } = await supabaseAdmin
+                .from('form_wajib')
+                .update(payload)
+                .eq('id', id)
+                .select()
+                .single();
+            if (error) throw error;
+            await insertAuditLog(user.email, 'UPSERT_FORM_WAJIB', id, `Updated form wajib`);
+            return { success: true, data };
+        } else {
+            const { data, error } = await supabaseAdmin
+                .from('form_wajib')
+                .insert([payload])
+                .select()
+                .single();
+            if (error) throw error;
+            await insertAuditLog(user.email, 'UPSERT_FORM_WAJIB', data.id, `Created new form wajib`);
+            return { success: true, data };
+        }
+    } catch (error) {
+        console.error("Internal Log - Error upserting form wajib:", error);
+        return { success: false, error: 'Terjadi kesalahan internal pada server' };
+    }
+};
+
+export const deleteFormWajib = async (id) => {
+    try {
+        const { user, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        if (!id) throw new Error('ID is required');
+
+        const { error } = await supabaseAdmin
+            .from('form_wajib')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+        await insertAuditLog(user.email, 'DELETE_FORM_WAJIB', id, `Deleted form wajib`);
+        return { success: true };
+    } catch (error) {
+        console.error("Internal Log - Error deleting form wajib:", error);
+        return { success: false, error: 'Terjadi kesalahan internal pada server' };
+    }
+};
+
+
+
+export const upsertFormRegister = async (payload, id = null) => {
+    try {
+        const { user, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        if (!payload) throw new Error('Payload is required');
+
+        if (id) {
+            const { data, error } = await supabaseAdmin
+                .from('form_register')
+                .update(payload)
+                .eq('id', id)
+                .select()
+                .single();
+            if (error) throw error;
+            await insertAuditLog(user.email, 'UPSERT_FORM_REGISTER', id, `Updated form register`);
+            return { success: true, data };
+        } else {
+            const { data, error } = await supabaseAdmin
+                .from('form_register')
+                .insert([payload])
+                .select()
+                .single();
+            if (error) throw error;
+            await insertAuditLog(user.email, 'UPSERT_FORM_REGISTER', data.id, `Created new form register`);
+            return { success: true, data };
+        }
+    } catch (error) {
+        console.error("Internal Log - Error upserting form register:", error);
+        return { success: false, error: 'Terjadi kesalahan internal pada server' };
+    }
+};
+
+export const deleteFormRegister = async (id) => {
+    try {
+        const { user, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        if (!id) throw new Error('ID is required');
+
+        const { error } = await supabaseAdmin
+            .from('form_register')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+        await insertAuditLog(user.email, 'DELETE_FORM_REGISTER', id, `Deleted form register`);
+        return { success: true };
+    } catch (error) {
+        console.error("Internal Log - Error deleting form register:", error);
+        return { success: false, error: 'Terjadi kesalahan internal pada server' };
+    }
+};
+
+// insertPesertaBatch moved to public API

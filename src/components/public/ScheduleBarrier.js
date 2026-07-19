@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { getJadwalAcara } from '@/api/supabase/jadwal';
+import { getJadwalAcara } from '@/api/supabase/public/jadwal';
 import { Clock, ArrowRight, X } from 'lucide-react';
 import Link from 'next/link';
 

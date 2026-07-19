@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getCurrentAdmin } from '@/api/supabase/auth';
+import { getCurrentAdmin } from '@/api/supabase/admin/auth';
 import { rolePermissions } from '@/lib/adminRoleData';
 
 export default function PanitiaHome() {

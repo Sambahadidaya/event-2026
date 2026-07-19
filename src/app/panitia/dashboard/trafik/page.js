@@ -4,7 +4,7 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 import { Line } from 'react-chartjs-2';
 import { useTheme } from 'next-themes';
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { getTrafik, deleteMultipleTrafik } from '@/api/supabase/admin';
+import { getTrafik, deleteMultipleTrafik } from '@/api/supabase/admin/admin';
 import { Activity, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';

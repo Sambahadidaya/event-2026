@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import ThemeToggle from '@/components/ThemeToggle';
 import { User, LayoutDashboard, FileText, ChevronDown, ChevronRight, LogOut, ShieldAlert, Menu, BarChart3, MessageCircle, Mail, Newspaper, Users, Monitor, Lock, Calendar, Settings, BookOpen, FileCheck } from 'lucide-react';
-import { logoutAdmin, getCurrentAdmin } from '@/api/supabase/auth';
-import { updateAdminStatus } from '@/api/supabase/admin';
+import { logoutAdmin, getCurrentAdmin } from '@/api/supabase/admin/auth';
+import { updateAdminStatus } from '@/api/supabase/admin/admin';
 import { hasAccess, rolePermissions } from '@/lib/adminRoleData';
 
 export default function PanitiaLayout({ children }) {

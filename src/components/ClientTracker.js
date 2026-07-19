@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { recordTrafik } from '@/api/supabase/admin';
+import { recordTrafik } from '@/api/supabase/public/admin';
 
 export default function ClientTracker() {
     const pathname = usePathname();

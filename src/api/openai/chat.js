@@ -1,7 +1,6 @@
 'use server';
 
 import { openai } from '@/lib/openai';
-import { supabaseAdmin } from '@/lib/supabase';
 
 /**
  * Menghasilkan jawaban AI secara dinamis.
@@ -25,7 +24,7 @@ export const generateAnswer = async (text, faqData, siteType) => {
             .map(f => `Q: ${f.question}\nA: ${f.answer}`)
             .join('\n\n');
 
-        const systemPrompt = `Kamu adalah "Asisten Sams", asisten virtual yang ramah, lucu dan ceria untuk portal ${siteName} di sebuah universitas. 🎓
+        const systemPrompt = `Kamu adalah "Mba Asisten", asisten virtual yang ramah, lucu dan ceria untuk portal ${siteName} di sebuah universitas. 🎓
 
 PANDUAN MENJAWAB:
 - Jika user berbicara dengan bahasa indonesia yang campur bahasa inggris, maka jawab dengan bahasa indonesia yang campur bahasa inggris
@@ -82,26 +81,5 @@ ATURAN PENTING:
     } catch (error) {
         console.error("OpenAI Error:", error);
         throw error;
-    }
-};
-
-export const saveChatHistory = async (pertanyaan, jawaban, site, isFaqMatched = false) => {
-    try {
-        if (!pertanyaan || !jawaban || !site) {
-            throw new Error('Parameter pertanyaan, jawaban, dan site wajib diisi');
-        }
-
-        const { data, error } = await supabaseAdmin.from('riwayat_pertanyaan').insert([{
-            pertanyaan,
-            jawaban,
-            site,
-            is_faq_matched: isFaqMatched
-        }]);
-
-        if (error) throw error;
-        return data;
-    } catch (error) {
-        console.error("Supabase Error (History):", error);
-        // Supress error so it doesn't crash the chatbot if tracking fails
     }
 };

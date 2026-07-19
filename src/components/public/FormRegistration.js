@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { uploadFile as serverUploadFile } from '@/api/supabase/storage';
-import { insertPeserta, insertPesertaBatch, checkPesertaPoseWajibByNim, checkPesertaPoseWajibByNimAndKampus } from '@/api/supabase/peserta';
-import { insertTeamPublic, insertTeamMembers } from '@/api/supabase/team';
+import { insertPeserta, insertPesertaBatch, checkPesertaPoseWajibByNim, checkPesertaPoseWajibByNimAndKampus } from '@/api/supabase/public/peserta';
+import { insertTeamPublic, insertTeamMembers } from '@/api/supabase/public/team';
 import { Trophy, Plus, Trash2, Users, Send, Info, Image as ImageIcon, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { KAMPUS_DATA, METODE_BAYAR_DATA, parseNIM } from '@/lib/lombaData';
@@ -19,7 +19,14 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
     // isWajib=true -> Pendaftaran Wajib (single participant, table: peserta_wajib)
     // isWajib=false -> Pendaftaran Lomba (team, table: team & team_members)
 
-    const [kategori, setKategori] = useState('Mahasiswa'); // Mahasiswa, Dosen, Umum
+    const availableKategori = formConfig?.kategori_pendaftar
+        ? formConfig.kategori_pendaftar.split(',')
+        : ['Mahasiswa LP3I', 'Dosen', 'Umum'];
+
+    const [kategori, setKategori] = useState(availableKategori[0]); // Default to first available
+
+    // Helper to check if current user flow is a student (either LP3I or Umum with isStudent)
+    const isMhsLP3I = kategori === 'Mahasiswa LP3I';
 
     // Team Fields (Only for Lomba)
     const [teamName, setTeamName] = useState('');
@@ -31,17 +38,17 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
 
     // Members (For Wajib, it's just 1 member always)
     const [members, setMembers] = useState([
-        { nama: '', nim: '', kampus: '', kampusLainnya: '', email_wa: '', kontakType: 'whatsapp', jabatan: '' }
+        { nama: '', nim: '', kampus: '', kampusLainnya: '', email_wa: '', kontakType: 'whatsapp', jabatan: '', isStudent: false, prodi: '', angkatan: '' }
     ]);
 
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
     const [metodePembayaran, setMetodePembayaran] = useState('');
 
-    const requiresBukti = isWajib || formConfig?.butuh_bukti !== false;
+    const requiresBukti = isWajib || formConfig?.butuh_bukti !== false || kategori === 'Dosen' || kategori === 'Umum';
 
     const handleAddMember = () => {
-        setMembers([...members, { nama: '', nim: '', kampus: '', kampusLainnya: '', email_wa: '', kontakType: 'whatsapp', jabatan: '' }]);
+        setMembers([...members, { nama: '', nim: '', kampus: '', kampusLainnya: '', email_wa: '', kontakType: 'whatsapp', jabatan: '', isStudent: false, prodi: '', angkatan: '' }]);
     };
 
     const handleRemoveMember = (index) => {
@@ -54,12 +61,11 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
         const newMembers = [...members];
         newMembers[index][field] = value;
 
-        // Auto parse NIM if field is NIM and kategori is Mahasiswa
-        if (field === 'nim' && value.length >= 9) {
+        // Auto parse NIM if field is NIM and kategori is Mahasiswa LP3I
+        if (field === 'nim' && value.length >= 9 && isMhsLP3I) {
             const parsed = parseNIM(value, newMembers[index].kampus);
             if (parsed) {
-                // We don't store it in state, we compute it on submit, 
-                // but we could store it if we wanted to show it.
+                // We don't store it in state, we compute it on submit
             }
         }
 
@@ -89,12 +95,18 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
             if (!isValidInput(m.nama) || !isValidInput(m.jabatan) || (!requiresBukti ? false : !isValidInput(m.email_wa))) {
                 return window.alert("Karakter tidak diperbolehkan pada input anggota.");
             }
-            if (kategori === 'Mahasiswa') {
+            if (isMhsLP3I) {
                 if (!isValidInput(m.nim)) return window.alert("Karakter tidak valid pada NIM.");
                 if (m.nim.length !== 9) return window.alert("NIM harus berisi persis 9 karakter.");
                 if (m.kampus === 'Lainnya' && !m.kampusLainnya) {
                     return window.alert("Mohon sebutkan nama kampus jika memilih 'Lainnya'.");
                 }
+            }
+            if (kategori === 'Dosen') {
+                if (!m.kampus) return window.alert("Mohon pilih kampus.");
+            }
+            if (kategori === 'Umum' && m.isStudent) {
+                if (!m.kampus || !m.prodi || !m.angkatan) return window.alert("Mohon lengkapi Kampus, Prodi, dan Angkatan.");
             }
             if (requiresBukti) {
                 if (m.kontakType === 'email') {
@@ -119,7 +131,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
 
         const fetchedWajibData = [];
 
-        if (!isWajib && !requiresBukti && kategori === 'Mahasiswa') {
+        if (!isWajib && !requiresBukti && isMhsLP3I) {
             try {
                 for (const m of members) {
                     const finalKampusReg = m.kampus === 'Lainnya' ? m.kampusLainnya : m.kampus;
@@ -168,20 +180,40 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
             if (isWajib) {
                 // INSERT KE peserta
                 const m = members[0];
-                const isMhs = kategori === 'Mahasiswa';
-                const finalKampusWajib = isMhs ? (m.kampus === 'Lainnya' ? m.kampusLainnya : m.kampus) : kategori;
-                let parsedNIM = null;
-                if (isMhs && m.nim && finalKampusWajib) {
-                    parsedNIM = parseNIM(m.nim, finalKampusWajib);
+                let finalKampusWajib = kategori;
+                let finalNimWajib = kategori;
+                let finalProdiWajib = kategori;
+                let finalAngkatanWajib = kategori;
+
+                if (isMhsLP3I) {
+                    finalKampusWajib = m.kampus === 'Lainnya' ? m.kampusLainnya : m.kampus;
+                    finalNimWajib = m.nim;
+                    const parsedNIM = parseNIM(m.nim, finalKampusWajib);
+                    if (parsedNIM) {
+                        finalProdiWajib = parsedNIM.prodiName;
+                        finalAngkatanWajib = parsedNIM.angkatan;
+                    }
+                } else if (kategori === 'Dosen') {
+                    finalKampusWajib = m.kampus;
+                    finalNimWajib = 'Dosen01';
+                } else if (kategori === 'Umum') {
+                    if (m.isStudent) {
+                        finalKampusWajib = m.kampus;
+                        finalProdiWajib = m.prodi;
+                        finalAngkatanWajib = m.angkatan;
+                        finalNimWajib = 'MahasiswaUmum01';
+                    } else {
+                        finalNimWajib = 'Umum01';
+                    }
                 }
 
                 const pesertaPayload = {
                     kategori: kategori,
                     nama: m.nama,
                     kampus: finalKampusWajib,
-                    nim: isMhs ? m.nim : kategori,
-                    prodi: isMhs && parsedNIM ? parsedNIM.prodiName : kategori,
-                    angkatan: isMhs && parsedNIM ? parsedNIM.angkatan : kategori,
+                    nim: finalNimWajib,
+                    prodi: finalProdiWajib,
+                    angkatan: finalAngkatanWajib,
                     email_wa: m.email_wa,
                     bukti_bayar: buktiUrl,
                     status_pembayaran: 'Pending',
@@ -189,7 +221,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                     jenis_form: 'wajib'
                 };
 
-                    pesertaPayload.metode_pembayaran = metodePembayaran || null;
+                pesertaPayload.metode_pembayaran = metodePembayaran || null;
 
                 const res = await insertPeserta(pesertaPayload);
                 if (!res.success) throw new Error(res.error);
@@ -226,36 +258,51 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
 
                 for (let i = 0; i < members.length; i++) {
                     const m = members[i];
-                    const isMhs = kategori === 'Mahasiswa';
-                    const finalKampusReg = isMhs ? (m.kampus === 'Lainnya' ? m.kampusLainnya : m.kampus) : kategori;
-                    let parsedNIM = null;
-                    if (isMhs && m.nim && finalKampusReg) {
-                        parsedNIM = parseNIM(m.nim, finalKampusReg);
-                    }
-
                     const duaAngka = String(i + 1).padStart(2, '0');
-                    const nonMhsKode = `${kategori}${duaAngka}`;
 
-                    const finalNim = isMhs ? m.nim : nonMhsKode;
-                    const finalProdi = isMhs && parsedNIM ? parsedNIM.prodiName : kategori;
-                    const finalAngkatan = isMhs && parsedNIM ? parsedNIM.angkatan : kategori;
+                    let finalKampusReg = kategori;
+                    let finalNimReg = kategori;
+                    let finalProdiReg = kategori;
+                    let finalAngkatanReg = kategori;
+
+                    if (isMhsLP3I) {
+                        finalKampusReg = m.kampus === 'Lainnya' ? m.kampusLainnya : m.kampus;
+                        finalNimReg = m.nim;
+                        const parsedNIM = parseNIM(m.nim, finalKampusReg);
+                        if (parsedNIM) {
+                            finalProdiReg = parsedNIM.prodiName;
+                            finalAngkatanReg = parsedNIM.angkatan;
+                        }
+                    } else if (kategori === 'Dosen') {
+                        finalKampusReg = m.kampus;
+                        finalNimReg = `Dosen${duaAngka}`;
+                    } else if (kategori === 'Umum') {
+                        if (m.isStudent) {
+                            finalKampusReg = m.kampus;
+                            finalProdiReg = m.prodi;
+                            finalAngkatanReg = m.angkatan;
+                            finalNimReg = `MahasiswaUmum${duaAngka}`;
+                        } else {
+                            finalNimReg = `Umum${duaAngka}`;
+                        }
+                    }
 
                     teamMembersToInsert.push({
                         team_id: teamData.id,
                         nama: m.nama,
                         jabatan: m.jabatan,
-                        kode: finalNim
+                        kode: finalNimReg
                     });
 
-                    const mDataWajib = !requiresBukti && kategori === 'Mahasiswa' ? fetchedWajibData[i] : null;
+                    const mDataWajib = !requiresBukti && isMhsLP3I ? fetchedWajibData[i] : null;
 
                     pesertaToInsert.push({
                         kategori: kategori,
                         nama: m.nama,
                         kampus: finalKampusReg,
-                        nim: finalNim,
-                        prodi: finalProdi,
-                        angkatan: finalAngkatan,
+                        nim: finalNimReg,
+                        prodi: finalProdiReg,
+                        angkatan: finalAngkatanReg,
                         email_wa: mDataWajib ? mDataWajib.email_wa : m.email_wa,
                         bukti_bayar: mDataWajib ? mDataWajib.bukti_bayar : buktiUrl,
                         status_pembayaran: mDataWajib ? mDataWajib.status_pembayaran : 'Pending',
@@ -356,7 +403,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                             Kategori Pendaftar
                         </h4>
                         <div className="relative flex p-1.5 bg-gray-200/50 dark:bg-gray-900/50 rounded-2xl">
-                            {['Mahasiswa', 'Dosen', 'Umum'].map((cat, idx) => {
+                            {availableKategori.map((cat, idx) => {
                                 const isActive = kategori === cat;
                                 return (
                                     <button
@@ -486,7 +533,28 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                                     </div>
                                 )}
 
-                                {kategori === 'Mahasiswa' && (
+                                {kategori === 'Umum' && (
+                                    <div className="col-span-1 sm:col-span-2 pt-2 border-t border-gray-100 dark:border-gray-800 mt-2">
+                                        <label className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                                            <div className="relative flex items-center justify-center">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={member.isStudent}
+                                                    onChange={(e) => handleMemberChange(index, 'isStudent', e.target.checked)}
+                                                    className="peer sr-only"
+                                                />
+                                                <div className="w-5 h-5 border-2 border-gray-300 dark:border-gray-600 rounded peer-checked:bg-blue-600 peer-checked:border-blue-600 transition-all flex items-center justify-center">
+                                                    <svg className="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Apakah Anda Mahasiswa? (Pilih jika Ya)</span>
+                                        </label>
+                                    </div>
+                                )}
+
+                                {(isMhsLP3I || kategori === 'Dosen' || (kategori === 'Umum' && member.isStudent)) && (
                                     <>
                                         <div>
                                             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Kampus *</label>
@@ -495,9 +563,9 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                                                 className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                                             >
                                                 <option value="" disabled>Pilih Kampus</option>
-                                                {KAMPUS_DATA.map(k => <option key={k} value={k}>{k}</option>)}
+                                                {KAMPUS_DATA.filter(k => isMhsLP3I ? true : k !== 'Lainnya').map(k => <option key={k} value={k}>{k}</option>)}
                                             </select>
-                                            {member.kampus === 'Lainnya' && (
+                                            {isMhsLP3I && member.kampus === 'Lainnya' && (
                                                 <input
                                                     type="text" required value={member.kampusLainnya || ''} onChange={(e) => handleMemberChange(index, 'kampusLainnya', e.target.value)}
                                                     placeholder="Sebutkan nama kampus"
@@ -505,20 +573,44 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                                                 />
                                             )}
                                         </div>
+                                    </>
+                                )}
+
+                                {isMhsLP3I && (
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">NIM *</label>
+                                        <input
+                                            type="text" required value={member.nim} onChange={(e) => handleMemberChange(index, 'nim', e.target.value)}
+                                            placeholder="Contoh: 202502014"
+                                            minLength={9}
+                                            maxLength={9}
+                                            className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                        />
+                                        {member.nim.length >= 9 && member.kampus && parseNIM(member.nim, member.kampus) && (
+                                            <p className="text-xs text-green-600 mt-1">
+                                                Terdeteksi: {parseNIM(member.nim, member.kampus).prodiName} ({parseNIM(member.nim, member.kampus).angkatan})
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+
+                                {kategori === 'Umum' && member.isStudent && (
+                                    <>
                                         <div>
-                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">NIM *</label>
+                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Prodi *</label>
                                             <input
-                                                type="text" required value={member.nim} onChange={(e) => handleMemberChange(index, 'nim', e.target.value)}
-                                                placeholder="Contoh: 202502014"
-                                                minLength={9}
-                                                maxLength={9}
+                                                type="text" required value={member.prodi} onChange={(e) => handleMemberChange(index, 'prodi', e.target.value)}
+                                                placeholder="Contoh: Sistem Informasi"
                                                 className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                                             />
-                                            {member.nim.length >= 9 && member.kampus && parseNIM(member.nim, member.kampus) && (
-                                                <p className="text-xs text-green-600 mt-1">
-                                                    Terdeteksi: {parseNIM(member.nim, member.kampus).prodiName} ({parseNIM(member.nim, member.kampus).angkatan})
-                                                </p>
-                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Angkatan *</label>
+                                            <input
+                                                type="text" required value={member.angkatan} onChange={(e) => handleMemberChange(index, 'angkatan', e.target.value)}
+                                                placeholder="Contoh: 2022"
+                                                className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                            />
                                         </div>
                                     </>
                                 )}
@@ -544,7 +636,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                             <span className="w-1.5 h-5 bg-amber-500 rounded-full"></span>
                             Pembayaran & Berkas
                         </h4>
-                        
+
                         <div className="flex flex-col md:flex-row md:items-end gap-6">
                             <div className="flex-1">
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Upload Bukti Pembayaran *</label>
@@ -555,7 +647,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                                     />
                                 </div>
                             </div>
-                            
+
                             <div className="flex-1">
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Metode Pembayaran *</label>
                                 <select

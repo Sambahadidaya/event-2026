@@ -16,7 +16,9 @@ Proyek ini menggunakan Next.js (App Router) berbasis JavaScript murni (bukan Typ
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",
     "chart.js": "^4.5.1",
+    "file-type": "^22.0.1",
     "fuse.js": "^7.4.2",
+    "html5-qrcode": "^2.3.8",
     "lucide-react": "^1.21.0",
     "nanoid": "^5.1.16",
     "next": "16.2.9",
@@ -24,7 +26,8 @@ Proyek ini menggunakan Next.js (App Router) berbasis JavaScript murni (bukan Typ
     "openai": "^6.45.0",
     "react": "19.2.4",
     "react-chartjs-2": "^5.3.1",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "react-image-crop": "^11.1.2"
   }
 }
 ```
@@ -431,6 +434,27 @@ ALTER TABLE peserta
 ADD COLUMN IF NOT EXISTS metode_pembayaran VARCHAR(10);
 ALTER TABLE peserta
 ADD COLUMN IF NOT EXISTS metode_pembayaran VARCHAR(10);
+
+ALTER TABLE admins 
+ADD COLUMN qrcode VARCHAR(64) UNIQUE DEFAULT null,
+ADD COLUMN limit_login BOOLEAN DEFAULT False,
+ADD COLUMN failed_attempts INT DEFAULT 0,
+ADD COLUMN lockout_until TIMESTAMP WITH TIME ZONE,
+ADD COLUMN first_failed_at TIMESTAMP WITH TIME ZONE;
+
+CREATE TABLE audit_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    admin_id UUID, -- Optional, if you track which admin did it
+    admin_email VARCHAR(255),
+    action VARCHAR(255) NOT NULL,
+    target_id UUID,
+    details TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE form_register
+ADD kategori_pendaftar VARCHAR(255) DEFAULT 'Mahasiswa LP3I,Dosen,Umum';
+
 ```
 
 ---
@@ -442,14 +466,23 @@ ADD COLUMN IF NOT EXISTS metode_pembayaran VARCHAR(10);
 │   ├── proxy.js
 │   ├── api/
 │   │   ├── supabase/
-│   │   │   ├── admin.js
-│   │   │   ├── auth.js
-│   │   │   ├── berita.js
-│   │   │   ├── jadwal.js
-│   │   │   ├── materi.js
-│   │   │   ├── peserta.js
-│   │   │   ├── storage.js
-│   │   │   └── team.js
+│   │   │   ├── admin/
+│   │   │   │   ├── admin.js
+│   │   │   │   ├── audit.js
+│   │   │   │   ├── auth.js
+│   │   │   │   ├── berita.js
+│   │   │   │   ├── jadwal.js
+│   │   │   │   ├── materi.js
+│   │   │   │   ├── peserta.js
+│   │   │   │   └── team.js
+│   │   │   ├── public/
+│   │   │   │   ├── admin.js
+│   │   │   │   ├── berita.js
+│   │   │   │   ├── jadwal.js
+│   │   │   │   ├── materi.js
+│   │   │   │   ├── peserta.js
+│   │   │   │   └── team.js
+│   │   │   └── storage.js
 │   │   └── openai/
 │   │       ├── chat.js
 │   │       └── materi.js

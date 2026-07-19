@@ -2,6 +2,10 @@
 
 import { supabaseAdmin } from '@/lib/supabase';
 import { nanoid } from 'nanoid';
+import { fileTypeFromBuffer } from 'file-type';
+import { checkAdminAuth, insertAuditLog } from './admin/audit';
+
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'];
 
 /**
  * Uploads a file to Supabase Storage.
@@ -18,19 +22,29 @@ export const uploadFile = async (formData, bucket, pathPrefix = '') => {
             throw new Error('No valid file provided in FormData');
         }
 
-        // Generate a random file name to avoid collisions
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${nanoid(16)}.${fileExt}`;
-        const filePath = `${pathPrefix}${fileName}`;
+        // Limit file size to 10MB
+        if (file.size > 10 * 1024 * 1024) {
+             return { success: false, error: 'Ukuran file melebihi batas maksimal (10MB).' };
+        }
 
-        // Convert the web File into an ArrayBuffer and then to a Buffer for Supabase
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
+
+        // Deep File Inspection
+        const fileTypeResult = await fileTypeFromBuffer(buffer);
+        if (!fileTypeResult || !ALLOWED_MIME_TYPES.includes(fileTypeResult.mime)) {
+             return { success: false, error: 'Tipe file tidak valid atau berpotensi berbahaya.' };
+        }
+
+        // Generate a random file name to avoid collisions
+        const fileExt = fileTypeResult.ext; // Use secure extension from file-type
+        const fileName = `${nanoid(16)}.${fileExt}`;
+        const filePath = `${pathPrefix}${fileName}`;
 
         const { error: uploadError } = await supabaseAdmin.storage
             .from(bucket)
             .upload(filePath, buffer, {
-                contentType: file.type,
+                contentType: fileTypeResult.mime,
                 upsert: false
             });
 
@@ -44,8 +58,8 @@ export const uploadFile = async (formData, bucket, pathPrefix = '') => {
 
         return { success: true, url: publicUrl };
     } catch (error) {
-        console.error("Storage upload error:", error);
-        return { success: false, error: error.message };
+        console.error("Internal Log - Storage upload error:", error);
+        return { success: false, error: 'Gagal mengupload file.' };
     }
 };
 
@@ -56,6 +70,9 @@ export const uploadFile = async (formData, bucket, pathPrefix = '') => {
  */
 export const deleteFile = async (bucket, filePath) => {
     try {
+        const { user, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
         if (!filePath) return { success: true }; // Nothing to delete
         
         const { error } = await supabaseAdmin.storage
@@ -64,9 +81,10 @@ export const deleteFile = async (bucket, filePath) => {
             
         if (error) throw error;
         
+        await insertAuditLog(user.email, 'DELETE_FILE', null, `Deleted ${filePath} from ${bucket}`);
         return { success: true };
     } catch (error) {
-         console.error("Storage delete error:", error);
-         return { success: false, error: error.message };
+         console.error("Internal Log - Storage delete error:", error);
+         return { success: false, error: 'Gagal menghapus file.' };
     }
 };

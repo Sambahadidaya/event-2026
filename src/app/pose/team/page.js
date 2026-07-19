@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Users, Search, ChevronDown, ChevronUp, Image as ImageIcon, Check, X, ShieldCheck } from 'lucide-react';
 import PageHero from '@/components/public/PageHero';
 import ScheduleBarrier from '@/components/public/ScheduleBarrier';
-import { getVerifiedPoseTeams, getTeams } from '@/api/supabase/team';
+import { getVerifiedPoseTeams, getTeams } from '@/api/supabase/public/team';
 import { JENIS_LOMBA, NAMA_LOMBA } from '@/lib/lombaData';
 
 const InstagramIcon = ({ size = 14, className = "" }) => (

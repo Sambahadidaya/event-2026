@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getTeams, upsertTeam, deleteTeam, deleteMultipleTeams } from '@/api/supabase/team';
+import { getTeams } from '@/api/supabase/public/team';
+import { upsertTeam, deleteTeam, deleteMultipleTeams } from '@/api/supabase/admin/team';
 import { uploadFile } from '@/api/supabase/storage';
 import { RefreshCw, Plus, Trash2, Search, Users, Edit2, CheckSquare, X, Link as LinkIcon, Image as ImageIcon, UserPlus } from 'lucide-react';
 

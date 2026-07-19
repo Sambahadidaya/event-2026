@@ -7,7 +7,7 @@ export async function proxy(req) {
     const isPanitiaRoute = pathname.startsWith('/panitia');
     const isLoginRoute = pathname === '/panitia/login';
 
-    const supabaseAuthCookie = req.cookies.get('sb-access-token') || req.cookies.getAll().find(c => c.name.includes('supabase'));
+    const supabaseAuthCookie = req.cookies.get('sb-access-token') || req.cookies.getAll().find(c => c.name.startsWith('sb-') && c.name.endsWith('-auth-token'));
 
     if (isPanitiaRoute && !isLoginRoute && !supabaseAuthCookie) {
         return NextResponse.redirect(new URL('/panitia/login', req.url));

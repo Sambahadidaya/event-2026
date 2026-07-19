@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Users, Search, CheckCircle, XCircle, Trash2, Eye, CheckCircle2, Clock } from 'lucide-react';
-import { getPeserta, updateStatusPembayaranPeserta, deletePeserta } from '@/api/supabase/peserta';
+import { getPeserta, updateStatusPembayaranPeserta, deletePeserta } from '@/api/supabase/admin/peserta';
 import { useRouter } from 'next/navigation';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
 import TablePagination from '@/components/panitia/TablePagination';

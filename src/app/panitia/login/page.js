@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { loginAdmin, checkQR } from '@/api/supabase/auth';
+import { loginAdmin, checkQR } from '@/api/supabase/admin/auth';
 import { rolePermissions } from '@/lib/adminRoleData';
 import ThemeToggle from '@/components/ThemeToggle';
 import { Shield, Mail, Lock, ArrowRight, User, ScanLine, Camera, Upload, X, Crop, Check } from 'lucide-react';
@@ -129,8 +129,9 @@ export default function PanitiaLogin() {
         const scaleX = image.naturalWidth / image.width;
         const scaleY = image.naturalHeight / image.height;
 
-        canvas.width = completedCrop.width * scaleX;
-        canvas.height = completedCrop.height * scaleY;
+        // PERBAIKAN: Gunakan Math.floor agar ukuran canvas berupa bilangan bulat (integer) resmi
+        canvas.width = Math.floor(completedCrop.width * scaleX);
+        canvas.height = Math.floor(completedCrop.height * scaleY);
         const ctx = canvas.getContext('2d');
 
         ctx.drawImage(
@@ -146,18 +147,29 @@ export default function PanitiaLogin() {
         );
 
         canvas.toBlob(async (blob) => {
-            if (!blob) return;
-            const file = new File([blob], "crop.jpg", { type: "image/jpeg" });
+            if (!blob) {
+                setError("Gagal mengekstrak gambar hasil crop.");
+                return;
+            }
             try {
                 if (!html5QrCodeRef.current) html5QrCodeRef.current = new Html5Qrcode('reader');
                 setLoading(true);
                 setError(null);
-                const decodedText = await html5QrCodeRef.current.scanFile(file, true);
+
+                // PERBAIKAN: Ubah parameter kedua menjadi 'false' (showImage = false) 
+                // agar sistem tidak crash mencoba merender gambar ke dalam elemen #reader yang sedang tersembunyi.
+                const file = new File([blob], "crop.jpg", { type: "image/jpeg" });
+                const decodedText = await html5QrCodeRef.current.scanFile(file, false);
+
+                // Reset state crop preview setelah berhasil discan
+                setImageToCrop(null);
+                setCompletedCrop(null);
+
                 handleQRCapture(decodedText);
             } catch (err) {
                 console.error("Scan crop failed:", err);
                 setLoading(false);
-                setError("QR Code tidak terdeteksi pada area crop. Silakan coba atur kembali atau pastikan gambar jelas.");
+                setError("QR Code tidak terdeteksi pada area crop. Silakan atur kembali posisinya atau pastikan gambar jelas.");
             }
         }, 'image/jpeg');
     };
@@ -190,21 +202,29 @@ export default function PanitiaLogin() {
         setLoading(true);
         setError(null);
 
-        const res = await loginAdmin(identifier, password, loginMethod);
+        try {
+            const res = await loginAdmin(identifier, password, loginMethod);
 
-        if (!res.success) {
-            setError(res.error);
+            if (!res.success) {
+                setError(res.error);
+                setLoading(false);
+                return;
+            }
+
+            // PERBAIKAN: Lakukan router.refresh() untuk menyinkronkan data cookie terbaru ke sisi server sebelum berpindah halaman
+            router.refresh();
+
+            const role = res.adminRole;
+            let redirectUrl = '/panitia/dashboard/trafik';
+            if (role && role !== 'super_admin' && rolePermissions[role] && rolePermissions[role].length > 0) {
+                redirectUrl = rolePermissions[role][0];
+            }
+
+            router.push(redirectUrl);
+        } catch (err) {
+            setError("Terjadi kesalahan sistem internal.");
             setLoading(false);
-            return;
         }
-
-        const role = res.adminRole;
-        let redirectUrl = '/panitia/dashboard/trafik';
-        if (role && role !== 'super_admin' && rolePermissions[role] && rolePermissions[role].length > 0) {
-            redirectUrl = rolePermissions[role][0];
-        }
-
-        router.push(redirectUrl);
     };
 
     const handleQrLogin = async (e) => {
@@ -214,22 +234,30 @@ export default function PanitiaLogin() {
         setLoading(true);
         setError(null);
 
-        const res = await loginAdmin(qrEmail, qrPin, 'email');
+        try {
+            const res = await loginAdmin(qrEmail, qrPin, 'email');
 
-        if (!res.success) {
-            setError(res.error);
-            if (res.cooldown) setCooldown(res.cooldown);
+            if (!res.success) {
+                setError(res.error);
+                if (res.cooldown) setCooldown(res.cooldown);
+                setLoading(false);
+                return;
+            }
+
+            // PERBAIKAN: Sinkronisasi ulang konteks data cookie/sesi
+            router.refresh();
+
+            const role = res.adminRole;
+            let redirectUrl = '/panitia/dashboard/trafik';
+            if (role && role !== 'super_admin' && rolePermissions[role] && rolePermissions[role].length > 0) {
+                redirectUrl = rolePermissions[role][0];
+            }
+
+            router.push(redirectUrl);
+        } catch (err) {
+            setError("Terjadi kesalahan sistem internal.");
             setLoading(false);
-            return;
         }
-
-        const role = res.adminRole;
-        let redirectUrl = '/panitia/dashboard/trafik';
-        if (role && role !== 'super_admin' && rolePermissions[role] && rolePermissions[role].length > 0) {
-            redirectUrl = rolePermissions[role][0];
-        }
-
-        router.push(redirectUrl);
     };
 
     return (
@@ -410,7 +438,23 @@ export default function PanitiaLogin() {
                                                     onComplete={(c) => setCompletedCrop(c)}
                                                     className="max-h-[50vh] w-auto mx-auto rounded-xl overflow-hidden"
                                                 >
-                                                    <img ref={imgRef} src={imageToCrop} alt="Crop" className="max-h-[50vh] w-auto object-contain" />
+                                                    <img
+                                                        ref={imgRef}
+                                                        src={imageToCrop}
+                                                        alt="Crop"
+                                                        className="max-h-[50vh] w-auto object-contain"
+                                                        // INOVASI UX: Menginisialisasi area crop secara default ketika gambar pertama kali dimuat agar bisa langsung diklik scan tanpa digeser dahulu
+                                                        onLoad={(e) => {
+                                                            const { width, height } = e.currentTarget;
+                                                            setCompletedCrop({
+                                                                unit: 'px',
+                                                                x: width * 0.25,
+                                                                y: height * 0.25,
+                                                                width: width * 0.5,
+                                                                height: height * 0.5
+                                                            });
+                                                        }}
+                                                    />
                                                 </ReactCrop>
                                             </div>
                                             <p className="text-xs text-slate-500 dark:text-slate-400 text-center font-medium">Geser dan atur kotak agar QR Code pas berada di tengah area.</p>

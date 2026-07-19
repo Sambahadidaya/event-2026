@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getBerita } from '@/api/supabase/berita';
+import { getBerita } from '@/api/supabase/public/berita';
 import { Bell } from 'lucide-react';
 import PageHero from '@/components/public/PageHero';
 import AnnouncementTimeline from '@/components/public/AnnouncementTimeline';

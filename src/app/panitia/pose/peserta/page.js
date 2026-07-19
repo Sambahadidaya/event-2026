@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { UsersRound, Search, Filter } from 'lucide-react';
-import { getPeserta } from '@/api/supabase/peserta';
+import { getPeserta } from '@/api/supabase/admin/peserta';
 import { useRouter } from 'next/navigation';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
 import TablePagination from '@/components/panitia/TablePagination';

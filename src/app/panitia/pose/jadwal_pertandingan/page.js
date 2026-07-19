@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getTeams } from '@/api/supabase/team';
-import { getJadwalPertandingan, getHasilPertandingan, upsertJadwalPertandingan, upsertHasilPertandingan, deleteJadwalPertandingan } from '@/api/supabase/jadwal';
+import { getTeams } from '@/api/supabase/public/team';
+import { getJadwalPertandingan, getHasilPertandingan } from '@/api/supabase/public/jadwal';
+import { upsertJadwalPertandingan, upsertHasilPertandingan, deleteJadwalPertandingan } from '@/api/supabase/admin/jadwal';
 import {
     RefreshCw, Plus, Trash2, Edit2, CheckSquare, X, Calendar,
     Trophy, Medal, Clock, Activity, CheckCircle2, Swords, ChevronDown, ToggleLeft, ToggleRight

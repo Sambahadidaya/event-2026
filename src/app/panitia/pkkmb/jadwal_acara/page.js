@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getJadwalAcara, upsertJadwalAcara, deleteJadwalAcara } from '@/api/supabase/jadwal';
+import { getJadwalAcara } from '@/api/supabase/public/jadwal';
+import { upsertJadwalAcara, deleteJadwalAcara } from '@/api/supabase/admin/jadwal';
 import { Calendar, Plus, Edit2, Trash2, CheckSquare, X, RefreshCw } from 'lucide-react';
 
 export default function AdminPkkmbJadwalAcara() {

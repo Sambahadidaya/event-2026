@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { FileText, Search, Plus, Link as LinkIcon, Trash2, Copy, Image as ImageIcon } from 'lucide-react';
-import { getFormWajib, upsertFormWajib, deleteFormWajib } from '@/api/supabase/peserta';
+import { getFormWajib } from '@/api/supabase/public/peserta';
+import { upsertFormWajib, deleteFormWajib } from '@/api/supabase/admin/peserta';
 import { uploadFile } from '@/api/supabase/storage';
 import { useRouter } from 'next/navigation';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';

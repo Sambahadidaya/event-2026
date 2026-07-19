@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getMateri, upsertMateri, deleteMateri } from '@/api/supabase/materi';
+import { getMateri } from '@/api/supabase/public/materi';
+import { upsertMateri, deleteMateri } from '@/api/supabase/admin/materi';
 import { uploadFile, deleteFile } from '@/api/supabase/storage';
 import { BookOpen, Plus, Edit2, Trash2, CheckSquare, X, RefreshCw, Upload, FileText, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
 import { nanoid } from 'nanoid';

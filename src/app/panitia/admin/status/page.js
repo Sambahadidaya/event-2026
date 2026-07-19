@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getAdmins, addAdmin, deleteAdmin } from '@/api/supabase/admin';
+import { getAdmins, addAdmin, deleteAdmin } from '@/api/supabase/admin/admin';
 import { Shield, Plus, Trash2, Edit, RefreshCw, UserPlus, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function AdminStatusPage() {

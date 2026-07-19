@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Mail, Inbox, Eye, Eraser, CheckSquare, Square, Search, CheckCircle2, CircleDashed, Trash2 } from 'lucide-react';
-import { getKontak, updateKontakJawab, deleteMultipleKontak } from '@/api/supabase/admin';
+import { getKontak, updateKontakJawab, deleteMultipleKontak } from '@/api/supabase/admin/admin';
 import { useRouter } from 'next/navigation';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
 import DashboardOverviewCards from '@/components/panitia/DashboardOverviewCards';

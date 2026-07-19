@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getFormWajibByLinkId } from '@/api/supabase/peserta';
+import { getFormWajibByLinkId } from '@/api/supabase/public/peserta';
 import { useParams } from 'next/navigation';
 import { Trophy, ArrowLeft, FileText } from 'lucide-react';
 import Link from 'next/link';

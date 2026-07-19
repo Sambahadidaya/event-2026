@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getUserTeams } from '@/api/supabase/team';
+import { getUserTeams } from '@/api/supabase/public/team';
 import { Trophy, ArrowLeft, Clock, CheckCircle2, XCircle, Search, Plus } from 'lucide-react';
 import Link from 'next/link';
 

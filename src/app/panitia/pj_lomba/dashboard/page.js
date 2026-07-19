@@ -2,9 +2,9 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { BarChart3, Users, CheckCircle2, XCircle, Clock, Trophy, Filter } from 'lucide-react';
-import { getTeams } from '@/api/supabase/team';
-import { getPeserta } from '@/api/supabase/peserta';
-import { getCurrentAdmin } from '@/api/supabase/auth';
+import { getTeams } from '@/api/supabase/public/team';
+import { getPeserta } from '@/api/supabase/admin/peserta';
+import { getCurrentAdmin } from '@/api/supabase/admin/auth';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
 import DashboardOverviewCards from '@/components/panitia/DashboardOverviewCards';
 import DashboardSelect from '@/components/panitia/DashboardSelect';

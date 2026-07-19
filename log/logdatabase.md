@@ -436,7 +436,6 @@ ADD COLUMN nominal INT ;
 ALTER TABLE form_wajib
 ADD COLUMN nominal INT ;
 
-
 ALTER TABLE peserta
 ADD COLUMN IF NOT EXISTS metode_pembayaran VARCHAR(10);
 ALTER TABLE peserta
@@ -450,4 +449,17 @@ ADD COLUMN failed_attempts INT DEFAULT 0,
 ADD COLUMN lockout_until TIMESTAMP WITH TIME ZONE,
 ADD COLUMN first_failed_at TIMESTAMP WITH TIME ZONE;
 
+
+CREATE TABLE audit_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    admin_id UUID, -- Optional, if you track which admin did it
+    admin_email VARCHAR(255),
+    action VARCHAR(255) NOT NULL,
+    target_id UUID,
+    details TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE form_register
+ADD kategori_pendaftar VARCHAR(255) DEFAULT 'Mahasiswa LP3I,Dosen,Umum';
 ```

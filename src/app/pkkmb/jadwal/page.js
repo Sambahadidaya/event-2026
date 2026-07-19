@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getMateri } from '@/api/supabase/materi';
+import { getMateri } from '@/api/supabase/public/materi';
 import { useRouter } from 'next/navigation';
 import { Clock, Calendar as CalendarIcon, User } from 'lucide-react';
 

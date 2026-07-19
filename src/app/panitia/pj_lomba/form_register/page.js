@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Users, Search, Eye, CheckCircle2, XCircle, Clock, Filter } from 'lucide-react';
-import { getTeams, upsertTeam } from '@/api/supabase/team';
-import { getPeserta } from '@/api/supabase/peserta';
-import { getCurrentAdmin } from '@/api/supabase/auth';
+import { getTeams } from '@/api/supabase/public/team';
+import { upsertTeam } from '@/api/supabase/admin/team';
+import { getPeserta } from '@/api/supabase/admin/peserta';
+import { getCurrentAdmin } from '@/api/supabase/admin/auth';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
 import DashboardSelect from '@/components/panitia/DashboardSelect';
 import DetailModal from '@/components/panitia/DetailModal';
@@ -22,6 +23,7 @@ export default function PJLombaFormRegister() {
     const [searchQuery, setSearchQuery] = useState('');
     const [jenisLomba, setJenisLomba] = useState('all');
     const [namaLomba, setNamaLomba] = useState('all');
+    const [kategoriFilter, setKategoriFilter] = useState('all');
     const [lastSyncedAt, setLastSyncedAt] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [detailItem, setDetailItem] = useState(null);
@@ -126,6 +128,9 @@ export default function PJLombaFormRegister() {
         if (namaLomba !== 'all') {
             result = result.filter(item => item.nama_lomba === namaLomba);
         }
+        if (kategoriFilter !== 'all') {
+            result = result.filter(item => item.peserta && item.peserta.length > 0 && item.peserta[0].kategori === kategoriFilter);
+        }
 
         const searchLower = searchQuery.toLowerCase();
         if (searchQuery) {
@@ -135,7 +140,7 @@ export default function PJLombaFormRegister() {
             );
         }
         return result;
-    }, [data, jenisLomba, namaLomba, searchQuery]);
+    }, [data, jenisLomba, namaLomba, kategoriFilter, searchQuery]);
 
     const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE) || 1;
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -246,6 +251,17 @@ export default function PJLombaFormRegister() {
                     <span className="text-violet-700 dark:text-violet-300 font-semibold">{lockedLomba}</span>
                 </div>
             )}
+            <DashboardSelect
+                icon={Filter}
+                value={kategoriFilter}
+                onChange={(e) => setKategoriFilter(e.target.value)}
+                options={[
+                    { value: 'all', label: 'Semua Kategori' },
+                    { value: 'Mahasiswa LP3I', label: 'Mahasiswa LP3I' },
+                    { value: 'Dosen', label: 'Dosen' },
+                    { value: 'Umum', label: 'Umum' }
+                ]}
+            />
         </>
     );
 

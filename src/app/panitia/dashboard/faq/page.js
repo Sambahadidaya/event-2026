@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { MessageSquare, HelpCircle, Eye, Eraser, CheckSquare, Square, Trash2 } from 'lucide-react';
-import { getRiwayatPertanyaan, deleteMultipleRiwayat } from '@/api/supabase/admin';
+import { getRiwayatPertanyaan, deleteMultipleRiwayat } from '@/api/supabase/admin/admin';
 import { useRouter } from 'next/navigation';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
 import DashboardOverviewCards from '@/components/panitia/DashboardOverviewCards';

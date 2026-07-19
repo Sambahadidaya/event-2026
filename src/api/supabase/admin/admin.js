@@ -1,11 +1,15 @@
 'use server';
 
 import { supabaseAdmin } from '@/lib/supabase';
+import { checkAdminAuth, insertAuditLog } from './audit';
 
 // ================= ADMINS =================
 
 export const getAdmins = async () => {
     try {
+        const { user, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
         const { data, error } = await supabaseAdmin
             .from('admins')
             .select('*')
@@ -14,25 +18,26 @@ export const getAdmins = async () => {
         if (error) throw error;
         return data;
     } catch (error) {
-        console.error("Error fetching admins:", error);
+        console.error("Internal Log - Error fetching admins:", error);
         return [];
     }
 };
 
 export const addAdmin = async (payload) => {
     try {
+        const { user, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
         if (!payload) throw new Error('Payload is required');
         
-        // 1. Create user in Supabase Auth using admin API
-        const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
             email: payload.email,
             password: payload.password,
             email_confirm: true
         });
 
-        if (authError) throw authError;
+        if (authErr) throw authErr;
 
-        // 2. Insert into admins table
         const { error } = await supabaseAdmin
             .from('admins')
             .insert([{
@@ -43,20 +48,23 @@ export const addAdmin = async (payload) => {
             }]);
 
         if (error) {
-            // Optional: delete auth user if insert fails
             await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
             throw error;
         }
 
+        await insertAuditLog(user.email, 'ADD_ADMIN', null, `Added admin: ${payload.email}`);
         return { success: true };
     } catch (error) {
-        console.error("Error adding admin:", error);
-        return { success: false, error: error.message };
+        console.error("Internal Log - Error adding admin:", error);
+        return { success: false, error: 'Terjadi kesalahan internal pada server.' };
     }
 };
 
 export const deleteAdmin = async (id) => {
     try {
+        const { user, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
         if (!id) throw new Error('ID is required');
 
         const { error } = await supabaseAdmin
@@ -65,10 +73,11 @@ export const deleteAdmin = async (id) => {
             .eq('id', id);
 
         if (error) throw error;
+        await insertAuditLog(user.email, 'DELETE_ADMIN', id, `Admin deleted`);
         return { success: true };
     } catch (error) {
-        console.error("Error deleting admin:", error);
-        return { success: false, error: error.message };
+        console.error("Internal Log - Error deleting admin:", error);
+        return { success: false, error: 'Terjadi kesalahan internal pada server.' };
     }
 };
 
@@ -84,8 +93,8 @@ export const updateAdminStatus = async (userId, updatePayload) => {
         if (error) throw error;
         return { success: true };
     } catch (error) {
-         console.error("Error updating admin status:", error);
-         return { success: false, error: error.message };
+         console.error("Internal Log - Error updating admin status:", error);
+         return { success: false, error: 'Terjadi kesalahan internal pada server.' };
     }
 };
 
@@ -101,15 +110,18 @@ export const updateAdminStatusById = async (id, updatePayload) => {
         if (error) throw error;
         return { success: true };
     } catch (error) {
-         console.error("Error updating admin status by id:", error);
-         return { success: false, error: error.message };
+         console.error("Internal Log - Error updating admin status by id:", error);
+         return { success: false, error: 'Terjadi kesalahan internal pada server.' };
     }
 };
 
-// ================= KONTAK =================
+// ================= KONTAK (ADMIN) =================
 
 export const getKontak = async () => {
     try {
+        const { user, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
         const { data, error } = await supabaseAdmin
             .from('kontak')
             .select('*')
@@ -118,29 +130,16 @@ export const getKontak = async () => {
         if (error) throw error;
         return data;
     } catch (error) {
-        console.error("Error fetching kontak:", error);
+        console.error("Internal Log - Error fetching kontak:", error);
         return [];
-    }
-};
-
-export const submitKontak = async (payload) => {
-    try {
-        if (!payload) throw new Error('Payload is required');
-        
-        const { error } = await supabaseAdmin
-            .from('kontak')
-            .insert([payload]);
-
-        if (error) throw error;
-        return { success: true };
-    } catch (error) {
-        console.error("Error submit kontak:", error);
-        return { success: false, error: error.message };
     }
 };
 
 export const updateKontakJawab = async (id, jawabStatus) => {
     try {
+        const { user, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
          if (!id) throw new Error('ID is required');
          const { error } = await supabaseAdmin
             .from('kontak')
@@ -148,15 +147,19 @@ export const updateKontakJawab = async (id, jawabStatus) => {
             .eq('id', id);
             
          if (error) throw error;
+         await insertAuditLog(user.email, 'UPDATE_KONTAK_JAWAB', id, `Kontak jawab updated to ${jawabStatus}`);
          return { success: true };
     } catch (error) {
-         console.error("Error updating kontak:", error);
-         return { success: false, error: error.message };
+         console.error("Internal Log - Error updating kontak:", error);
+         return { success: false, error: 'Terjadi kesalahan internal pada server.' };
     }
 };
 
 export const deleteMultipleKontak = async (ids) => {
     try {
+        const { user, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
         if (!ids || !Array.isArray(ids)) throw new Error('IDs array is required');
 
         const { error } = await supabaseAdmin
@@ -165,29 +168,21 @@ export const deleteMultipleKontak = async (ids) => {
             .in('id', ids);
 
         if (error) throw error;
+        await insertAuditLog(user.email, 'DELETE_MULTIPLE_KONTAK', null, `Deleted ${ids.length} kontak`);
         return { success: true };
     } catch (error) {
-        console.error("Error deleting multiple kontak:", error);
-        return { success: false, error: error.message };
+        console.error("Internal Log - Error deleting multiple kontak:", error);
+        return { success: false, error: 'Terjadi kesalahan internal pada server.' };
     }
 };
 
-// ================= TRAFIK =================
-
-export const recordTrafik = async (siteType) => {
-    try {
-         if (!siteType) return;
-         // Kita tidak perlukan error checking yang ketat untuk tracking, agar tidak menghalangi user flow
-         await supabaseAdmin
-            .from('trafik_kunjungan')
-            .insert([{ site: siteType }]);
-    } catch (error) {
-         console.error("Error record trafik:", error);
-    }
-};
+// ================= TRAFIK (ADMIN) =================
 
 export const getTrafik = async (isoDateStart) => {
     try {
+        const { user, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
         let query = supabaseAdmin.from('trafik_kunjungan').select('*');
         if (isoDateStart) {
             query = query.gte('visited_at', isoDateStart);
@@ -197,13 +192,16 @@ export const getTrafik = async (isoDateStart) => {
         if (error) throw error;
         return data;
     } catch (error) {
-        console.error("Error fetching trafik:", error);
+        console.error("Internal Log - Error fetching trafik:", error);
         return [];
     }
 };
 
 export const deleteMultipleTrafik = async (ids) => {
     try {
+        const { user, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
         if (!ids || !Array.isArray(ids)) throw new Error('IDs array is required');
 
         const { error } = await supabaseAdmin
@@ -212,10 +210,11 @@ export const deleteMultipleTrafik = async (ids) => {
             .in('id', ids);
 
         if (error) throw error;
+        await insertAuditLog(user.email, 'DELETE_MULTIPLE_TRAFIK', null, `Deleted ${ids.length} trafik`);
         return { success: true };
     } catch (error) {
-        console.error("Error deleting multiple trafik:", error);
-        return { success: false, error: error.message };
+        console.error("Internal Log - Error deleting multiple trafik:", error);
+        return { success: false, error: 'Terjadi kesalahan internal pada server.' };
     }
 };
 
@@ -223,6 +222,9 @@ export const deleteMultipleTrafik = async (ids) => {
 
 export const getRiwayatPertanyaan = async () => {
     try {
+        const { user, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
         const { data, error } = await supabaseAdmin
             .from('riwayat_pertanyaan')
             .select('*')
@@ -231,13 +233,16 @@ export const getRiwayatPertanyaan = async () => {
         if (error) throw error;
         return data;
     } catch (error) {
-        console.error("Error fetching riwayat pertanyaan:", error);
+        console.error("Internal Log - Error fetching riwayat pertanyaan:", error);
         return [];
     }
 };
 
 export const deleteMultipleRiwayat = async (ids) => {
     try {
+        const { user, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
         if (!ids || !Array.isArray(ids)) throw new Error('IDs array is required');
 
         const { error } = await supabaseAdmin
@@ -246,9 +251,10 @@ export const deleteMultipleRiwayat = async (ids) => {
             .in('id', ids);
 
         if (error) throw error;
+        await insertAuditLog(user.email, 'DELETE_MULTIPLE_RIWAYAT', null, `Deleted ${ids.length} riwayat`);
         return { success: true };
     } catch (error) {
-        console.error("Error deleting multiple riwayat:", error);
-        return { success: false, error: error.message };
+        console.error("Internal Log - Error deleting multiple riwayat:", error);
+        return { success: false, error: 'Terjadi kesalahan internal pada server.' };
     }
 };

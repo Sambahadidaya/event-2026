@@ -2,6 +2,23 @@
 
 import { supabaseAdmin } from '@/lib/supabase';
 import { cookies } from 'next/headers';
+import { createServerClient } from '@supabase/ssr';
+
+// Helper untuk membuat auth client standar yang akan otomatis mengatur cookie browser
+const createAuthClient = async () => {
+    const cookieStore = await cookies();
+    return createServerClient(
+        process.env.SUPABASE_URL,
+        process.env.SUPABASE_ANON_KEY,
+        {
+            cookies: {
+                get(name) { return cookieStore.get(name)?.value; },
+                set(name, value, options) { cookieStore.set({ name, value, ...options }); },
+                remove(name, options) { cookieStore.set({ name, value: '', ...options }); }
+            }
+        }
+    );
+};
 
 export const loginAdmin = async (identifier, password, loginMethod) => {
     try {
@@ -10,6 +27,7 @@ export const loginAdmin = async (identifier, password, loginMethod) => {
         let adminRole = null;
         let adminDbData = null;
 
+        // 1. Cek User di Database menggunakan Admin Client (Bypass RLS)
         if (loginMethod === 'nama') {
             const { data: adminData, error: adminError } = await supabaseAdmin
                 .from('admins')
@@ -25,7 +43,6 @@ export const loginAdmin = async (identifier, password, loginMethod) => {
             loginAdminId = adminData.id;
             adminRole = adminData.role;
         } else {
-            // Jika login pakai email, ambil admin id pertama yang cocok
             const { data: adminData } = await supabaseAdmin
                 .from('admins')
                 .select('id, email, role, limit_login, failed_attempts, lockout_until, first_failed_at')
@@ -43,7 +60,7 @@ export const loginAdmin = async (identifier, password, loginMethod) => {
             }
         }
 
-        // Cek Rate Limiting / Blokir
+        // 2. Cek Rate Limiting / Blokir
         if (adminDbData.limit_login) {
             return { success: false, error: 'Akun Anda telah diblokir permanen karena terlalu banyak percobaan gagal.' };
         }
@@ -58,13 +75,15 @@ export const loginAdmin = async (identifier, password, loginMethod) => {
             }
         }
 
-        const { data, error: signInError } = await supabaseAdmin.auth.signInWithPassword({
+        // 3. Authenticate menggunakan Auth Client biasa agar Cookie SSR standar otomatis tersetting!
+        const supabaseAuth = await createAuthClient();
+        const { data, error: signInError } = await supabaseAuth.auth.signInWithPassword({
             email: loginEmail,
             password,
         });
 
+        // 4. Handle Gagal Login
         if (signInError) {
-            // Logika kegagalan login
             let newFailedAttempts = (adminDbData.failed_attempts || 0) + 1;
             let newLockoutUntil = null;
             let newFirstFailedAt = adminDbData.first_failed_at;
@@ -72,7 +91,6 @@ export const loginAdmin = async (identifier, password, loginMethod) => {
 
             const now = new Date();
 
-            // Reset hitungan jika sudah lebih dari 1 jam sejak gagal pertama
             if (newFirstFailedAt) {
                 const firstFailedTime = new Date(newFirstFailedAt).getTime();
                 if (now.getTime() - firstFailedTime > 3600000) {
@@ -84,10 +102,8 @@ export const loginAdmin = async (identifier, password, loginMethod) => {
             }
 
             if (newFailedAttempts === 3) {
-                // Kunci 5 menit
                 newLockoutUntil = new Date(now.getTime() + 5 * 60000).toISOString();
             } else if (newFailedAttempts >= 8) {
-                // Blokir permanen
                 isBlocked = true;
             }
 
@@ -110,7 +126,7 @@ export const loginAdmin = async (identifier, password, loginMethod) => {
             return { success: false, error: 'Kredensial tidak valid. Silakan coba lagi.' };
         }
 
-        // Reset rate limit info saat berhasil login
+        // 5. Berhasil Login - Reset rate limit
         await supabaseAdmin
             .from('admins')
             .update({
@@ -123,16 +139,16 @@ export const loginAdmin = async (identifier, password, loginMethod) => {
             })
             .eq('id', loginAdminId);
 
+        // Tambahan custom cookie untuk ID admin jika dibutuhkan oleh aplikasi kamu
         const cookieStore = await cookies();
-        cookieStore.set('sb-access-token', data.session.access_token, { path: '/', maxAge: 3600 });
         if (loginAdminId) {
             cookieStore.set('sb-admin-id', loginAdminId, { path: '/', maxAge: 3600 });
         }
 
-        return { success: true, data, adminRole };
+        return { success: true, adminRole };
     } catch (error) {
-        console.error("Login error:", error);
-        return { success: false, error: error.message };
+        console.error("Internal Log - Login error:", error);
+        return { success: false, error: 'Terjadi kesalahan internal pada server.' };
     }
 };
 
@@ -163,8 +179,8 @@ export const checkQR = async (qrString) => {
 
         return { success: true, email: adminData.email };
     } catch (error) {
-        console.error("QR Check error:", error);
-        return { success: false, error: error.message };
+        console.error("Internal Log - QR Check error:", error);
+        return { success: false, error: 'Terjadi kesalahan internal pada server.' };
     }
 };
 
@@ -180,18 +196,15 @@ export const loginAdminWithQR = async (qrString) => {
             return { success: false, error: 'QR Code tidak valid atau tidak ditemukan dalam sistem.' };
         }
 
-        // Buat magic link untuk mendapatkan akses token tanpa password
         const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
             type: 'magiclink',
             email: adminData.email
         });
 
         if (linkError || !linkData?.properties?.action_link) {
-            console.error("Generate link error:", linkError);
             return { success: false, error: 'Gagal membuat sesi login.' };
         }
 
-        // Ambil token_hash dari URL yang di-generate
         const url = new URL(linkData.properties.action_link);
         const token_hash = url.searchParams.get('token_hash');
 
@@ -199,34 +212,30 @@ export const loginAdminWithQR = async (qrString) => {
             return { success: false, error: 'Token hash tidak ditemukan.' };
         }
 
-        // Verifikasi token untuk login dan dapatkan session
-        const { data: authData, error: authError } = await supabaseAdmin.auth.verifyOtp({
+        // Verifikasi OTP menggunakan Auth Client standar untuk men-set cookie browser
+        const supabaseAuth = await createAuthClient();
+        const { data: authData, error: authError } = await supabaseAuth.auth.verifyOtp({
             token_hash,
             type: 'magiclink'
         });
 
         if (authError || !authData?.session) {
-            console.error("Verify OTP error:", authError);
             return { success: false, error: 'Gagal memverifikasi sesi login QR.' };
         }
 
-        // Update status online
         await supabaseAdmin
             .from('admins')
             .update({ is_online: true, last_active: new Date().toISOString(), user_id: authData.user.id })
             .eq('id', adminData.id);
 
         const cookieStore = await cookies();
-        cookieStore.set('sb-access-token', authData.session.access_token, { path: '/', maxAge: 3600 });
         cookieStore.set('sb-admin-id', adminData.id, { path: '/', maxAge: 3600 });
-
-        // Hapus token qr sementara jika ada (sudah tidak diperlukan karena kita punya akses token sesungguhnya)
         cookieStore.delete('sb-qr-token');
 
         return { success: true, adminRole: adminData.role };
     } catch (error) {
-        console.error("QR Login error:", error);
-        return { success: false, error: error.message };
+        console.error("Internal Log - QR Login error:", error);
+        return { success: false, error: 'Terjadi kesalahan internal pada server.' };
     }
 };
 
@@ -238,25 +247,28 @@ export const logoutAdmin = async (userId) => {
                 .update({ is_online: false })
                 .eq('user_id', userId);
         }
-        await supabaseAdmin.auth.signOut();
+
+        // Gunakan Auth Client untuk menghapus cookie bawaan Supabase
+        const supabaseAuth = await createAuthClient();
+        await supabaseAuth.auth.signOut();
+
         const cookieStore = await cookies();
-        cookieStore.delete('sb-access-token');
         cookieStore.delete('sb-admin-id');
         cookieStore.delete('sb-qr-token');
         return { success: true };
     } catch (error) {
-        console.error("Logout error:", error);
-        return { success: false, error: error.message };
+        console.error("Internal Log - Logout error:", error);
+        return { success: false, error: 'Terjadi kesalahan internal pada server.' };
     }
 };
 
 export const getCurrentAdmin = async () => {
     try {
         const cookieStore = await cookies();
-        const token = cookieStore.get('sb-access-token')?.value;
         const adminId = cookieStore.get('sb-admin-id')?.value;
         const qrToken = cookieStore.get('sb-qr-token')?.value;
 
+        // Cek fallback QR token jika belum fully login
         if (qrToken) {
             const { data: adminData, error: adminError } = await supabaseAdmin
                 .from('admins')
@@ -269,9 +281,9 @@ export const getCurrentAdmin = async () => {
             }
         }
 
-        if (!token) return null;
-
-        const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
+        // Ambil data user menggunakan Auth Client agar membaca cookie dengan benar
+        const supabaseAuth = await createAuthClient();
+        const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
 
         if (userError || !user) return null;
 
@@ -290,7 +302,7 @@ export const getCurrentAdmin = async () => {
 
         return adminData;
     } catch (error) {
-        console.error("Error getting current admin:", error);
+        console.error("Internal Log - Error getting current admin:", error);
         return null;
     }
 };

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getMateri, getTugas, deleteTugas } from '@/api/supabase/materi';
+import { getMateri, getTugas } from '@/api/supabase/public/materi';
+import { deleteTugas } from '@/api/supabase/admin/materi';
 import { BookOpen, RefreshCw, Trash2, Image as ImageIcon, Search } from 'lucide-react';
 
 export default function AdminPkkmbTugas() {

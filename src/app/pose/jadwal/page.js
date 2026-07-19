@@ -4,8 +4,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { Calendar, Trophy, Medal, Check, X } from 'lucide-react';
 import PageHero from '@/components/public/PageHero';
 import ScheduleBarrier from '@/components/public/ScheduleBarrier';
-import { getTeams } from '@/api/supabase/team';
-import { getJadwalPertandingan, getHasilPertandingan } from '@/api/supabase/jadwal';
+import { getTeams } from '@/api/supabase/public/team';
+import { getJadwalPertandingan, getHasilPertandingan } from '@/api/supabase/public/jadwal';
 import { JENIS_LOMBA, NAMA_LOMBA } from '@/lib/lombaData';
 
 // Komponen Countdown Timer
