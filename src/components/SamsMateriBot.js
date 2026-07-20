@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Bot, Headset, X, Send } from 'lucide-react';
 import { generateMateriAnswer } from '@/api/openai/materi';
-import { saveChatHistory } from '@/api/openai/chat';
+import { saveChatHistory } from '@/api/supabase/public/admin';
 
 // Menyisipkan custom keyframes untuk animasi melayang acak dan titik berpikir
 const customStyles = `
