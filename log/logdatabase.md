@@ -461,5 +461,44 @@ CREATE TABLE audit_logs (
 );
 
 ALTER TABLE form_register
-ADD kategori_pendaftar VARCHAR(255) DEFAULT 'Mahasiswa LP3I,Dosen,Umum';
+ADD kategori_pendaftar VARCHAR(255) DEFAULT 'Mahasiswa LP3I,Siswa,Dosen,Umum';
+
+ALTER TABLE public.form_register ADD COLUMN site site_type;
+-- Update data lama agar tidak null
+UPDATE public.form_register SET site = 'pose' WHERE site IS NULL;
+ALTER TABLE public.form_register ALTER COLUMN site SET NOT NULL;
+
+ALTER TABLE peserta
+ADD COLUMN IF NOT EXISTS semester int4;
+
+ALTER TABLE team
+ADD CONSTRAINT unique_title_team UNIQUE (title);
+
+ALTER TABLE peserta
+ADD COLUMN IF NOT EXISTS kode_form varchar(10);
+ALTER TABLE form_register
+ADD COLUMN IF NOT EXISTS kode_form varchar(10) Unique;
+ALTER TABLE form_wajib
+ADD COLUMN IF NOT EXISTS kode_form varchar(10) Unique;
+ALTER TABLE team
+ADD COLUMN IF NOT EXISTS kode_form varchar(10) Unique;
+
+CREATE TABLE form_pengumpulan(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    form_id UUID NOT NULL REFERENCES form_register(id) ON DELETE CASCADE,
+    link_id VARCHAR(64) NOT NULL UNIQUE,
+    status BOOLEAN DEFAULT False,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE pengumpulan_lomba(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    form_id UUID NOT NULL REFERENCES form_pengumpulan(id) ON DELETE CASCADE,
+    team_id UUID NOT NULL REFERENCES team(id) ON DELETE CASCADE,
+    keterangan TEXT DEFAULT null,
+    file_link VARCHAR(255) NOT NULL,
+    status_pengumpulan BOOLEAN DEFAULT False,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 ```

@@ -66,7 +66,7 @@ export const insertTeamPublic = async (teamPayload) => {
         if (!teamPayload) throw new Error('Team payload is required');
 
         // Sanitize payload
-        const allowedKeys = ['title', 'content', 'type', 'jenis_lomba', 'nama_lomba', 'bukti_bayar', 'gambar', 'user_token'];
+        const allowedKeys = ['title', 'content', 'type', 'jenis_lomba', 'nama_lomba', 'bukti_bayar', 'gambar', 'user_token', 'kode_form'];
         const sanitized = {};
         for (const key of allowedKeys) {
             if (teamPayload[key] !== undefined) {

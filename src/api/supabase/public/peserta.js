@@ -12,7 +12,8 @@ export const insertPeserta = async (payload) => {
         // 1. Sanitize payload (Prevent Mass Assignment)
         const allowedKeys = [
             'nama', 'nim', 'kampus', 'kategori', 'email_wa', 'bukti_bayar',
-            'jenis_form', 'site_type', 'form_register_id', 'metode_pembayaran'
+            'jenis_form', 'site_type', 'form_register_id', 'metode_pembayaran',
+            'prodi', 'angkatan', 'semester', 'kode_form'
         ];
 
         const sanitizedPayload = {};
@@ -61,7 +62,7 @@ export const insertPesertaBatch = async (pesertaArray) => {
         const allowedKeys = [
             'nama', 'nim', 'kampus', 'kategori', 'email_wa', 'bukti_bayar',
             'jenis_form', 'site_type', 'form_register_id', 'metode_pembayaran',
-            'prodi', 'angkatan' // For team registration
+            'prodi', 'angkatan', 'semester', 'kode_form'
         ];
 
         const sanitizedArray = [];
@@ -106,11 +107,16 @@ export const insertPesertaBatch = async (pesertaArray) => {
 
 export const getFormWajib = async (siteType) => {
     try {
-        const { data, error } = await supabaseAdmin
+        let query = supabaseAdmin
             .from('form_wajib')
             .select('*')
-            .eq('site', siteType)
             .order('created_at', { ascending: false });
+
+        if (siteType && siteType !== 'all') {
+            query = query.eq('site', siteType);
+        }
+
+        const { data, error } = await query;
 
         if (error) throw error;
         return data;
@@ -138,12 +144,18 @@ export const getFormWajibByLinkId = async (linkId) => {
     }
 };
 
-export const getFormRegister = async () => {
+export const getFormRegister = async (siteType) => {
     try {
-        const { data, error } = await supabaseAdmin
+        let query = supabaseAdmin
             .from('form_register')
             .select('*')
             .order('created_at', { ascending: false });
+
+        if (siteType && siteType !== 'all') {
+            query = query.eq('site', siteType);
+        }
+
+        const { data, error } = await query;
 
         if (error) throw error;
         return data;

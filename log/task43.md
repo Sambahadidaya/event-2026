@@ -1,0 +1,2 @@
+saya ingin halaman pada form register tepatnya di src/app/panitia/pose/form_register/page.js itu dibuatkan menjadi komponen seperti pada formwajib. dan aku sudah menyiapkan filenya di src/components/panitia/AdminFormRegister.js
+dan saya juga ingin halaman manajemen peserta register yang ada difolder src/panitia/pj_lomba/form_register/page.js itu juga dibuatkan menjadi komponen seperti pada pesertawajib. dan aku sudah menyiapkan filenya di src/components/panitia/AdminPesertaRegister.js

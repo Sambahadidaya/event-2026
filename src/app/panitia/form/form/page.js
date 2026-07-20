@@ -1,0 +1,471 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { FileText, Plus, Search, Link as LinkIcon, Filter, Info, Trash2, X } from 'lucide-react';
+import AdminFormWajib from '@/components/panitia/AdminFormWajib';
+import AdminFormRegister from '@/components/panitia/AdminFormRegister';
+import AdminFormPengumpulan from '@/components/panitia/AdminFormPengumpulan';
+import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
+import DashboardSelect from '@/components/panitia/DashboardSelect';
+import { getCurrentAdmin } from '@/api/supabase/admin/auth';
+import { JENIS_LOMBA, NAMA_LOMBA, KODE_JENIS_LOMBA, KODE_NAMA_LOMBA } from '@/lib/lombaData';
+import { generateKodeFormWajib, generateKodeFormRegister } from '@/lib/kodeFormUtils';
+import { upsertFormWajib, upsertFormRegister } from '@/api/supabase/admin/peserta';
+import { upsertFormPengumpulan } from '@/api/supabase/admin/submission';
+import { uploadFile } from '@/api/supabase/storage';
+import { nanoid } from 'nanoid';
+
+export default function UnifiedFormDashboard() {
+    const [activeTab, setActiveTab] = useState('wajib');
+    const [siteFilter, setSiteFilter] = useState('all');
+    const [adminRole, setAdminRole] = useState(null);
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+    // Form Modal States
+    const [formType, setFormType] = useState('wajib'); // 'wajib', 'register', or 'pengumpulan'
+    const [formSite, setFormSite] = useState('pose');
+    const [judul, setJudul] = useState('');
+    const [keterangan, setKeterangan] = useState('');
+    const [nominal, setNominal] = useState('');
+    const [imageFile, setImageFile] = useState(null);
+    const [butuhBukti, setButuhBukti] = useState(true);
+
+    const [jenisLomba, setJenisLomba] = useState('');
+    const [namaLomba, setNamaLomba] = useState('');
+    const [kategoriPendaftar, setKategoriPendaftar] = useState(['Mahasiswa LP3I', 'Siswa', 'Dosen', 'Umum']);
+
+    const [createLoading, setCreateLoading] = useState(false);
+
+    useEffect(() => {
+        const checkRole = async () => {
+            const admin = await getCurrentAdmin();
+            if (admin) {
+                setAdminRole(admin.role);
+                if (admin.role === 'admin_pkkmb') {
+                    setSiteFilter('pkkmb');
+                    setFormSite('pkkmb');
+                } else if (admin.role === 'super_admin') {
+                    setSiteFilter('all');
+                    setFormSite('pkkmb'); // Default for super_admin
+                } else {
+                    // admin_pose or specific lomba
+                    setSiteFilter('pose');
+                    setFormSite('pose');
+                }
+            }
+        };
+        checkRole();
+    }, []);
+
+    const resetForm = () => {
+        setJudul('');
+        setKeterangan('');
+        setNominal('');
+        setImageFile(null);
+        setButuhBukti(true);
+        setJenisLomba('');
+        setNamaLomba('');
+        setKategoriPendaftar(['Mahasiswa LP3I', 'Siswa', 'Dosen', 'Umum']);
+    };
+
+    const handleOpenModal = () => {
+        resetForm();
+        setFormType(activeTab); // default to current tab
+        setShowCreateModal(true);
+    };
+
+    const handleCreateForm = async (e) => {
+        e.preventDefault();
+
+        if (formType === 'register' && formSite === 'pose') {
+            if (!jenisLomba || !namaLomba) {
+                window.alert('Mohon lengkapi jenis dan nama lomba.');
+                return;
+            }
+        }
+        if (formType === 'wajib' && !judul) {
+            window.alert('Mohon lengkapi judul form.');
+            return;
+        }
+
+        if (formType === 'register' && kategoriPendaftar.length === 0) {
+            window.alert('Mohon pilih minimal 1 kategori pendaftar.');
+            return;
+        }
+
+        setCreateLoading(true);
+
+        let gambarUrl = null;
+        if (imageFile) {
+            const formDataForUpload = new FormData();
+            formDataForUpload.append('file', imageFile);
+
+            let bucket = formType === 'wajib' ? 'team-images' : 'images';
+            let uploadRes;
+
+            if (formType === 'wajib') {
+                uploadRes = await uploadFile(formDataForUpload, 'team-images', 'form-headers/');
+            } else {
+                formDataForUpload.append('bucket', 'images');
+                const fileExt = imageFile.name.split('.').pop();
+                const fileName = `${Math.random()}.${fileExt}`;
+                formDataForUpload.append('path', `form-headers/${fileName}`);
+                uploadRes = await uploadFile(formDataForUpload);
+            }
+
+            if (!uploadRes.success) {
+                console.error('Upload Error:', uploadRes.error);
+                window.alert('Gagal mengupload gambar.');
+                setCreateLoading(false);
+                return;
+            }
+            gambarUrl = uploadRes.url || uploadRes.publicUrl;
+        }
+
+        const finalNominal = nominal ? parseInt(nominal, 10) : 0;
+
+        let res;
+        if (formType === 'wajib') {
+            const linkId = nanoid(32);
+            const kodeForm = generateKodeFormWajib(formSite);
+            res = await upsertFormWajib({
+                judul,
+                keterangan,
+                nominal: finalNominal,
+                link_id: linkId,
+                site: formSite,
+                gambar: gambarUrl,
+                kode_form: kodeForm
+            });
+        } else if (formType === 'register') {
+            const linkId = nanoid(64);
+            const jenisKode = KODE_JENIS_LOMBA[jenisLomba] || 'XX';
+            const namaKode = KODE_NAMA_LOMBA[namaLomba] || 'XX';
+            const kodeForm = generateKodeFormRegister(jenisKode, namaKode);
+
+            res = await upsertFormRegister({
+                jenis_lomba: formSite === 'pose' ? jenisLomba : null,
+                nama_lomba: formSite === 'pose' ? namaLomba : null,
+                keterangan,
+                butuh_bukti: butuhBukti,
+                nominal: finalNominal,
+                kategori_pendaftar: kategoriPendaftar.join(','),
+                link_id: linkId,
+                gambar: gambarUrl,
+                site: formSite,
+                kode_form: kodeForm
+            });
+            // --- TAMBAHKAN LOGIKA INI UNTUK PENGUMPULAN OTOMATIS ---
+            // Pastikan upsertFormRegister me-return 'data' dari baris yang baru di-insert
+            if (res.success && res.data?.id) {
+                const linkIdPengumpulan = nanoid(64);
+
+                // Eksekusi API submission.js
+                // Sesuaikan 'register_id' dengan nama kolom Foreign Key di tabel form_pengumpulan Anda
+                const resPengumpulan = await upsertFormPengumpulan({
+                    form_id: res.data.id, // <-- Diubah ke form_id
+                    link_id: linkIdPengumpulan
+                });
+
+                if (!resPengumpulan.success) {
+                    console.error('Gagal membuat form pengumpulan otomatis:', resPengumpulan.error);
+                }
+            }
+        }
+
+        if (!res.success) {
+            console.error(res.error);
+            window.alert(`Gagal membuat form ${formType}.`);
+        } else {
+            setShowCreateModal(false);
+            setRefreshTrigger(prev => prev + 1);
+            window.alert(`Berhasil membuat form ${formType} baru!`);
+            // Automatically switch tab to see the newly created form
+            setActiveTab(formType);
+        }
+
+        setCreateLoading(false);
+    };
+
+    const isSuperAdmin = adminRole === 'super_admin';
+
+    const extraFilters = (
+        <div className="flex gap-2">
+            {isSuperAdmin && (
+                <DashboardSelect
+                    icon={Filter}
+                    value={siteFilter}
+                    onChange={(e) => setSiteFilter(e.target.value)}
+                    options={[
+                        { value: 'all', label: 'Semua Site' },
+                        { value: 'pkkmb', label: 'PKKMB' },
+                        { value: 'pose', label: 'POSE' }
+                    ]}
+                />
+            )}
+            <button
+                onClick={handleOpenModal}
+                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors w-full sm:w-auto justify-center shadow-sm"
+            >
+                <Plus size={16} />
+                <span>Buat Form Baru</span>
+            </button>
+        </div>
+    );
+
+    return (
+        <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-500">
+            <DashboardHeaderFilters
+                title="Manajemen Form Terpadu"
+                subtitle="Buat dan kelola link pendaftaran Form Wajib dan Form Register"
+                icon={FileText}
+                showSiteFilter={false}
+                extraFilters={extraFilters}
+                onRefresh={() => setRefreshTrigger(prev => prev + 1)}
+            />
+
+            {/* TABS */}
+            <div className="flex space-x-1 bg-gray-100/50 dark:bg-gray-800/50 p-1 rounded-xl w-fit">
+                <button
+                    onClick={() => setActiveTab('wajib')}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'wajib'
+                        ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
+                        }`}
+                >
+                    Form Wajib
+                </button>
+                <button
+                    onClick={() => setActiveTab('register')}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'register'
+                        ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
+                        }`}
+                >
+                    Form Register Lomba
+                </button>
+                <button
+                    onClick={() => setActiveTab('pengumpulan')}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'pengumpulan'
+                        ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
+                        }`}
+                >
+                    Form Pengumpulan Karya
+                </button>
+            </div>
+
+            {/* TAB CONTENT */}
+            {activeTab === 'wajib' && (
+                <AdminFormWajib siteType={siteFilter} hideCreateButton={true} refreshTrigger={refreshTrigger} />
+            )}
+            {activeTab === 'register' && (
+                <AdminFormRegister siteType={siteFilter} hideCreateButton={true} refreshTrigger={refreshTrigger} />
+            )}
+            {activeTab === 'pengumpulan' && (
+                <AdminFormPengumpulan siteType={siteFilter} hideCreateButton={true} refreshTrigger={refreshTrigger} />
+            )}
+
+            {/* UNIFIED CREATE MODAL */}
+            {showCreateModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
+                    <form onSubmit={handleCreateForm} className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-lg flex flex-col border border-gray-100 dark:border-gray-800 max-h-[90vh] overflow-hidden">
+                        <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
+                            <h3 className="font-bold text-lg text-gray-900 dark:text-white flex items-center gap-2">
+                                <Plus size={20} className="text-blue-500" /> Buat Form Baru
+                            </h3>
+                            <button type="button" onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-4 sm:p-6 space-y-5 overflow-y-auto custom-scrollbar">
+
+                            {/* JENIS FORM & SITE SELECTOR */}
+                            <div className="flex gap-4">
+                                <div className="flex-1">
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jenis Form</label>
+                                    <select
+                                        value={formType}
+                                        onChange={(e) => setFormType(e.target.value)}
+                                        className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                    >
+                                        <option value="wajib">Form Wajib (Umum)</option>
+                                        <option value="register">Form Register (Lomba)</option>
+                                        <option value="pengumpulan">Form Pengumpulan Karya</option>
+                                    </select>
+                                </div>
+
+                                {isSuperAdmin && (
+                                    <div className="flex-1">
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Target Site</label>
+                                        <select
+                                            value={formSite}
+                                            onChange={(e) => {
+                                                setFormSite(e.target.value);
+                                                // reset lomba fields if changing to pkkmb
+                                                if (e.target.value === 'pkkmb') {
+                                                    setJenisLomba('');
+                                                    setNamaLomba('');
+                                                }
+                                            }}
+                                            className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                                        >
+                                            <option value="pkkmb">PKKMB</option>
+                                            <option value="pose">POSE</option>
+                                        </select>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* JUDUL FORM (For Form Wajib) */}
+                            {formType === 'wajib' && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Judul Form</label>
+                                    <input
+                                        type="text"
+                                        value={judul}
+                                        onChange={(e) => setJudul(e.target.value)}
+                                        placeholder="Contoh: Iuran Wajib PKKMB 2026"
+                                        className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                                    />
+                                </div>
+                            )}
+
+                            {/* LOMBA SELECTOR (For Form Register & Site POSE) */}
+                            {formType === 'register' && formSite === 'pose' && (
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jenis Lomba</label>
+                                        <select
+                                            value={jenisLomba}
+                                            onChange={(e) => {
+                                                setJenisLomba(e.target.value);
+                                                setNamaLomba('');
+                                            }}
+                                            className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                                        >
+                                            <option value="" disabled>Pilih Jenis Lomba</option>
+                                            {JENIS_LOMBA.map(j => <option key={j} value={j}>{j}</option>)}
+                                        </select>
+                                    </div>
+
+                                    {jenisLomba && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nama Lomba</label>
+                                            <select
+                                                value={namaLomba}
+                                                onChange={(e) => setNamaLomba(e.target.value)}
+                                                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                                            >
+                                                <option value="" disabled>Pilih Nama Lomba</option>
+                                                {NAMA_LOMBA[jenisLomba]?.map(n => <option key={n} value={n}>{n}</option>)}
+                                            </select>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+
+                            {formType === 'register' && formSite === 'pkkmb' && (
+                                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 rounded-xl text-sm flex items-start gap-2">
+                                    <Info size={16} className="mt-0.5 shrink-0" />
+                                    <p>Form Register untuk PKKMB tidak memerlukan Jenis & Nama Lomba.</p>
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Keterangan Tambahan</label>
+                                <textarea
+                                    value={keterangan}
+                                    onChange={(e) => setKeterangan(e.target.value)}
+                                    placeholder="Opsional. Syarat, juknis, atau info pembayaran."
+                                    rows="3"
+                                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nominal Pembayaran (Opsional)</label>
+                                <input
+                                    type="number"
+                                    value={nominal}
+                                    onChange={(e) => setNominal(e.target.value)}
+                                    placeholder="Contoh: 50000"
+                                    min="0"
+                                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                            </div>
+
+                            {formType === 'register' && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Kategori Pendaftar</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {['Mahasiswa LP3I', 'Siswa', 'Dosen', 'Umum'].map(kat => (
+                                            <label key={kat} className="flex items-center gap-3 p-2 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={kategoriPendaftar.includes(kat)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) setKategoriPendaftar([...kategoriPendaftar, kat]);
+                                                        else setKategoriPendaftar(kategoriPendaftar.filter(k => k !== kat));
+                                                    }}
+                                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                />
+                                                <span className="text-sm text-gray-700 dark:text-gray-300">{kat}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                                    <input
+                                        type="checkbox"
+                                        checked={butuhBukti}
+                                        onChange={(e) => setButuhBukti(e.target.checked)}
+                                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Wajib Upload Bukti Pembayaran</span>
+                                </label>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Gambar Header (Opsional)</label>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => setImageFile(e.target.files[0])}
+                                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                />
+                            </div>
+
+                            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 rounded-xl text-sm flex items-start gap-2">
+                                <LinkIcon size={16} className="mt-0.5 shrink-0" />
+                                <p>Link akses unik akan dibuat secara otomatis saat Anda menyimpan.</p>
+                            </div>
+
+                        </div>
+                        <div className="p-4 sm:p-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 flex justify-end gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setShowCreateModal(false)}
+                                disabled={createLoading}
+                                className="px-4 py-2 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 disabled:opacity-50"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={createLoading}
+                                className="px-4 py-2 rounded-xl text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                            >
+                                {createLoading ? 'Menyimpan...' : 'Simpan Form'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
+        </div>
+    );
+}

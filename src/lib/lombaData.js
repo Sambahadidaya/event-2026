@@ -41,7 +41,17 @@ export const PRODI_DATA = [
 export const Angkatan_DATA = [
     '2026',
     '2025',
+    '2024'
 ];
+
+export function semesterToAngkatan(semester) {
+    const sem = parseInt(semester, 10);
+    if (isNaN(sem)) return null;
+    if (sem <= 2) return '2026';
+    if (sem <= 4) return '2025';
+    if (sem <= 6) return '2024';
+    return null;
+}
 
 export const KAMPUS_DATA = [
     'Kampus Bandung',
@@ -132,3 +142,27 @@ export function parseNIM(nim, kampus) {
         urut
     };
 }
+
+export const KODE_JENIS_LOMBA = {
+    'Olahraga': 'Ol',
+    'Kreativitas': 'Kr',
+    'Games': 'Ga'
+};
+
+export const KODE_NAMA_LOMBA = {
+    'Badminton': 'Bd',
+    'Pidato Bahasa Inggris': 'Pi',
+    'Puisi': 'Pu',
+    'Tarik Tambang': 'Tt',
+    'Tenis Meja': 'Tm',
+    'Catur': 'Ca',
+    'Mobile Legend': 'Ml',
+    'Magic Chess GoGo': 'Mc',
+    'PUBG Mobile': 'Pb',
+    'Bisnis Model Kanvas': 'Bk',
+    'Desain Poster': 'Dp',
+    'Desain Kemasan': 'Dk',
+    'Film Pendek': 'Fp',
+    'Konten Promosi Digital': 'Kd',
+    'Laporan Keuangan': 'Lk'
+};

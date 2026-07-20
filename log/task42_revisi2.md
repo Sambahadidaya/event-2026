@@ -1,0 +1,2 @@
+untuk kategori siswa saya ingin seperti yang selain mahasiswa lp3i dalam arti div Pembayaran & Berkas itu selalu ada dan harus dimasukan manual. begitu juga untuk email_wa.
+terus untuk semester saya ingin selalu ada mau itu dikategori manapun termasuk diform wajib (kecuali jika diform register kategori pendaftaran mahasiswa lp3i yang pernah mengisi diform wajib karna sudah ada tapi tetap ambil sesuai dengan isian form wajibnya) dan selain difilter menjadi angkatan semester juga akan masuk ke kolom semester di tabel peserta.

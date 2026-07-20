@@ -14,11 +14,13 @@ Proyek ini menggunakan Next.js (App Router) berbasis JavaScript murni (bukan Typ
 ```json
 {
   "dependencies": {
+    "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.108.2",
     "chart.js": "^4.5.1",
     "file-type": "^22.0.1",
     "fuse.js": "^7.4.2",
     "html5-qrcode": "^2.3.8",
+    "jsqr": "^1.4.0",
     "lucide-react": "^1.21.0",
     "nanoid": "^5.1.16",
     "next": "16.2.9",
@@ -28,7 +30,7 @@ Proyek ini menggunakan Next.js (App Router) berbasis JavaScript murni (bukan Typ
     "react-chartjs-2": "^5.3.1",
     "react-dom": "19.2.4",
     "react-image-crop": "^11.1.2"
-  }
+  },
 }
 ```
 
@@ -452,8 +454,45 @@ CREATE TABLE audit_logs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+
+ALTER TABLE peserta
+ADD COLUMN IF NOT EXISTS semester int4;
+ADD kategori_pendaftar VARCHAR(255) DEFAULT 'Mahasiswa LP3I,Siswa,Dosen,Umum';
+
+ALTER TABLE public.form_register ADD COLUMN site site_type;
+-- Update data lama agar tidak null
+UPDATE public.form_register SET site = 'pose' WHERE site IS NULL;
+ALTER TABLE public.form_register ALTER COLUMN site SET NOT NULL;
+
+ALTER TABLE team
+ADD CONSTRAINT unique_title_team UNIQUE (title);
+
+ALTER TABLE peserta
+ADD COLUMN IF NOT EXISTS kode_form varchar(10);
 ALTER TABLE form_register
-ADD kategori_pendaftar VARCHAR(255) DEFAULT 'Mahasiswa LP3I,Dosen,Umum';
+ADD COLUMN IF NOT EXISTS kode_form varchar(10) Unique;
+ALTER TABLE form_wajib
+ADD COLUMN IF NOT EXISTS kode_form varchar(10) Unique;
+ALTER TABLE team
+ADD COLUMN IF NOT EXISTS kode_form varchar(10) Unique;
+
+CREATE TABLE form_pengumpulan(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    form_id UUID NOT NULL REFERENCES form_register(id) ON DELETE CASCADE,
+    link_id VARCHAR(64) NOT NULL UNIQUE,
+    status BOOLEAN DEFAULT False,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE pengumpulan_lomba(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    form_id UUID NOT NULL REFERENCES form_pengumpulan(id) ON DELETE CASCADE,
+    team_id UUID NOT NULL REFERENCES team(id) ON DELETE CASCADE,
+    keterangan TEXT DEFAULT null,
+    file_link VARCHAR(255) NOT NULL,
+    status_pengumpulan BOOLEAN DEFAULT False,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
 ```
 
@@ -474,6 +513,7 @@ ADD kategori_pendaftar VARCHAR(255) DEFAULT 'Mahasiswa LP3I,Dosen,Umum';
 │   │   │   │   ├── jadwal.js
 │   │   │   │   ├── materi.js
 │   │   │   │   ├── peserta.js
+│   │   │   │   ├── submission.js
 │   │   │   │   └── team.js
 │   │   │   ├── public/
 │   │   │   │   ├── admin.js
@@ -481,6 +521,7 @@ ADD kategori_pendaftar VARCHAR(255) DEFAULT 'Mahasiswa LP3I,Dosen,Umum';
 │   │   │   │   ├── jadwal.js
 │   │   │   │   ├── materi.js
 │   │   │   │   ├── peserta.js
+│   │   │   │   ├── submission.js
 │   │   │   │   └── team.js
 │   │   │   └── storage.js
 │   │   └── openai/
@@ -504,6 +545,11 @@ ADD kategori_pendaftar VARCHAR(255) DEFAULT 'Mahasiswa LP3I,Dosen,Umum';
 │   │   │   │   ├── kontak/
 │   │   │   │   │   └── page.js
 │   │   │   │   └── trafik/
+│   │   │   │       └── page.js
+│   │   │   ├── form/
+│   │   │   │   ├── dashboard/
+│   │   │   │   │   └── page.js
+│   │   │   │   └── form/
 │   │   │   │       └── page.js
 │   │   │   ├── login/
 │   │   │   │   └── page.js
@@ -578,6 +624,9 @@ ADD kategori_pendaftar VARCHAR(255) DEFAULT 'Mahasiswa LP3I,Dosen,Umum';
 │   │       ├── register/
 │   │       │   └── [id]
 │   │       │       └── page.js
+│   │       ├── submission/
+│   │       │   └── [id]
+│   │       │       └── page.js
 │   │       └── team/
 │   │           └── page.js
 │   ├── components/
@@ -591,6 +640,7 @@ ADD kategori_pendaftar VARCHAR(255) DEFAULT 'Mahasiswa LP3I,Dosen,Umum';
 │   │   ├── public/
 │   │   │   ├── AnnouncementTimeline.js
 │   │   │   ├── Carousel.js
+│   │   │   ├── FormPengumpulan.js
 │   │   │   ├── FormRegistration.js
 │   │   │   ├── HomeLanding.js
 │   │   │   ├── PageHero.js
@@ -599,7 +649,11 @@ ADD kategori_pendaftar VARCHAR(255) DEFAULT 'Mahasiswa LP3I,Dosen,Umum';
 │   │   │   ├── SiteBackground.js
 │   │   │   └── WaveDivider.js
 │   │   └── panitia/
+│   │       ├── AdminFormPengumpulan.js
+│   │       ├── AdminFormRegister.js
 │   │       ├── AdminFormWajib.js
+│   │       ├── AdminPesertaPengumpulan.js
+│   │       ├── AdminPesertaRegister.js
 │   │       ├── AdminPesertaWajib.js
 │   │       ├── TablePagination.js
 │   │       ├── DetailModal.js
@@ -618,8 +672,9 @@ ADD kategori_pendaftar VARCHAR(255) DEFAULT 'Mahasiswa LP3I,Dosen,Umum';
 │       ├── adminRoleData.js
 │       ├── dashboardUtils.js
 │       ├── faqData.js
-│       ├── openai.js
+│       ├── kodeFormUtils.js
 │       ├── lombaData.js
+│       ├── openai.js
 │       ├── supabase.js
 │       └── siteThemes.js
 ```

@@ -118,7 +118,7 @@ export default function PanitiaLogin() {
         }
     };
 
-    const handleScanCrop = () => {
+    const handleScanCrop = async () => {
         if (!imgRef.current || !completedCrop || !completedCrop.width || !completedCrop.height) {
             setError("Area crop tidak valid.");
             return;
@@ -126,52 +126,60 @@ export default function PanitiaLogin() {
 
         const canvas = document.createElement('canvas');
         const image = imgRef.current;
-        const scaleX = image.naturalWidth / image.width;
-        const scaleY = image.naturalHeight / image.height;
+        
+        // Gunakan percentCrop untuk menghindari masalah scaleX/scaleY pada dimensi gambar responsif
+        const cropX = Math.floor((completedCrop.x / 100) * image.naturalWidth);
+        const cropY = Math.floor((completedCrop.y / 100) * image.naturalHeight);
+        const cropWidth = Math.floor((completedCrop.width / 100) * image.naturalWidth);
+        const cropHeight = Math.floor((completedCrop.height / 100) * image.naturalHeight);
 
-        // PERBAIKAN: Gunakan Math.floor agar ukuran canvas berupa bilangan bulat (integer) resmi
-        canvas.width = Math.floor(completedCrop.width * scaleX);
-        canvas.height = Math.floor(completedCrop.height * scaleY);
-        const ctx = canvas.getContext('2d');
+        if (cropWidth <= 0 || cropHeight <= 0) {
+            setError("Area crop tidak valid atau terlalu kecil.");
+            return;
+        }
+
+        canvas.width = cropWidth;
+        canvas.height = cropHeight;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
         ctx.drawImage(
             image,
-            completedCrop.x * scaleX,
-            completedCrop.y * scaleY,
-            completedCrop.width * scaleX,
-            completedCrop.height * scaleY,
+            cropX,
+            cropY,
+            cropWidth,
+            cropHeight,
             0,
             0,
             canvas.width,
             canvas.height
         );
 
-        canvas.toBlob(async (blob) => {
-            if (!blob) {
-                setError("Gagal mengekstrak gambar hasil crop.");
-                return;
-            }
-            try {
-                if (!html5QrCodeRef.current) html5QrCodeRef.current = new Html5Qrcode('reader');
-                setLoading(true);
-                setError(null);
+        setLoading(true);
+        setError(null);
 
-                // PERBAIKAN: Ubah parameter kedua menjadi 'false' (showImage = false) 
-                // agar sistem tidak crash mencoba merender gambar ke dalam elemen #reader yang sedang tersembunyi.
-                const file = new File([blob], "crop.jpg", { type: "image/jpeg" });
-                const decodedText = await html5QrCodeRef.current.scanFile(file, false);
+        try {
+            // Gunakan jsQR untuk memecahkan gambar langsung dari Canvas (100% reliable)
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            // jsQR di-import secara dinamis untuk menghindari error hydration saat SSR
+            const jsQR = (await import('jsqr')).default;
+            const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                inversionAttempts: "dontInvert",
+            });
 
-                // Reset state crop preview setelah berhasil discan
+            if (code) {
+                // Berhasil! Reset state crop preview
                 setImageToCrop(null);
                 setCompletedCrop(null);
-
-                handleQRCapture(decodedText);
-            } catch (err) {
-                console.error("Scan crop failed:", err);
+                handleQRCapture(code.data);
+            } else {
                 setLoading(false);
                 setError("QR Code tidak terdeteksi pada area crop. Silakan atur kembali posisinya atau pastikan gambar jelas.");
             }
-        }, 'image/jpeg');
+        } catch (err) {
+            console.error("jsQR scan failed:", err);
+            setLoading(false);
+            setError("Gagal memproses gambar crop.");
+        }
     };
 
     useEffect(() => {
@@ -185,7 +193,7 @@ export default function PanitiaLogin() {
     const handleIdentifierChange = (e) => {
         const value = e.target.value;
         if (loginMethod === 'nama') {
-            if (/^[a-zA-Z\s]*$/.test(value)) {
+            if (/^[a-zA-Z\s_]*$/.test(value)) {
                 setIdentifier(value);
             }
         } else {
@@ -400,8 +408,8 @@ export default function PanitiaLogin() {
                                 </div>
                             </div>
                             {showScanner ? (
-                                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                    <div className={`relative w-full bg-slate-900 rounded-3xl overflow-hidden shadow-inner flex-col items-center justify-center border-4 border-slate-100 dark:border-slate-800 group ${imageToCrop ? 'hidden' : 'flex aspect-square'}`}>
+                                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
+                                    <div className={`w-full bg-slate-900 rounded-3xl overflow-hidden shadow-inner flex-col items-center justify-center border-4 border-slate-100 dark:border-slate-800 group ${imageToCrop ? 'absolute opacity-0 pointer-events-none -z-10' : 'flex aspect-square relative'}`}>
                                         <div id="reader" className="w-full h-full [&>video]:object-cover [&>video]:w-full [&>video]:h-full"></div>
                                         {!cameraActive && (
                                             <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 bg-slate-900/80 p-6 text-center">
@@ -435,7 +443,7 @@ export default function PanitiaLogin() {
                                                 <ReactCrop
                                                     crop={crop}
                                                     onChange={(_, percentCrop) => setCrop(percentCrop)}
-                                                    onComplete={(c) => setCompletedCrop(c)}
+                                                    onComplete={(_, percentCrop) => setCompletedCrop(percentCrop)}
                                                     className="max-h-[50vh] w-auto mx-auto rounded-xl overflow-hidden"
                                                 >
                                                     <img
@@ -444,14 +452,13 @@ export default function PanitiaLogin() {
                                                         alt="Crop"
                                                         className="max-h-[50vh] w-auto object-contain"
                                                         // INOVASI UX: Menginisialisasi area crop secara default ketika gambar pertama kali dimuat agar bisa langsung diklik scan tanpa digeser dahulu
-                                                        onLoad={(e) => {
-                                                            const { width, height } = e.currentTarget;
+                                                        onLoad={() => {
                                                             setCompletedCrop({
-                                                                unit: 'px',
-                                                                x: width * 0.25,
-                                                                y: height * 0.25,
-                                                                width: width * 0.5,
-                                                                height: height * 0.5
+                                                                unit: '%',
+                                                                x: 25,
+                                                                y: 25,
+                                                                width: 50,
+                                                                height: 50
                                                             });
                                                         }}
                                                     />

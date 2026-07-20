@@ -5,7 +5,10 @@ import { nanoid } from 'nanoid';
 import { fileTypeFromBuffer } from 'file-type';
 import { checkAdminAuth, insertAuditLog } from './admin/audit';
 
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'];
+const ALLOWED_MIME_TYPES = [
+    'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf',
+    'application/zip', 'application/x-zip-compressed', 'application/x-rar-compressed', 'application/vnd.rar'
+];
 
 /**
  * Uploads a file to Supabase Storage.

@@ -53,6 +53,7 @@ export const rolePermissions = {
     '/panitia/pkkmb/jadwal_acara',
     '/panitia/pkkmb/materi',
     '/panitia/pkkmb/tugas',
+    '/panitia/form/form',
   ],
   admin_pose: [
     '/panitia/pose/jadwal_acara',
@@ -67,10 +68,12 @@ export const rolePermissions = {
     '/panitia/pose/peserta_wajib',
     '/panitia/pj_lomba/dashboard',
     '/panitia/pj_lomba/form_register',
+    '/panitia/form/form',
   ],
   admin_pose_form: [
     '/panitia/pose/form_register',
-    '/panitia/pose/form_wajib'
+    '/panitia/pose/form_wajib',
+    '/panitia/form/form'
   ],
   admin_pose_jadwal: [
     '/panitia/pose/jadwal_acara',

@@ -6,8 +6,23 @@ import { insertPeserta, insertPesertaBatch, checkPesertaPoseWajibByNim, checkPes
 import { insertTeamPublic, insertTeamMembers } from '@/api/supabase/public/team';
 import { Trophy, Plus, Trash2, Users, Send, Info, Image as ImageIcon, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { KAMPUS_DATA, METODE_BAYAR_DATA, parseNIM } from '@/lib/lombaData';
+import { KAMPUS_DATA, METODE_BAYAR_DATA, parseNIM, semesterToAngkatan } from '@/lib/lombaData';
+import { generateKodePeserta } from '@/lib/kodeFormUtils';
 import { nanoid } from 'nanoid';
+
+function generateNim(kategori, nama, emailWa) {
+    const firstWord = (nama || '').trim().split(' ')[0] || '';
+    let suffix = '';
+    if (emailWa) {
+        if (emailWa.includes('@')) {
+            const beforeAt = emailWa.split('@')[0];
+            suffix = beforeAt.slice(-4);
+        } else {
+            suffix = emailWa.slice(-4);
+        }
+    }
+    return `${kategori}${firstWord}${suffix}`.replace(/[^a-zA-Z0-9]/g, '');
+}
 
 const isValidInput = (str) => {
     if (!str) return true;
@@ -21,7 +36,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
 
     const availableKategori = formConfig?.kategori_pendaftar
         ? formConfig.kategori_pendaftar.split(',')
-        : ['Mahasiswa LP3I', 'Dosen', 'Umum'];
+        : ['Mahasiswa LP3I', 'Siswa', 'Dosen', 'Umum'];
 
     const [kategori, setKategori] = useState(availableKategori[0]); // Default to first available
 
@@ -38,17 +53,17 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
 
     // Members (For Wajib, it's just 1 member always)
     const [members, setMembers] = useState([
-        { nama: '', nim: '', kampus: '', kampusLainnya: '', email_wa: '', kontakType: 'whatsapp', jabatan: '', isStudent: false, prodi: '', angkatan: '' }
+        { nama: '', nim: '', kampus: '', kampusLainnya: '', email_wa: '', kontakType: 'whatsapp', jabatan: '', isStudent: false, prodi: '', semester: '' }
     ]);
 
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
     const [metodePembayaran, setMetodePembayaran] = useState('');
 
-    const requiresBukti = isWajib || formConfig?.butuh_bukti !== false || kategori === 'Dosen' || kategori === 'Umum';
+    const requiresBukti = isWajib || formConfig?.butuh_bukti !== false || kategori !== 'Mahasiswa LP3I';
 
     const handleAddMember = () => {
-        setMembers([...members, { nama: '', nim: '', kampus: '', kampusLainnya: '', email_wa: '', kontakType: 'whatsapp', jabatan: '', isStudent: false, prodi: '', angkatan: '' }]);
+        setMembers([...members, { nama: '', nim: '', kampus: '', kampusLainnya: '', email_wa: '', kontakType: 'whatsapp', jabatan: '', isStudent: false, prodi: '', semester: '' }]);
     };
 
     const handleRemoveMember = (index) => {
@@ -106,7 +121,10 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                 if (!m.kampus) return window.alert("Mohon pilih kampus.");
             }
             if (kategori === 'Umum' && m.isStudent) {
-                if (!m.kampus || !m.prodi || !m.angkatan) return window.alert("Mohon lengkapi Kampus, Prodi, dan Angkatan.");
+                if (!m.kampus || !m.prodi || !m.semester) return window.alert("Mohon lengkapi Kampus, Prodi, dan Semester.");
+            }
+            if (kategori === 'Siswa') {
+                if (!m.kampus || !m.prodi || !m.semester) return window.alert("Mohon lengkapi Nama Sekolah, Jurusan, dan Semester.");
             }
             if (requiresBukti) {
                 if (m.kontakType === 'email') {
@@ -195,17 +213,24 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                     }
                 } else if (kategori === 'Dosen') {
                     finalKampusWajib = m.kampus;
-                    finalNimWajib = 'Dosen01';
+                    finalNimWajib = generateNim('Dosen', m.nama, m.email_wa);
                 } else if (kategori === 'Umum') {
                     if (m.isStudent) {
                         finalKampusWajib = m.kampus;
                         finalProdiWajib = m.prodi;
-                        finalAngkatanWajib = m.angkatan;
-                        finalNimWajib = 'MahasiswaUmum01';
+                        finalAngkatanWajib = semesterToAngkatan(m.semester);
+                        finalNimWajib = generateNim('MahasiswaUmum', m.nama, m.email_wa);
                     } else {
-                        finalNimWajib = 'Umum01';
+                        finalNimWajib = generateNim('Umum', m.nama, m.email_wa);
                     }
+                } else if (kategori === 'Siswa') {
+                    finalKampusWajib = m.kampus;
+                    finalProdiWajib = m.prodi;
+                    finalAngkatanWajib = semesterToAngkatan(m.semester);
+                    finalNimWajib = generateNim('Siswa', m.nama, m.email_wa);
                 }
+
+                const kodePesertaWajib = formConfig?.kode_form ? generateKodePeserta(formConfig.kode_form) : null;
 
                 const pesertaPayload = {
                     kategori: kategori,
@@ -214,11 +239,13 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                     nim: finalNimWajib,
                     prodi: finalProdiWajib,
                     angkatan: finalAngkatanWajib,
+                    semester: m.semester,
                     email_wa: m.email_wa,
                     bukti_bayar: buktiUrl,
                     status_pembayaran: 'Pending',
                     site_type: formConfig?.site || 'pose',
-                    jenis_form: 'wajib'
+                    jenis_form: 'wajib',
+                    kode_form: kodePesertaWajib
                 };
 
                 pesertaPayload.metode_pembayaran = metodePembayaran || null;
@@ -238,6 +265,8 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                     localStorage.setItem('pose_user_token', token);
                 }
 
+                const kodePesertaReg = formConfig?.kode_form ? generateKodePeserta(formConfig.kode_form) : null;
+
                 const teamRes = await insertTeamPublic({
                     title: teamName,
                     content: teamContent || `Pendaftaran Lomba ${formConfig.nama_lomba}`,
@@ -246,10 +275,16 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                     nama_lomba: formConfig.nama_lomba,
                     bukti_bayar: buktiUrl,
                     gambar: logoUrl,
-                    user_token: token
+                    user_token: token,
+                    kode_form: kodePesertaReg
                 });
 
-                if (!teamRes.success) throw new Error(teamRes.error);
+                if (!teamRes.success) {
+                    if (teamRes.error && teamRes.error.includes('unique_title_team')) {
+                        throw new Error("Nama Tim tersebut sudah digunakan. Mohon pilih nama tim yang lain.");
+                    }
+                    throw new Error(teamRes.error);
+                }
                 const teamData = teamRes.data;
                 if (!teamData || !teamData.id) throw new Error('Gagal mendapatkan data tim setelah insert.');
 
@@ -275,16 +310,21 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                         }
                     } else if (kategori === 'Dosen') {
                         finalKampusReg = m.kampus;
-                        finalNimReg = `Dosen${duaAngka}`;
+                        finalNimReg = generateNim(`Dosen${duaAngka}`, m.nama, m.email_wa);
                     } else if (kategori === 'Umum') {
                         if (m.isStudent) {
                             finalKampusReg = m.kampus;
                             finalProdiReg = m.prodi;
-                            finalAngkatanReg = m.angkatan;
-                            finalNimReg = `MahasiswaUmum${duaAngka}`;
+                            finalAngkatanReg = semesterToAngkatan(m.semester);
+                            finalNimReg = generateNim(`MahasiswaUmum${duaAngka}`, m.nama, m.email_wa);
                         } else {
-                            finalNimReg = `Umum${duaAngka}`;
+                            finalNimReg = generateNim(`Umum${duaAngka}`, m.nama, m.email_wa);
                         }
+                    } else if (kategori === 'Siswa') {
+                        finalKampusReg = m.kampus;
+                        finalProdiReg = m.prodi;
+                        finalAngkatanReg = semesterToAngkatan(m.semester);
+                        finalNimReg = generateNim(`Siswa${duaAngka}`, m.nama, m.email_wa);
                     }
 
                     teamMembersToInsert.push({
@@ -303,12 +343,14 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                         nim: finalNimReg,
                         prodi: finalProdiReg,
                         angkatan: finalAngkatanReg,
+                        semester: mDataWajib && mDataWajib.semester ? mDataWajib.semester : m.semester,
                         email_wa: mDataWajib ? mDataWajib.email_wa : m.email_wa,
                         bukti_bayar: mDataWajib ? mDataWajib.bukti_bayar : buktiUrl,
                         status_pembayaran: mDataWajib ? mDataWajib.status_pembayaran : 'Pending',
                         site_type: formConfig?.site || 'pose',
                         jenis_form: 'register',
-                        metode_pembayaran: mDataWajib ? mDataWajib.metode_pembayaran : (metodePembayaran || null)
+                        metode_pembayaran: mDataWajib ? mDataWajib.metode_pembayaran : (metodePembayaran || null),
+                        kode_form: kodePesertaReg
                     });
                 }
 
@@ -316,14 +358,19 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                 if (!membersRes.success) throw new Error(membersRes.error);
 
                 const pesertaRes = await insertPesertaBatch(pesertaToInsert);
-                if (!pesertaRes.success) throw new Error(pesertaRes.error);
+                if (!pesertaRes.success) {
+                    if (pesertaRes.error && pesertaRes.error.includes('unique_email_wa_peserta')) {
+                        throw new Error("Email atau WhatsApp yang digunakan sudah terdaftar. Mohon gunakan kontak yang berbeda.");
+                    }
+                    throw new Error(pesertaRes.error);
+                }
             }
 
             setSuccess(true);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch (error) {
             console.error('Submission error:', error);
-            window.alert('Gagal mengirim pendaftaran. Pastikan data sudah benar atau coba lagi nanti.');
+            window.alert(`Pendaftaran gagal: ${error.message || 'Pastikan data sudah benar atau coba lagi nanti.'}`);
         } finally {
             setSubmitting(false);
         }
@@ -349,7 +396,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
     }
 
     return (
-        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
+        <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
             {/* Form Header */}
             {formConfig.gambar ? (
                 <div className="w-full h-48 sm:h-64 relative">
@@ -494,12 +541,22 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                                         className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                                     />
                                 </div>
-                                {!isWajib && (
+                                {!isWajib && kategori !== 'Siswa' && (
                                     <div>
                                         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Jabatan *</label>
                                         <input
                                             type="text" required value={member.jabatan} onChange={(e) => handleMemberChange(index, 'jabatan', e.target.value)}
                                             placeholder="Contoh: Ketua, Striker, Anggota"
+                                            className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                )}
+                                {!isWajib && kategori === 'Siswa' && (
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Jabatan *</label>
+                                        <input
+                                            type="text" required value={member.jabatan} onChange={(e) => handleMemberChange(index, 'jabatan', e.target.value)}
+                                            placeholder="Contoh: Siswa, Ketua OSIS, dll"
                                             className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                                         />
                                     </div>
@@ -534,27 +591,16 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                                 )}
 
                                 {kategori === 'Umum' && (
-                                    <div className="col-span-1 sm:col-span-2 pt-2 border-t border-gray-100 dark:border-gray-800 mt-2">
-                                        <label className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                                            <div className="relative flex items-center justify-center">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={member.isStudent}
-                                                    onChange={(e) => handleMemberChange(index, 'isStudent', e.target.checked)}
-                                                    className="peer sr-only"
-                                                />
-                                                <div className="w-5 h-5 border-2 border-gray-300 dark:border-gray-600 rounded peer-checked:bg-blue-600 peer-checked:border-blue-600 transition-all flex items-center justify-center">
-                                                    <svg className="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                                    </svg>
-                                                </div>
-                                            </div>
-                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Apakah Anda Mahasiswa? (Pilih jika Ya)</span>
-                                        </label>
+                                    <div className="col-span-1 sm:col-span-2 pt-2 border-t border-gray-100 dark:border-gray-800 mt-2 flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
+                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Apakah Anda Mahasiswa?</span>
+                                        <div className="flex bg-gray-200 dark:bg-gray-700 p-1 rounded-lg gap-1">
+                                            <button type="button" onClick={() => handleMemberChange(index, 'isStudent', false)} className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${!member.isStudent ? 'bg-white dark:bg-gray-600 shadow text-gray-800 dark:text-white' : 'text-gray-500 hover:text-gray-700'}`}>Tidak</button>
+                                            <button type="button" onClick={() => handleMemberChange(index, 'isStudent', true)} className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${member.isStudent ? 'bg-white dark:bg-gray-600 shadow text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700'}`}>Ya</button>
+                                        </div>
                                     </div>
                                 )}
 
-                                {(isMhsLP3I || kategori === 'Dosen' || (kategori === 'Umum' && member.isStudent)) && (
+                                {(isMhsLP3I || kategori === 'Dosen') && (
                                     <>
                                         <div>
                                             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Kampus *</label>
@@ -575,6 +621,18 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                                         </div>
                                     </>
                                 )}
+                                {((kategori === 'Umum' && member.isStudent) || kategori === 'Siswa') && (
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                                            {kategori === 'Siswa' ? 'Nama Sekolah *' : 'Kampus *'}
+                                        </label>
+                                        <input
+                                            type="text" required value={member.kampus} onChange={(e) => handleMemberChange(index, 'kampus', e.target.value)}
+                                            placeholder={kategori === 'Siswa' ? "Contoh: SMAN 1 Bandung" : "Contoh: Universitas Indonesia"}
+                                            className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                )}
 
                                 {isMhsLP3I && (
                                     <div>
@@ -594,25 +652,27 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                                     </div>
                                 )}
 
-                                {kategori === 'Umum' && member.isStudent && (
-                                    <>
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Prodi *</label>
-                                            <input
-                                                type="text" required value={member.prodi} onChange={(e) => handleMemberChange(index, 'prodi', e.target.value)}
-                                                placeholder="Contoh: Sistem Informasi"
-                                                className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Angkatan *</label>
-                                            <input
-                                                type="text" required value={member.angkatan} onChange={(e) => handleMemberChange(index, 'angkatan', e.target.value)}
-                                                placeholder="Contoh: 2022"
-                                                className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                                            />
-                                        </div>
-                                    </>
+                                {((kategori === 'Umum' && member.isStudent) || kategori === 'Siswa') && (
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                                            {kategori === 'Siswa' ? 'Jurusan *' : 'Prodi *'}
+                                        </label>
+                                        <input
+                                            type="text" required value={member.prodi} onChange={(e) => handleMemberChange(index, 'prodi', e.target.value)}
+                                            placeholder={kategori === 'Siswa' ? "Contoh: IPA / IPS" : "Contoh: Sistem Informasi"}
+                                            className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                )}
+                                {!(!isWajib && isMhsLP3I) && (
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Semester *</label>
+                                        <input
+                                            type="number" min="1" required value={member.semester} onChange={(e) => handleMemberChange(index, 'semester', e.target.value)}
+                                            placeholder="Contoh: 3"
+                                            className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -637,19 +697,19 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                             Pembayaran & Berkas
                         </h4>
 
-                        <div className="flex flex-col md:flex-row md:items-end gap-6">
-                            <div className="flex-1">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Upload Bukti Pembayaran *</label>
+                        <div className="flex flex-row items-end gap-3 sm:gap-6 w-full">
+                            <div className="flex-1 w-1/2">
+                                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 truncate">Upload Bukti Pembayaran *</label>
                                 <div className="relative">
                                     <input
                                         type="file" required accept="image/*,application/pdf" onChange={(e) => setBuktiBayarFile(e.target.files[0])}
-                                        className="w-full text-sm text-gray-500 file:mr-4 file:py-3 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/30 dark:file:text-blue-400 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900 transition-all cursor-pointer"
+                                        className="w-full text-[10px] sm:text-sm text-gray-500 file:mr-2 sm:file:mr-4 file:py-2 sm:file:py-3 file:px-2 sm:file:px-4 file:rounded-xl file:border-0 file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/30 dark:file:text-blue-400 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900 transition-all cursor-pointer"
                                     />
                                 </div>
                             </div>
 
-                            <div className="flex-1">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Metode Pembayaran *</label>
+                            <div className="flex-1 w-1/2">
+                                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 truncate">Metode Pembayaran *</label>
                                 <select
                                     required
                                     value={metodePembayaran}
@@ -663,9 +723,9 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                         </div>
 
                         {formConfig?.nominal != null && formConfig.nominal > 0 && (
-                            <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200/60 dark:border-amber-800/50 flex justify-between items-center">
-                                <span className="text-amber-800 dark:text-amber-200 font-medium">Total Tagihan (Sesuai Kategori)</span>
-                                <span className="text-lg md:text-xl font-bold text-amber-600 dark:text-amber-400">
+                            <div className="mt-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex justify-between items-center">
+                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Tagihan (Sesuai Kategori)</span>
+                                <span className="text-lg font-bold text-gray-900 dark:text-white">
                                     Rp {formConfig.nominal.toLocaleString('id-ID')}
                                 </span>
                             </div>

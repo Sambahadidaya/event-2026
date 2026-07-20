@@ -1,0 +1,2 @@
+ALTER TABLE peserta 
+ADD COLUMN IF NOT EXISTS status_transaksi BOOLEAN DEFAULT false;
