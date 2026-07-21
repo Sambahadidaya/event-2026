@@ -239,7 +239,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                     nim: finalNimWajib,
                     prodi: finalProdiWajib,
                     angkatan: finalAngkatanWajib,
-                    semester: m.semester,
+                    semester: m.semester ? parseInt(m.semester, 10) : null,
                     email_wa: m.email_wa,
                     bukti_bayar: buktiUrl,
                     status_pembayaran: 'Pending',
@@ -280,8 +280,8 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                 });
 
                 if (!teamRes.success) {
-                    if (teamRes.error && teamRes.error.includes('unique_title_team')) {
-                        throw new Error("Nama Tim tersebut sudah digunakan. Mohon pilih nama tim yang lain.");
+                    if (teamRes.error && (teamRes.error.includes('unique_title_team') || teamRes.error.includes('duplicate key') || teamRes.error.includes('duplicate'))) {
+                        throw new Error("Nama tim sudah dipakai");
                     }
                     throw new Error(teamRes.error);
                 }
@@ -343,7 +343,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                         nim: finalNimReg,
                         prodi: finalProdiReg,
                         angkatan: finalAngkatanReg,
-                        semester: mDataWajib && mDataWajib.semester ? mDataWajib.semester : m.semester,
+                        semester: mDataWajib && mDataWajib.semester ? parseInt(mDataWajib.semester, 10) : (m.semester ? parseInt(m.semester, 10) : null),
                         email_wa: mDataWajib ? mDataWajib.email_wa : m.email_wa,
                         bukti_bayar: mDataWajib ? mDataWajib.bukti_bayar : buktiUrl,
                         status_pembayaran: mDataWajib ? mDataWajib.status_pembayaran : 'Pending',
@@ -664,7 +664,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                                         />
                                     </div>
                                 )}
-                                {!(!isWajib && isMhsLP3I) && (
+                                {((isMhsLP3I && isWajib) || kategori === 'Siswa' || (kategori === 'Umum' && member.isStudent)) && (
                                     <div>
                                         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Semester *</label>
                                         <input

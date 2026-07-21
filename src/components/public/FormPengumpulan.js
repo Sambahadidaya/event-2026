@@ -215,7 +215,7 @@ export default function FormPengumpulan({ formData }) {
 
                             <div className="mt-4 p-5 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 animate-in fade-in">
                                 {!isUrl ? (
-                                    <div className="space-y-2">
+                                    <div key="file-input" className="space-y-2">
                                         <label className="block text-sm text-gray-700 dark:text-gray-300">Pilih File (Max 10MB)</label>
                                         <input
                                             type="file"
@@ -227,7 +227,7 @@ export default function FormPengumpulan({ formData }) {
                                         <p className="text-xs text-gray-500 mt-2">Mendukung: PDF, ZIP, RAR, Image</p>
                                     </div>
                                 ) : (
-                                    <div className="space-y-2">
+                                    <div key="url-input" className="space-y-2">
                                         <label className="block text-sm text-gray-700 dark:text-gray-300">URL Google Drive / YouTube</label>
                                         <input
                                             type="url"

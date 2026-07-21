@@ -376,16 +376,16 @@ export default function AdminPesertaRegister() {
                                 </tr>
                             ))}
                         </tbody>
-                        <TablePagination
-                            currentPage={currentPage}
-                            totalPages={totalPages}
-                            totalItems={filteredData.length}
-                            itemsPerPage={ITEMS_PER_PAGE}
-                            onPageChange={setCurrentPage}
-                            colSpan={9}
-                        />
                     </table>
                 </div>
+                <TablePagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={filteredData.length}
+                    itemsPerPage={ITEMS_PER_PAGE}
+                    onPageChange={setCurrentPage}
+                    colSpan={9}
+                />
             </div>
 
             <DetailModal

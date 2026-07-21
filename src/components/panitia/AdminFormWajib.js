@@ -216,11 +216,11 @@ export default function AdminFormWajib({ siteType, hideCreateButton = false, ref
                                             <input
                                                 type="text"
                                                 readOnly
-                                                value={`/${siteType}/form/${item.link_id}`}
+                                                value={`/${item.site || 'pkkmb'}/form/${item.link_id}`}
                                                 className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-xs w-48 text-gray-500"
                                             />
                                             <button
-                                                onClick={() => copyToClipboard(`${window.location.origin}/${siteType}/form/${item.link_id}`)}
+                                                onClick={() => copyToClipboard(`${window.location.origin}/${item.site || 'pkkmb'}/form/${item.link_id}`)}
                                                 className="text-gray-500 hover:text-blue-500 p-1"
                                                 title="Copy full link"
                                             >
@@ -241,16 +241,16 @@ export default function AdminFormWajib({ siteType, hideCreateButton = false, ref
                                 </tr>
                             ))}
                         </tbody>
-                        <TablePagination
-                            currentPage={currentPage}
-                            totalPages={totalPages}
-                            totalItems={filteredData.length}
-                            itemsPerPage={ITEMS_PER_PAGE}
-                            onPageChange={setCurrentPage}
-                            colSpan={6}
-                        />
                     </table>
                 </div>
+                <TablePagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={filteredData.length}
+                    itemsPerPage={ITEMS_PER_PAGE}
+                    onPageChange={setCurrentPage}
+                    colSpan={6}
+                />
             </div>
 
             {/* Create Modal */}

@@ -59,6 +59,7 @@ const siteContent = {
         subtitle: 'Pengenalan Kehidupan Kampus bagi Mahasiswa Baru',
         description: 'Selamat datang, generasi baru Politeknik LP3I! PKKMB adalah gerbang awal perjalanan akademismu — temukan pengumuman, kelompok, dan informasi penting di sini.',
         stats: [
+            { icon: Calendar, label: 'Tanggal Registrasi', value: '01 - 31 Agustus' },
             { icon: Calendar, label: 'Tanggal Acara', value: '21 - 26 September' },
             { icon: Users, label: 'Mahasiswa Baru', value: '300+' },
             { icon: Building2, label: 'Program Studi', value: '11 Prodi' },
@@ -71,12 +72,46 @@ const siteContent = {
             { icon: MessageCircle, title: 'Kontak', desc: 'Hubungi panitia jika ada pertanyaan seputar PKKMB.', href: '/pkkmb/contact' },
         ],
         timeline: [
-            { day: 'Hari 1', title: 'Opening & Perkenalan', desc: 'Upacara pembukaan, sambutan pimpinan, dan pengenalan kampus.' },
-            { day: 'Hari 2', title: 'Kegiatan Inti', desc: 'Workshop, team building, dan pengenalan organisasi kemahasiswaan.' },
-            { day: 'Hari 3', title: 'Kegiatan Inti', desc: 'Workshop, team building, dan pengenalan organisasi kemahasiswaan.' },
-            { day: 'Hari 4', title: 'Kegiatan Inti', desc: 'Workshop, team building, dan pengenalan organisasi kemahasiswaan.' },
-            { day: 'Hari 5', title: 'Kegiatan Inti', desc: 'Workshop, team building, dan pengenalan organisasi kemahasiswaan.' },
-            { day: 'Hari 6', title: 'Penutupan', desc: 'Presentasi kelompok, penyerahan sertifikat, dan closing ceremony.' },
+            {
+                day: "Technical Meeting",
+                title: "Persiapan Sebelum PKKMB",
+                desc: "Kenali jadwal, tata tertib, perlengkapan, dan seluruh informasi penting agar siap mengikuti rangkaian PKKMB."
+            },
+            {
+                day: "Opening",
+                title: "Pembukaan PKKMB 2026",
+                desc: "Mengawali perjalanan sebagai mahasiswa baru melalui pembukaan resmi dan pengenalan panitia PKKMB."
+            },
+            {
+                day: "Hari 1",
+                title: "Mengenal Kampus & Budaya Akademik",
+                desc: "Mulai beradaptasi dengan lingkungan kampus, budaya akademik, serta nilai-nilai yang menjadi dasar kehidupan perkuliahan."
+            },
+            {
+                day: "Hari 2",
+                title: "Pendidikan Karakter",
+                desc: "Membangun karakter, etika, tanggung jawab, dan semangat belajar sebagai mahasiswa Politeknik LP3I."
+            },
+            {
+                day: "Hari 3",
+                title: "Kehidupan Mahasiswa",
+                desc: "Mengenal organisasi kemahasiswaan, Unit Kegiatan Mahasiswa, serta berbagai kesempatan untuk mengembangkan diri."
+            },
+            {
+                day: "Hari 4",
+                title: "Literasi Digital & Karier",
+                desc: "Memahami pemanfaatan teknologi, sistem akademik, serta bekal awal menghadapi dunia perkuliahan dan karier."
+            },
+            {
+                day: "Hari 5",
+                title: "Penutupan PKKMB",
+                desc: "Menutup seluruh rangkaian PKKMB dengan semangat baru untuk memulai perjalanan sebagai mahasiswa."
+            },
+            {
+                day: "Dies Natalis",
+                title: "Dies Natalis LP3I",
+                desc: "Merayakan hari jadi Politeknik LP3I melalui berbagai kegiatan yang mempererat kebersamaan seluruh civitas akademika."
+            }
         ],
     },
     pose: {

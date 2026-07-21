@@ -262,16 +262,16 @@ export default function AdminFormRegister({ siteType, hideCreateButton = false, 
                                 </tr>
                             ))}
                         </tbody>
-                        <TablePagination
-                            currentPage={currentPage}
-                            totalPages={totalPages}
-                            totalItems={filteredData.length}
-                            itemsPerPage={ITEMS_PER_PAGE}
-                            onPageChange={setCurrentPage}
-                            colSpan={7}
-                        />
                     </table>
                 </div>
+                <TablePagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={filteredData.length}
+                    itemsPerPage={ITEMS_PER_PAGE}
+                    onPageChange={setCurrentPage}
+                    colSpan={7}
+                />
             </div>
 
             {/* Create Modal */}

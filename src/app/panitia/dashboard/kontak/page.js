@@ -414,16 +414,16 @@ export default function KontakDashboard() {
                                 </tr>
                             ))}
                         </tbody>
-                        <TablePagination
-                            currentPage={currentPage}
-                            totalPages={totalPages}
-                            totalItems={filteredData.length}
-                            itemsPerPage={ITEMS_PER_PAGE}
-                            onPageChange={setCurrentPage}
-                            colSpan={colSpan}
-                        />
                     </table>
                 </div>
+                <TablePagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={filteredData.length}
+                    itemsPerPage={ITEMS_PER_PAGE}
+                    onPageChange={setCurrentPage}
+                    colSpan={colSpan}
+                />
             </div>
 
             <DetailModal

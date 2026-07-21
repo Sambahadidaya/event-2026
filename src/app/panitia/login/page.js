@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { loginAdmin, checkQR } from '@/api/supabase/admin/auth';
 import { rolePermissions } from '@/lib/adminRoleData';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -11,6 +11,7 @@ import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 
 export default function PanitiaLogin() {
+    const searchParams = useSearchParams();
     const [loginMethod, setLoginMethod] = useState('email');
     const [identifier, setIdentifier] = useState('');
     const [password, setPassword] = useState('');
@@ -55,7 +56,20 @@ export default function PanitiaLogin() {
         setLoading(true);
         setError(null);
 
-        const res = await checkQR(result);
+        let finalToken = result;
+        try {
+            if (result.startsWith('http')) {
+                const url = new URL(result);
+                const extractedToken = url.searchParams.get('token');
+                if (extractedToken) {
+                    finalToken = extractedToken;
+                }
+            }
+        } catch (e) {
+            // Abaikan jika ternyata isinya bukan URL
+        }
+
+        const res = await checkQR(finalToken);
         if (res.success) {
             setQrEmail(res.email);
             setShowPinModal(true);
@@ -66,6 +80,14 @@ export default function PanitiaLogin() {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        const tokenFromUrl = searchParams.get('token');
+        if (tokenFromUrl) {
+            handleQRCapture(tokenFromUrl);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchParams]);
 
     const startCamera = async () => {
         try {

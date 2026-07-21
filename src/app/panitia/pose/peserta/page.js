@@ -154,16 +154,16 @@ export default function PesertaDashboard() {
                                 </tr>
                             ))}
                         </tbody>
-                        <TablePagination
-                            currentPage={currentPage}
-                            totalPages={totalPages}
-                            totalItems={filteredData.length}
-                            itemsPerPage={ITEMS_PER_PAGE}
-                            onPageChange={setCurrentPage}
-                            colSpan={6}
-                        />
                     </table>
                 </div>
+                <TablePagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={filteredData.length}
+                    itemsPerPage={ITEMS_PER_PAGE}
+                    onPageChange={setCurrentPage}
+                    colSpan={6}
+                />
             </div>
         </div>
     );

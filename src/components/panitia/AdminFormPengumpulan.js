@@ -241,6 +241,8 @@ export default function AdminFormPengumpulan({ hideCreateButton = false, refresh
                     <TablePagination
                         currentPage={currentPage}
                         totalPages={totalPages}
+                        totalItems={filteredData.length}
+                        itemsPerPage={ITEMS_PER_PAGE}
                         onPageChange={setCurrentPage}
                     />
                 )}
