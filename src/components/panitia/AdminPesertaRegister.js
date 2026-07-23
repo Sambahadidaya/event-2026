@@ -83,14 +83,18 @@ export default function AdminPesertaRegister() {
 
         // Map peserta into teams by matching names
         const enrichedTeams = (teamData || []).map(team => {
-            // Find peserta that belong to this team's members
-            const memberNames = (team.team_members || []).map(m => m.nama?.toLowerCase().trim());
-            const memberCodes = (team.team_members || []).map(m => m.kode?.toLowerCase().trim());
-            
-            const matchedPeserta = registerPeserta.filter(p => 
-                memberNames.includes(p.nama?.toLowerCase().trim()) || 
-                (p.nim && memberCodes.includes(p.nim?.toLowerCase().trim()))
-            );
+            // Find peserta that belong to this team's members (match by kode == nim)
+            const memberCodes = (team.team_members || []).map(m => m.kode?.toLowerCase().trim()).filter(Boolean);
+
+            const matchedPeserta = [];
+            const seenNims = new Set();
+            for (const p of registerPeserta) {
+                const pNim = p.nim?.toLowerCase().trim();
+                if (pNim && memberCodes.includes(pNim) && !seenNims.has(pNim)) {
+                    matchedPeserta.push(p);
+                    seenNims.add(pNim);
+                }
+            }
 
             return {
                 ...team,
@@ -176,7 +180,7 @@ export default function AdminPesertaRegister() {
             { label: 'Jenis Lomba', value: item.jenis_lomba || '-' },
             { label: 'Nama Lomba', value: item.nama_lomba || '-' },
             { label: 'Tanggal Daftar', value: formatDateTime(item.created_at) },
-            { label: 'Status Verifikasi', value: item.verivikasi === true ? 'Disetujui' : item.verivikasi === false ? 'Ditolak' : 'Pending' },
+            { label: 'Status Verifikasi', value: item.verivikasi === true ? 'Lunas' : item.verivikasi === false ? 'Ditolak' : 'Pending' },
             {
                 label: 'Bukti Pembayaran',
                 value: item.bukti_bayar ? (
@@ -206,10 +210,22 @@ export default function AdminPesertaRegister() {
                     <div className="mt-2 space-y-3">
                         {(item.peserta && item.peserta.length > 0) ? item.peserta.map((p, idx) => (
                             <div key={idx} className="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg text-sm border border-indigo-100 dark:border-indigo-800/50">
-                                <p className="font-semibold">{p.nama} <span className="text-gray-500 font-normal">({p.kategori})</span></p>
-                                <p className="text-gray-600 dark:text-gray-400">NIM: {p.nim || '-'} • Prodi: {p.prodi || '-'} • Angkatan: {p.angkatan || '-'}</p>
-                                <p className="text-gray-600 dark:text-gray-400">Kampus: {p.kampus || '-'} • Kontak: {p.email_wa || '-'}</p>
-                                <p className="text-gray-600 dark:text-gray-400">Metode Bayar: {p.metode_pembayaran || '-'} • Status: {p.status_pembayaran || '-'}</p>
+                                <div className="grid grid-cols-[140px_10px_1fr] gap-y-1 text-sm text-gray-700 dark:text-gray-300">
+                                    <div className="font-semibold">Nama</div><div>:</div><div>{p.nama || '-'}</div>
+                                    <div className="font-semibold">Kategori</div><div>:</div><div>{p.kategori || '-'}</div>
+                                    <div className="font-semibold">NIM</div><div>:</div><div>{p.nim || '-'}</div>
+                                    <div className="font-semibold">Prodi</div><div>:</div><div>{p.prodi || '-'}</div>
+                                    <div className="font-semibold">Angkatan</div><div>:</div><div>{p.angkatan || '-'}</div>
+                                    <div className="font-semibold">Semester</div><div>:</div><div>{p.semester || '-'}</div>
+                                    <div className="font-semibold">Kampus</div><div>:</div><div>{p.kampus || '-'}</div>
+                                    <div className="font-semibold">Kontak</div><div>:</div><div>{p.email_wa || '-'}</div>
+                                    <div className="font-semibold">Metode Bayar</div><div>:</div><div>{p.metode_pembayaran || '-'}</div>
+                                    <div className="font-semibold">Status Pembayaran</div><div>:</div><div>
+                                        <span className={p.status_pembayaran?.toLowerCase() === 'pending' ? 'text-amber-600 font-semibold' : p.status_pembayaran?.toLowerCase() === 'ditolak' ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold'}>
+                                            {p.status_pembayaran || '-'}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         )) : (
                             <p className="text-gray-500 text-sm italic">Belum ada data peserta terhubung.</p>
@@ -353,7 +369,7 @@ export default function AdminPesertaRegister() {
                                                 onClick={() => setVerifikasiItem(item)}
                                                 className="inline-flex items-center justify-center gap-1 w-full px-2 py-1.5 text-xs font-semibold rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800/50 hover:bg-green-100 transition-colors"
                                             >
-                                                <CheckCircle2 size={14} /> Disetujui
+                                                <CheckCircle2 size={14} /> Lunas
                                             </button>
                                         ) : item.verivikasi === false ? (
                                             <button
@@ -417,20 +433,41 @@ export default function AdminPesertaRegister() {
                             ))}
                         </div>
                         <div className="p-4 sm:p-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 flex justify-end gap-3">
-                            <button
-                                onClick={() => handleVerifikasi(false)}
-                                disabled={verifikasiLoading}
-                                className="px-4 py-2 rounded-xl text-sm font-medium border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50"
-                            >
-                                Tolak
-                            </button>
-                            <button
-                                onClick={() => handleVerifikasi(true)}
-                                disabled={verifikasiLoading}
-                                className="px-4 py-2 rounded-xl text-sm font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
-                            >
-                                Setujui
-                            </button>
+                            {(() => {
+                                const pesertaStatusList = verifikasiItem?.peserta?.map(p => p.status_pembayaran?.toLowerCase()) || [];
+                                const isAllPending = pesertaStatusList.length > 0 && pesertaStatusList.every(s => s === 'pending');
+                                const isAnyRejected = pesertaStatusList.some(s => s === 'ditolak');
+
+                                const setujuDisabled = verifikasiLoading || isAllPending || isAnyRejected;
+                                const tolakDisabled = verifikasiLoading || isAnyRejected;
+
+                                const handleAction = (status) => {
+                                    const allLunas = pesertaStatusList.length > 0 && pesertaStatusList.every(s => s === 'lunas' || s === 'berhasil');
+                                    if (allLunas) {
+                                        window.alert('Semua peserta telah diverifikasi pembayarannya.');
+                                    }
+                                    handleVerifikasi(status);
+                                };
+
+                                return (
+                                    <>
+                                        <button
+                                            onClick={() => handleAction(false)}
+                                            disabled={tolakDisabled}
+                                            className="px-4 py-2 rounded-xl text-sm font-medium border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            Tolak
+                                        </button>
+                                        <button
+                                            onClick={() => handleAction(true)}
+                                            disabled={setujuDisabled}
+                                            className="px-4 py-2 rounded-xl text-sm font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            Setujui
+                                        </button>
+                                    </>
+                                );
+                            })()}
                         </div>
                     </div>
                 </div>

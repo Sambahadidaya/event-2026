@@ -158,9 +158,9 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                         setSubmitting(false);
                         return window.alert(`Pendaftaran gagal: NIM ${m.nim} dan Kampus ${finalKampusReg} atas nama ${m.nama} belum terdaftar pada Form Wajib POSE.`);
                     }
-                    if (exists.status_pembayaran !== 'Lunas') {
+                    if (exists.status_pembayaran?.toLowerCase() !== 'lunas') {
                         setSubmitting(false);
-                        return window.alert(`Pendaftaran gagal: Pembayaran Form Wajib untuk NIM ${m.nim} belum Lunas (Status: ${exists.status_pembayaran || 'Pending'}).`);
+                        return window.alert(`Pendaftaran gagal: Pembayaran Form Wajib untuk NIM ${m.nim} belum Lunas (Status: ${exists.status_pembayaran || 'pending'}).`);
                     }
                     fetchedWajibData.push(exists);
                 }
@@ -242,7 +242,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                     semester: m.semester ? parseInt(m.semester, 10) : null,
                     email_wa: m.email_wa,
                     bukti_bayar: buktiUrl,
-                    status_pembayaran: 'Pending',
+                    status_pembayaran: 'pending',
                     site_type: formConfig?.site || 'pose',
                     jenis_form: 'wajib',
                     kode_form: kodePesertaWajib
@@ -346,7 +346,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                         semester: mDataWajib && mDataWajib.semester ? parseInt(mDataWajib.semester, 10) : (m.semester ? parseInt(m.semester, 10) : null),
                         email_wa: mDataWajib ? mDataWajib.email_wa : m.email_wa,
                         bukti_bayar: mDataWajib ? mDataWajib.bukti_bayar : buktiUrl,
-                        status_pembayaran: mDataWajib ? mDataWajib.status_pembayaran : 'Pending',
+                        status_pembayaran: mDataWajib ? mDataWajib.status_pembayaran : 'pending',
                         site_type: formConfig?.site || 'pose',
                         jenis_form: 'register',
                         metode_pembayaran: mDataWajib ? mDataWajib.metode_pembayaran : (metodePembayaran || null),
@@ -710,15 +710,24 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
 
                             <div className="flex-1 w-1/2">
                                 <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 truncate">Metode Pembayaran *</label>
-                                <select
-                                    required
-                                    value={metodePembayaran}
-                                    onChange={(e) => setMetodePembayaran(e.target.value)}
-                                    className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer appearance-none"
-                                >
-                                    <option value="" disabled>Pilih Bank / E-Wallet</option>
-                                    {METODE_BAYAR_DATA.map(m => <option key={m} value={m}>{m}</option>)}
-                                </select>
+                                {(() => {
+                                    const siteKey = (formConfig?.site || 'pose').toLowerCase();
+                                    const metodeOptions = Array.isArray(METODE_BAYAR_DATA) 
+                                        ? METODE_BAYAR_DATA 
+                                        : (METODE_BAYAR_DATA[siteKey] || METODE_BAYAR_DATA.pose || []);
+
+                                    return (
+                                        <select
+                                            required
+                                            value={metodePembayaran}
+                                            onChange={(e) => setMetodePembayaran(e.target.value)}
+                                            className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer appearance-none"
+                                        >
+                                            <option value="" disabled>Pilih Bank / E-Wallet</option>
+                                            {metodeOptions.map(m => <option key={m} value={m}>{m}</option>)}
+                                        </select>
+                                    );
+                                })()}
                             </div>
                         </div>
 

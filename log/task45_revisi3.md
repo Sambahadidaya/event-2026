@@ -1,0 +1,1 @@
+dihalaman form atau dicomponen /components/public/FormRegistration dan di /lib/lombaData.js itu saya ingin metode pembayarannya dipisah antara pkkmb dan pose.

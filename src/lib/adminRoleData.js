@@ -54,6 +54,8 @@ export const rolePermissions = {
     '/panitia/pkkmb/materi',
     '/panitia/pkkmb/tugas',
     '/panitia/form/form',
+    '/panitia/keuangan/dashboard',
+    '/panitia/keuangan/verifikasi',
   ],
   admin_pose: [
     '/panitia/pose/jadwal_acara',
@@ -69,6 +71,8 @@ export const rolePermissions = {
     '/panitia/pj_lomba/dashboard',
     '/panitia/pj_lomba/form_register',
     '/panitia/form/form',
+    '/panitia/keuangan/dashboard',
+    '/panitia/keuangan/verifikasi',
   ],
   admin_pose_form: [
     '/panitia/pose/form_register',
@@ -80,7 +84,13 @@ export const rolePermissions = {
     '/panitia/pose/jadwal_pertandingan'
   ],
   admin_pose_keuangan: [
-    '/panitia/pose/keuangan'
+    '/panitia/pose/keuangan',
+    '/panitia/keuangan/dashboard',
+    '/panitia/keuangan/verifikasi',
+  ],
+  admin_pkkmb_keuangan: [
+    '/panitia/keuangan/dashboard',
+    '/panitia/keuangan/verifikasi',
   ],
   // Spread dynamically generated PJ Lomba roles
   ...pjLombaPermissions

@@ -69,10 +69,21 @@ export const STATUS_BAYAR_DATA = [
     'Pending'
 ];
 
-export const METODE_BAYAR_DATA = [
-    'QRIS',
-    'Kas'
+export const METODE_BAYAR_PKKMB = [
+    'Virtual Account',
+    'Tunai'
 ];
+
+export const METODE_BAYAR_POSE = [
+    'Seabank',
+    'Tunai'
+];
+
+export const METODE_BAYAR_DATA = {
+    pkkmb: METODE_BAYAR_PKKMB,
+    pose: METODE_BAYAR_POSE
+};
+
 export const STATUS_VERIFIKASI_DATA = [
     'Disetujui',
     'Ditolak',

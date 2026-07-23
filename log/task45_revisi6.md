@@ -1,0 +1,1 @@
+saya mengedit status pendafatara difile AdminVerifikasiKeuangan.js, nah tapi jadinya dihalaman dashboard keuangan yang ada difile AdminKeuanganDashboard.js itu malah jadi tidak terdetek atau tidak keambil data yang sudah lunasnya. perbaiki bug ini

@@ -23,9 +23,9 @@ export const insertPeserta = async (payload) => {
             }
         }
 
-        // Force status_pembayaran to default (Pending) or exclude it
-        // Do not allow client to set status_pembayaran to 'Lunas'
-        sanitizedPayload.status_pembayaran = 'Pending';
+        // Force status_pembayaran to default (pending) or exclude it
+        // Do not allow client to set status_pembayaran to 'lunas'
+        sanitizedPayload.status_pembayaran = 'pending';
 
         // 2. Cek Limit Registrasi Maksimal 3 kali per NIM di jenis form yang sama
         const { count, error: countError } = await supabaseAdmin
@@ -74,7 +74,7 @@ export const insertPesertaBatch = async (pesertaArray) => {
                     sanitizedPayload[key] = payload[key];
                 }
             }
-            sanitizedPayload.status_pembayaran = 'Pending';
+            sanitizedPayload.status_pembayaran = 'pending';
 
             // Check limit
             if (sanitizedPayload.nim) {

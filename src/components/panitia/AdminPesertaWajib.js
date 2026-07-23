@@ -62,7 +62,7 @@ export default function AdminPesertaWajib({ siteType }) {
     const updateStatus = async (status) => {
         if (!verifikasiItem) return;
         setVerifikasiLoading(true);
-        
+
         const res = await updateStatusPembayaranPeserta(verifikasiItem.id, status);
 
         if (res.success) {
@@ -205,7 +205,7 @@ export default function AdminPesertaWajib({ siteType }) {
 
                                     {/* Verifikasi */}
                                     <td className="px-4 py-3 text-center">
-                                        {item.status_pembayaran === 'Lunas' ? (
+                                        {item.status_pembayaran?.toLowerCase() === 'lunas' ? (
                                             <button
                                                 type="button"
                                                 onClick={() => setVerifikasiItem(item)}
@@ -213,7 +213,7 @@ export default function AdminPesertaWajib({ siteType }) {
                                             >
                                                 <CheckCircle2 size={14} /> Lunas
                                             </button>
-                                        ) : item.status_pembayaran === 'Ditolak' ? (
+                                        ) : item.status_pembayaran?.toLowerCase() === 'ditolak' ? (
                                             <button
                                                 type="button"
                                                 onClick={() => setVerifikasiItem(item)}
@@ -274,14 +274,14 @@ export default function AdminPesertaWajib({ siteType }) {
                                 </button>
                                 <div className="flex gap-2">
                                     <button
-                                        onClick={() => updateStatus('Ditolak')}
+                                        onClick={() => updateStatus('ditolak')}
                                         disabled={verifikasiLoading}
                                         className="px-4 py-2 rounded-xl text-sm font-medium border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50"
                                     >
                                         Tolak
                                     </button>
                                     <button
-                                        onClick={() => updateStatus('Lunas')}
+                                        onClick={() => updateStatus('lunas')}
                                         disabled={verifikasiLoading}
                                         className="px-4 py-2 rounded-xl text-sm font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
                                     >

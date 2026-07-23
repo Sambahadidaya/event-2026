@@ -1,0 +1,1 @@
+dihalaman verifikasi keuangan tepatnya dihalaman src/app/panitia/keuangan/verifikasi atau difile src/components/panitia/AdminVerifikasiKeuangan.js ada sedikit perubahan, saya ingin jika yang loginnya role admin_pkkmb* tombol switch untuk form register itu dinonaktifkan atau disabled. 

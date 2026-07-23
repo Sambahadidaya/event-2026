@@ -22,6 +22,32 @@ export const getPeserta = async (siteType) => {
     }
 };
 
+export const getPesertaKeuangan = async (siteType) => {
+    try {
+        const { user, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        let query = supabaseAdmin
+            .from('peserta')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (siteType && siteType !== 'all') {
+            query = query.eq('site_type', siteType);
+        }
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error("Internal Log - Error fetching peserta keuangan:", error);
+        return [];
+    }
+};
+
+
+
 export const updateStatusPembayaranPeserta = async (id, status) => {
     try {
         const { user, error: authError } = await checkAdminAuth();
@@ -204,3 +230,62 @@ export const deleteFormRegister = async (id) => {
 };
 
 // insertPesertaBatch moved to public API
+
+export const getPesertaLunas = async (siteType) => {
+    try {
+        const { user, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        let query = supabaseAdmin
+            .from('peserta')
+            .select('*')
+            .in('status_pembayaran', ['Lunas', 'lunas'])
+            .order('created_at', { ascending: false });
+
+        if (siteType && siteType !== 'all') {
+            query = query.eq('site_type', siteType);
+        }
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error("Internal Log - Error fetching peserta lunas:", error);
+        return [];
+    }
+};
+
+export const getFormWajibAll = async () => {
+    try {
+        const { user, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        const { data, error } = await supabaseAdmin
+            .from('form_wajib')
+            .select('*');
+
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error("Internal Log - Error fetching form wajib all:", error);
+        return [];
+    }
+};
+
+export const getFormRegisterAll = async () => {
+    try {
+        const { user, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        const { data, error } = await supabaseAdmin
+            .from('form_register')
+            .select('*');
+
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error("Internal Log - Error fetching form register all:", error);
+        return [];
+    }
+};
