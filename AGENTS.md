@@ -551,6 +551,11 @@ CREATE TABLE pengumpulan_lomba(
 │   │   │   │   │   └── page.js
 │   │   │   │   └── form/
 │   │   │   │       └── page.js
+│   │   │   ├── keuangan/
+│   │   │   │   ├── dashboard/
+│   │   │   │   │   └── page.js
+│   │   │   │   └── verifikasi/
+│   │   │   │       └── page.js
 │   │   │   ├── login/
 │   │   │   │   └── page.js
 │   │   │   ├── pj_lomba/
@@ -652,11 +657,17 @@ CREATE TABLE pengumpulan_lomba(
 │   │       ├── AdminFormPengumpulan.js
 │   │       ├── AdminFormRegister.js
 │   │       ├── AdminFormWajib.js
+│   │       ├── AdminKeuanganDashboard.js
 │   │       ├── AdminPesertaPengumpulan.js
 │   │       ├── AdminPesertaRegister.js
 │   │       ├── AdminPesertaWajib.js
+│   │       ├── AdminVerifikasiKeuangan.js
 │   │       ├── TablePagination.js
 │   │       ├── DetailModal.js
+│   │       ├── KeuanganAreaChart.js
+│   │       ├── KeuanganDashboardHeader.js
+│   │       ├── KeuanganDonutChart.js
+│   │       ├── KeuanganTabelVerifikasi.js
 │   │       ├── DateRangeFilter.js
 │   │       ├── DashboardSelect.js
 │   │       ├── DashboardOverviewCards.js
