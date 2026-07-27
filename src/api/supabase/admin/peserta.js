@@ -2,6 +2,7 @@
 
 import { supabaseAdmin } from '@/lib/supabase';
 import { checkAdminAuth, insertAuditLog } from './audit';
+import { autoCreateTransactionFromPeserta, autoDeleteTransactionFromPeserta } from './finance';
 
 export const getPeserta = async (siteType) => {
     try {
@@ -55,12 +56,29 @@ export const updateStatusPembayaranPeserta = async (id, status) => {
 
         if (!id || !status) throw new Error('ID and Status are required');
 
+        // Fetch existing participant data first
+        const { data: peserta, error: fetchErr } = await supabaseAdmin
+            .from('peserta')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (fetchErr || !peserta) throw new Error('Participant not found');
+
         const { error } = await supabaseAdmin
             .from('peserta')
             .update({ status_pembayaran: status })
             .eq('id', id);
 
         if (error) throw error;
+
+        // Auto-Trigger Accounting Integration
+        const updatedPeserta = { ...peserta, status_pembayaran: status };
+        if (status.toLowerCase() === 'lunas') {
+            await autoCreateTransactionFromPeserta(updatedPeserta, user.email);
+        } else {
+            await autoDeleteTransactionFromPeserta(updatedPeserta);
+        }
         
         await insertAuditLog(user.email, 'UPDATE_STATUS_PEMBAYARAN_PESERTA', id, `Status updated to ${status}`);
 
@@ -77,6 +95,17 @@ export const deletePeserta = async (id) => {
         if (authError) throw new Error(authError);
 
         if (!id) throw new Error('ID is required');
+
+        // Fetch peserta data before deleting to clean up finance records if any
+        const { data: peserta } = await supabaseAdmin
+            .from('peserta')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (peserta) {
+            await autoDeleteTransactionFromPeserta(peserta);
+        }
 
         const { error } = await supabaseAdmin
             .from('peserta')
@@ -100,6 +129,18 @@ export const deleteMultiplePeserta = async (ids) => {
         if (authError) throw new Error(authError);
 
         if (!ids || !Array.isArray(ids)) throw new Error('IDs array is required');
+
+        // Fetch participants before deleting to clean finance
+        const { data: pesertas } = await supabaseAdmin
+            .from('peserta')
+            .select('*')
+            .in('id', ids);
+
+        if (pesertas && pesertas.length > 0) {
+            for (const p of pesertas) {
+                await autoDeleteTransactionFromPeserta(p);
+            }
+        }
 
         const { error } = await supabaseAdmin
             .from('peserta')

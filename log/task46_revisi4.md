@@ -1,0 +1,2 @@
+fokus ke halaman laporan keuangan, pada saat pembuatan exsel dan pdf selain pada halaman laporan laba rugi yaitu halaman laporan kas besar, perubahan modal, posisi keuangan, laporan arus kas, dan perubahan ekuitas itu masih belum sesuai dengan layout atau data pada tabel yang dihalaman itu, jadi perbaikilah.
+terus untuk pembuatan pdf atau exsel dihalaman riwayat transaksi,jurnal umum, dan neraca saldo itu saya ingin diakhir row atau baris terakhir pada tabelnya itu saya ingin menambah total nominalnnya.

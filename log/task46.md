@@ -1,72 +1,10 @@
-fokus ke halaman panitia dulu tepatnya pada bagian pose.
-saya ingin menambah halaman baru yaitu untuk manajemen keuangan yang sudah dibikin folder dan filenya yaitu berada di src-app-panitia-pose-keuangan-page.js
-nah dihalaman itu saya ingin halamannya seperti pada halaman dashboard- 
+saya ingin ada halaman baru yaitu untuk halaman transaksi,halaman master transaksi, halaman master acounting, dan halaman jurnal entry yang berada difolder /src/app/panitia/keuangan/
+yang mana saya ingin halaman ini semodern mungkin dan juga responsive (bisa tampil baik di laptop dan hp) terus setiap halaman ini buatkan componen masing" agar mudah dirawat dan dimaintenace, terus setiap api ini saya ingin baru (bikin api lagi).
+terus untuk keterangan atau spesifikasinya bisa dibaca dari percakapan berikut ;
 
-| Kode || Pengeluaran                | Kategori Akun                                           | Jenis              |
-|------|| -------------------------- | ------------------------------------------------------- | ------------------ |
-| F000 || Print Out                  | ATK (Alat Tulis Kantor)                                 | Operasional        |
-| F001 || Map Plastik                | ATK                                                     | Operasional        |
-| F002 || Kertas HVS (500 lembar)    | ATK                                                     | Operasional        |
-| F003 || Kwitansi                   | ATK                                                     | Operasional        |
-| F004 || Nota                       | ATK                                                     | Operasional        |
-| F005 || Spidol                     | ATK                                                     | Operasional        |
-| F006 || Print sticker Vinyl        | Publikasi & Percetakan                                  | Operasional        |
-| F007 || Print poster iklan 1       | Publikasi & Percetakan                                  | Operasional        |
-| F008 || Print poster iklan 2       | Publikasi & Percetakan                                  | Operasional        |
-| F009 || Banner GO                  | Publikasi & Percetakan                                  | Operasional        |
-| F010 || Transport sponsorship      | Transportasi                                            | Operasional        |
-| F011 || Transport Logistik         | Transportasi                                            | Operasional        |
-| F012 || Snack Doorprize            | Konsumsi                                                | Operasional        |
-| F013 || Makanan Panitia            | Konsumsi                                                | Operasional        |
-| F014 || Galon                      | Konsumsi                                                | Operasional        |
-| F015 || Snack MC                   | Konsumsi                                                | Operasional        |
-| F016 || Snack Medis                | Konsumsi                                                | Operasional        |
-| F017 || Snack Juri                 | Konsumsi                                                | Operasional        |
-| F018 || Cup Plastik                | Konsumsi                                                | Operasional        |
-| F019 || Lanyard & ID Card Tambahan | Identitas Panitia/Peserta                               | Operasional        |
-| F020 || Kartu ID Tambahan          | Identitas Panitia/Peserta                               | Operasional        |
-| F021 || ID Card + Lanyard          | Identitas Panitia/Peserta                               | Operasional        |
-| F022 || Kayu Putih                 | Medis / Kesehatan                                       | Operasional        |
-| F023 || Cairan NaCl                | Medis / Kesehatan                                       | Operasional        |
-| F024 || P3K                        | Medis / Kesehatan                                       | Operasional        |
-| F025 || Pita Tarik Jumbo           | Dekorasi & Perlengkapan Acara                           | Operasional        |
-| F026 || Pita Hadiah                | Dekorasi & Perlengkapan Acara                           | Operasional        |
-| F027 || Balon Metalik              | Dekorasi & Perlengkapan Acara                           | Operasional        |
-| F028 || Balon Chrome               | Dekorasi & Perlengkapan Acara                           | Operasional        |
-| F029 || Balon Latex Metalik        | Dekorasi & Perlengkapan Acara                           | Operasional        |
-| F030 || Kawat Sedang               | Dekorasi & Perlengkapan Acara                           | Operasional        |
-| F031 || Benang Kasur               | Dekorasi & Perlengkapan Acara                           | Operasional        |
-| F032 || Kabel Tie                  | Dekorasi & Perlengkapan Acara                           | Operasional        |
-| F033 || Kertas Kado Jumbo          | Dekorasi & Perlengkapan Acara                           | Operasional        |
-| F034 || Benang Wol                 | Dekorasi & Perlengkapan Acara                           | Operasional        |
-| F035 || Cat Putih                  | Dekorasi & Perlengkapan Acara                           | Operasional        |
-| F036 || Paku 4 cm                  | Dekorasi & Perlengkapan Acara                           | Operasional        |
-| F037 || Double Foam Busa           | Dekorasi & Perlengkapan Acara                           | Operasional        |
-| F038 || Double Tape Nano           | Dekorasi & Perlengkapan Acara                           | Operasional        |
-| F039 || Double Tape Joyko          | Dekorasi & Perlengkapan Acara                           | Operasional        |
-| F040 || Double Tape kecil          | Dekorasi & Perlengkapan Acara                           | Operasional        |
-| F041 || Double Tape                | Dekorasi & Perlengkapan Acara                           | Operasional        |
-| F042 || Isi Lem Tembak             | Dekorasi & Perlengkapan Acara                           | Operasional        |
-| F043 || Tirai Metallic             | Dekorasi & Perlengkapan Acara                           | Operasional        |
-| F044 || Foil Tirai Glitter         | Dekorasi & Perlengkapan Acara                           | Operasional        |
-| F045 || Pita Piala                 | Dekorasi & Perlengkapan Acara                           | Operasional        |
-| F046 || Confetti                   | Dekorasi & Perlengkapan Acara                           | Operasional        |
-| F047 || Kuas Cat                   | Dekorasi & Perlengkapan Acara                           | Operasional        |
-| F048 || Bubble Wrap                | Perlengkapan Logistik                                   | Operasional        |
-| F049 || Trash Bag                  | Kebersihan                                              | Operasional        |
-| F050 || Baterai ABC                | Perlengkapan Elektronik                                 | Operasional        |
-| F051 || Akai Stereo                | Sewa                                                    | Operasional        |
+lihatlah schema database aku difile schema.txt yang berad difile /log/task46/schema.txt terus lihatlah tabel akuntasi yang sudah disusun difile /log/task46/finish.csv terus lihatlah contoh dari schema di difile log/task46/contoh.csv. 
 
-
-| Kode | Kategori                      | Jenis_Akun_accounting |
-|------| ----------------------------- | ----------------------|
-|  01  | Alat Tulis Kantor             | Operasional           |
-|  02  | Konsumsi                      | Operasional           |
-|  03  | Transportasi                  | Operasional           |
-|  04  | Publikasi & Percetakan        | Operasional           |
-|  05  | Dekorasi & Perlengkapan Acara | Operasional           |
-|  06  | Medis & Kesehatan             | Operasional           |
-|  07  | ID Card & Lanyard             | Operasional           |
-|  08  | Logistik                      | Operasional           |
-|  09  | Kebersihan                    | Operasional           |
-|  10  | Peralatan Acara               | Operasional           |
+percakapan 1 ;
+nah saya ingin membuat tabel baru yaitu untuk akuntasi yang rencana schemanya yang ada difile tabel_akuntan yang aku kirim. yang logikanya gini ketika ada data baru dipeserta terus admin mengupdate status_pembayarannya menjadi lunas maka otomatis data itu akan masuk ke tabel transaksi_finance yang baru yang dalam arti pemasukan/income akan bertambah yang kolom seperti nama_payer,kode_payer,kategori_payer,Metode_pembayaran,bukti_pembayaran itu terisi sesuai dari tabel peserta dan untuk kolom Keterangan dan Nominal ditabel transaksi_finance itu diambil dari mapping ditabel form (Sesuai dengan kode_form), terus untuk tabel journal_entry itu terisi otomatis ketika ada data ditabel transaction_finance itu akan dipecah dalam 1 transaksi menjadi 2 transaksi dijurnal agar balance. tapi aku bingung untuk site pose yang register karna ditabel peserta untuk site pose itu bisa duplikat seperti misal mahasiswa itu sudah daftar diform wajib maka waktu daftar itu mahasiswa bisa langsung terverifikasi dan otomatis menjadi 2 duplikat dan juga ketika pada form register itu user bisa benyak anggota yang mana nominalnya akan sama semua yang dihitungnya itu perteam otomatis harus dibagi ya? terus saya juga bingung untuk pengeluaran itu belum ada tabel baru dan saya kepikiran untuk membuat tabel lagi yaitu form transaksi pengeluaran yang terdiri dari kolom id,judul,keterangan,nominal,metode_pembayaran,kode_form,penanggung jawab,site_type. dan itu contoh row (file contoh terkirim). 
+percakapan 2 ;
+oke gini saja, untuk masalah pose saya akan memakai spesifikasi jika pada tabel peserta dengan kolom email_wa dan bukti_pembayarannya sama antara jenis form wajib dan registrasi itu akan masuk ke tabel transaksinya cuman 1 kali (Tidak duplikat) tapi tetap pakai syarat status_pembayarannya harus lunas, terus untuk form transaksi pengeluaran itu memang dari awal rencananya hanya admin keuangan saja yang bisa akses dan juga ditabel form transaksi pengeluaran itu saya akan menambah kolom bukti_pembayaran dan kolom kode_form ditabel formtransaksi pengeluaran ingin saya hapus. bagaimana menurutmu? oh iya disclaimer untuk bukti_pembayaran itu setiap data yang masuk memang dirancang akan berbeda karna memakai bucket supabase yang otomatis setiap ada yang upload  meskipun orangnya sama akan berbeda kecuali ketika orang itu sudah daftar diform wajib yang otomatis bukti_pembayarannya itu akan diambil dari data yang form wajib (gak perlu masukan bukti pembayaran lagi)

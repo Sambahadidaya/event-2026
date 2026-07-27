@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { RefreshCcw, LayoutDashboard } from 'lucide-react';
 import DashboardSelect from '@/components/panitia/DashboardSelect';
 import { getPesertaLunas, getFormWajibAll, getFormRegisterAll } from '@/api/supabase/admin/peserta';
+import { getTransactionFinance } from '@/api/supabase/admin/finance';
 import KeuanganDashboardHeader from '@/components/panitia/KeuanganDashboardHeader';
 import KeuanganAreaChart from '@/components/panitia/KeuanganAreaChart';
 import KeuanganDonutChart from '@/components/panitia/KeuanganDonutChart';
@@ -13,6 +14,7 @@ import { formatDateTime } from '@/lib/dashboardUtils';
 export default function AdminKeuanganDashboard({ siteType = 'all', adminRole = '' }) {
     const [activeSite, setActiveSite] = useState(siteType);
     const [dataPesertaLunas, setDataPesertaLunas] = useState([]);
+    const [transactions, setTransactions] = useState([]);
     const [formWajibMap, setFormWajibMap] = useState({});
     const [formRegisterMap, setFormRegisterMap] = useState({});
     const [loading, setLoading] = useState(true);
@@ -30,11 +32,10 @@ export default function AdminKeuanganDashboard({ siteType = 'all', adminRole = '
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
-            // Fetch participants
-            const peserta = await getPesertaLunas(activeSite);
-            
-            // Fetch forms
-            const [formWajib, formRegister] = await Promise.all([
+            // Fetch participants, transactions & forms
+            const [peserta, txData, formWajib, formRegister] = await Promise.all([
+                getPesertaLunas(activeSite),
+                getTransactionFinance(activeSite),
                 getFormWajibAll(),
                 getFormRegisterAll()
             ]);
@@ -55,6 +56,7 @@ export default function AdminKeuanganDashboard({ siteType = 'all', adminRole = '
             }
 
             setDataPesertaLunas(peserta || []);
+            setTransactions(txData || []);
             setFormWajibMap(wajibMap);
             setFormRegisterMap(registerMap);
             setLastSyncedAt(Date.now());
@@ -80,7 +82,7 @@ export default function AdminKeuanganDashboard({ siteType = 'all', adminRole = '
                         Dashboard Keuangan
                     </h1>
                     <p className="text-slate-500 dark:text-slate-400 mt-1">
-                        Rekapitulasi keuangan dari peserta yang sudah terverifikasi lunas.
+                        Rekapitulasi keuangan dari peserta dan transaksi terverifikasi.
                     </p>
                 </div>
                 
@@ -91,19 +93,18 @@ export default function AdminKeuanganDashboard({ siteType = 'all', adminRole = '
                         </span>
                     )}
 
-                    {isSuperAdmin && (
-                        <div className="w-full sm:w-48">
-                            <DashboardSelect
-                                value={activeSite}
-                                onChange={(e) => setActiveSite(e.target.value)}
-                                options={[
-                                    { value: 'all', label: 'Semua Site' },
-                                    { value: 'pkkmb', label: 'PKKMB' },
-                                    { value: 'pose', label: 'POSE' }
-                                ]}
-                            />
-                        </div>
-                    )}
+                    <div className="w-full sm:w-48">
+                        <DashboardSelect
+                            value={activeSite}
+                            onChange={(e) => setActiveSite(e.target.value)}
+                            disabled={!isSuperAdmin}
+                            options={[
+                                { value: 'all', label: 'Semua Site' },
+                                { value: 'pkkmb', label: 'PKKMB' },
+                                { value: 'pose', label: 'POSE' }
+                            ]}
+                        />
+                    </div>
                     
                     <button
                         onClick={fetchData}
@@ -126,6 +127,7 @@ export default function AdminKeuanganDashboard({ siteType = 'all', adminRole = '
                 <>
                     {/* Header Cards */}
                     <KeuanganDashboardHeader 
+                        transactions={transactions}
                         pesertaLunas={dataPesertaLunas}
                         formWajibMap={formWajibMap}
                         formRegisterMap={formRegisterMap}

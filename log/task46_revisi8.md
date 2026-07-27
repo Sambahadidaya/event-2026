@@ -1,0 +1,3 @@
+fokus ke halaman keuangan yaitu halaman jurnal entry dan database tabel journal_entry.
+ditabel itukan ada sitenya tapi kenapa sitenya itu malah null padahal diriwayat transaksi atau ditabel transaction_finance database sudah terdeteksi sitenya. masalah ini muncul saat aku verifikasi peserta mau dipose atau dipkkmb.
+terus dihalaman verifikasi pembayaran dengan site pose tepatnya pada saat pembuatan pdf atau exsel saya ingin yang data yang diambilnya itu tabel form wajib dan form register tapi tabelnya dipisahkan, jadi bukan cuman tabel yang aktifnya saja tapi langsung ambil kedua tabel itu tapi tabelnya dipisahkan.

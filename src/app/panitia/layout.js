@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import ThemeToggle from '@/components/ThemeToggle';
-import { User, LayoutDashboard, FileText, ChevronDown, ChevronRight, LogOut, ShieldAlert, Menu, BarChart3, MessageCircle, Mail, Newspaper, Users, Monitor, Lock, Calendar, Settings, BookOpen, FileCheck, ClipboardList, Trophy, Wallet } from 'lucide-react';
+import { User, LayoutDashboard, FileText, ChevronDown, ChevronRight, LogOut, ShieldAlert, Menu, BarChart3, MessageCircle, Mail, Newspaper, Users, Monitor, Lock, Calendar, Settings, BookOpen, FileCheck, ClipboardList, Trophy, Wallet, Receipt, Tags, BookMarked, ArrowLeftRight, BookOpenCheck, TrendingUp, TrendingDown, Scale, Table2, PieChart } from 'lucide-react';
 import { logoutAdmin, getCurrentAdmin } from '@/api/supabase/admin/auth';
 import { updateAdminStatus } from '@/api/supabase/admin/admin';
 import { hasAccess, rolePermissions } from '@/lib/adminRoleData';
@@ -367,10 +367,20 @@ export default function PanitiaLayout({ children }) {
                             </span>
                             {!collapsed && (menuOpen.keuangan ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
                         </button>
-                        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.keuangan ? 'max-h-40 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.keuangan ? 'max-h-[600px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
                             <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
                                 <NavLink href="/panitia/keuangan/dashboard" icon={LayoutDashboard} label="Dashboard Keuangan" colorTheme="emerald" />
                                 <NavLink href="/panitia/keuangan/verifikasi" icon={FileCheck} label="Verifikasi Pembayaran" colorTheme="emerald" />
+                                <NavLink href="/panitia/keuangan/transaksi" icon={ArrowLeftRight} label="Riwayat Transaksi" colorTheme="emerald" />
+                                <NavLink href="/panitia/keuangan/master-transaksi" icon={Tags} label="Master Kategori" colorTheme="emerald" />
+                                <NavLink href="/panitia/keuangan/master-akuntansi" icon={Receipt} label="Master Akun (COA)" colorTheme="emerald" />
+                                <NavLink href="/panitia/keuangan/jurnal-entry" icon={BookMarked} label="Jurnal Entry" colorTheme="emerald" />
+                                <NavLink href="/panitia/keuangan/buku-besar" icon={BookOpenCheck} label="Buku Besar" colorTheme="emerald" />
+                                <NavLink href="/panitia/keuangan/kas-masuk" icon={TrendingUp} label="Kas Masuk" colorTheme="emerald" />
+                                <NavLink href="/panitia/keuangan/kas-keluar" icon={TrendingDown} label="Kas Keluar" colorTheme="emerald" />
+                                <NavLink href="/panitia/keuangan/neraca-saldo" icon={Scale} label="Neraca Saldo" colorTheme="emerald" />
+                                <NavLink href="/panitia/keuangan/neraca-lajur" icon={Table2} label="Neraca Lajur" colorTheme="emerald" />
+                                <NavLink href="/panitia/keuangan/laporan" icon={PieChart} label="Laporan Keuangan" colorTheme="emerald" />
                             </ul>
                         </div>
                     </div>

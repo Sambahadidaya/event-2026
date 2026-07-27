@@ -24,40 +24,60 @@ ChartJS.register(
   Filler
 );
 
-export default function KeuanganDashboardHeader({ pesertaLunas = [], formWajibMap = {}, formRegisterMap = {} }) {
+export default function KeuanganDashboardHeader({ transactions = [], pesertaLunas = [], formWajibMap = {}, formRegisterMap = {} }) {
   // Calculate totals and group by month for mini charts
-  const { totalIncome, totalExpense, totalLaba, incomeByMonth } = useMemo(() => {
+  const { totalIncome, totalExpense, totalLaba, incomeByMonth, expenseByMonth } = useMemo(() => {
     let income = 0;
-    const expense = 0; // Placeholder for now
+    let expense = 0;
     const monthlyIncome = new Array(12).fill(0);
+    const monthlyExpense = new Array(12).fill(0);
 
-    pesertaLunas.forEach(peserta => {
-      let nominal = 0;
-      if (peserta.kode_form) {
-        const kodeForm = peserta.kode_form.slice(0, -4);
-        if (peserta.jenis_form === 'wajib' && formWajibMap[kodeForm]) {
-          nominal = formWajibMap[kodeForm].nominal || 0;
-        } else if (peserta.jenis_form === 'register' && formRegisterMap[kodeForm]) {
-          nominal = formRegisterMap[kodeForm].nominal || 0;
+    if (transactions && transactions.length > 0) {
+      transactions.forEach(item => {
+        const isExpense = item.kategori?.type_transaksi === 'expense' || item.kode_payer?.startsWith('EXP');
+        const val = Number(item.nominal || 0);
+        const dateStr = item.tanggal_transaksi || item.created_at;
+        const date = dateStr ? new Date(dateStr) : new Date();
+        const month = date.getMonth();
+
+        if (isExpense) {
+          expense += val;
+          if (!isNaN(month)) monthlyExpense[month] += val;
+        } else {
+          income += val;
+          if (!isNaN(month)) monthlyIncome[month] += val;
         }
-      }
-      
-      income += nominal;
-      
-      if (peserta.created_at) {
-        const date = new Date(peserta.created_at);
-        const month = date.getMonth(); // 0-11
-        monthlyIncome[month] += nominal;
-      }
-    });
+      });
+    } else {
+      pesertaLunas.forEach(peserta => {
+        let nominal = 0;
+        if (peserta.kode_form) {
+          const kodeForm = peserta.kode_form.slice(0, -4);
+          if (peserta.jenis_form === 'wajib' && formWajibMap[kodeForm]) {
+            nominal = formWajibMap[kodeForm].nominal || 0;
+          } else if (peserta.jenis_form === 'register' && formRegisterMap[kodeForm]) {
+            nominal = formRegisterMap[kodeForm].nominal || 0;
+          }
+        }
+        
+        income += nominal;
+        
+        if (peserta.created_at) {
+          const date = new Date(peserta.created_at);
+          const month = date.getMonth();
+          if (!isNaN(month)) monthlyIncome[month] += nominal;
+        }
+      });
+    }
 
     return {
       totalIncome: income,
       totalExpense: expense,
       totalLaba: income - expense,
-      incomeByMonth: monthlyIncome
+      incomeByMonth: monthlyIncome,
+      expenseByMonth: monthlyExpense
     };
-  }, [pesertaLunas, formWajibMap, formRegisterMap]);
+  }, [transactions, pesertaLunas, formWajibMap, formRegisterMap]);
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('id-ID', {
@@ -86,7 +106,16 @@ export default function KeuanganDashboardHeader({ pesertaLunas = [], formWajibMa
       return data;
   }, [incomeByMonth, currentMonthIndex]);
   
-  const sparklineExpenseData = [0, 0, 0, 0, 0, 0];
+  const sparklineExpenseData = useMemo(() => {
+      const data = [];
+      for (let i = 5; i >= 0; i--) {
+          let m = currentMonthIndex - i;
+          if (m < 0) m += 12;
+          data.push(expenseByMonth[m]);
+      }
+      return data;
+  }, [expenseByMonth, currentMonthIndex]);
+
   const sparklineLabaData = sparklineIncomeData.map((inc, i) => inc - sparklineExpenseData[i]);
 
   const createSparklineOptions = (color) => ({

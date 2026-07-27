@@ -1,0 +1,26 @@
+form_register_rows,,,,,,,,,,,,,,,
+id,jenis_lomba,nama_lomba,link_id,gambar,created_at,keterangan,butuh_bukti,nominal,kategori_pendaftar,kode_form,,,,,
+26ff91b4-8be2-4e69-b666-71acbcc82f20,Kreativitas,Desain Poster,xadrKKiK9KXTz3Q4BGJd67XkhQEAf79yYBdgwsibBKZSHUKjQWvpbhjGpXRlQjqP,,2026-07-20 07:27:06.047312+00,Tes,TRUE,500000,"Mahasiswa LP3I,Siswa,Dosen,Umum",PsKrDp33hM,,,,,
+,,,,,,,,,,,,,,,
+form_wajib_rows,,,,,,,,,,,,,,,
+id,judul,keterangan,site,link_id,created_at,gambar,nominal,kode_form,,,,,,,
+b21b5e58-982e-48c6-8ab4-d01a677f8d9d,tes,tes,pose,32SOF2QresK9kv1eYvCLmjalJTETGqrC,2026-07-23 07:37:17.816731+00,,40000,Ps00Ny,,,,,,,
+be1e54ca-44bb-47e4-9ab1-8a32232915f2,tes,tes,pose,7D3fH_Mce7wREyDnY6T4_PeWzNrN1Qdw,2026-07-20 19:42:54.438512+00,,5000,Ps94GL,,,,,,,
+c0a4dfd5-00a3-4df9-92ea-692aa3b65b96,Pembayaran PKKMB,Syarat bisa masuk ke acara pkkmb,pkkmb,TkefLUw6qNO8xorkoZS06ZtSx0jXdpDR,2026-07-20 15:44:46.214314+00,,500000,Pk09LJ,,,,,,,
+,,,,,,,,,,,,,,,
+peserta_rows,,,,,,,,,,,,,,,
+id,kategori,nama,kampus,nim,prodi,angkatan,email_wa,bukti_bayar,status_pembayaran,created_at,site_type,jenis_form,metode_pembayaran,semester,kode_form
+07469532-2966-42bd-af0a-59c00e4afef3,Mahasiswa LP3I,udin,Kampus Tasikmalaya,202501012,Manajemen Informatika,2025,85942151639,https://qttrkptegnfwoseutfga.supabase.co/storage/v1/object/public/bukti-bayar/uploads/wPCkD2oe07j_8bTV.webp,lunas,2026-07-23 02:31:37.471804+00,pkkmb,wajib,Tunai,3,Pk09LJ49sq
+0aaef191-bc89-4ca8-bb8b-61682098877a,Mahasiswa LP3I,edo,Kampus Cirebon,202502022,Akuntansi,2025,85942151639,https://qttrkptegnfwoseutfga.supabase.co/storage/v1/object/public/bukti-bayar/uploads/7usOXT7QKZqr54NO.webp,lunas,2026-07-23 02:48:43.827523+00,pkkmb,wajib,Tunai,3,Pk09LJ86YV
+40de822c-2bc7-40f9-a655-29c34dd30071,Mahasiswa LP3I,Fira,Kampus Bandung,202502013,Manajemen Informatika,2025,6.28319E+12,https://qttrkptegnfwoseutfga.supabase.co/storage/v1/object/public/bukti-bayar/uploads/XTPNwjDTmToj945C.webp,Pending,2026-07-23 06:49:53.845474+00,pkkmb,wajib,Tunai,3,Pk09LJ23gT
+a18ab7a7-b6c5-47bc-8bf3-d81d7f80affc,Mahasiswa LP3I,sum,Kampus Bandung,202502010,Manajemen Informatika,2025,85942151639,https://qttrkptegnfwoseutfga.supabase.co/storage/v1/object/public/bukti-bayar/uploads/HbDirVE_qoXGKJ7v.webp,lunas,2026-07-23 07:38:49.433072+00,pose,wajib,Tunai,3,Ps00Ny28Po
+c422011d-d5f2-42a6-9baf-61a517772790,Siswa,Samsudin,SMKN 8,Siswa01Samsudin1639,Multimedia,2025,85942151639,https://qttrkptegnfwoseutfga.supabase.co/storage/v1/object/public/bukti-bayar/uploads/pP7cnFlOv_mWGhQS.webp,lunas,2026-07-23 03:07:30.683818+00,pose,register,Seabank,3,PsKrDp33hM48VQ
+f70f716f-7f94-4f73-a909-940c31a67d6c,Mahasiswa LP3I,Samba,Kampus Bandung,202502014,Manajemen Informatika,2025,85942151639,https://qttrkptegnfwoseutfga.supabase.co/storage/v1/object/public/bukti-bayar/uploads/XiL4TalEgYwfG9Ty.webp,lunas,2026-07-23 02:04:53.563851+00,pkkmb,wajib,QRIS,3,Pk09LJ98hz
+,,,,,,,,,,,,,,,
+team_rows,,,,,,,,,,,,,,,
+id,title,content,type,created_at,instagram_link,gambar,jenis_lomba,nama_lomba,verivikasi,bukti_bayar,user_token,kode_form,,,
+86e4326d-c2ef-40ea-8551-ac84f89b33bd,Samsudin,tes,pose,2026-07-23 03:07:29.916613+00,,,Kreativitas,Desain Poster,TRUE,https://qttrkptegnfwoseutfga.supabase.co/storage/v1/object/public/bukti-bayar/uploads/pP7cnFlOv_mWGhQS.webp,8701e20a-3d9e-4429-a40a-503cb841ecef,PsKrDp33hM48VQ,,,
+,,,,,,,,,,,,,,,
+team_members_rows,,,,,,,,,,,,,,,
+id,team_id,nama,jabatan,created_at,kode,,,,,,,,,,
+adc1e8aa-829d-4281-8acf-6aaa7f949b0d,86e4326d-c2ef-40ea-8551-ac84f89b33bd,Samsudin,tes,2026-07-23 03:07:30.189033+00,Siswa01Samsudin1639,,,,,,,,,,

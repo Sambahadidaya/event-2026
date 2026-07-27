@@ -11,6 +11,12 @@ const SITE_OPTIONS = [
     { value: 'pose', label: 'POSE' },
 ];
 
+export const SITE_OPTIONS_FINANCE = [
+    { value: 'all', label: 'Semua (PKKMB & POSE)' },
+    { value: 'pkkmb', label: 'PKKMB' },
+    { value: 'pose', label: 'POSE' },
+];
+
 const SITE_OPTIONS_FAQ = [
     { value: 'all', label: 'Semua Situs' },
     { value: 'pkkmb', label: 'PKKMB' },
@@ -51,12 +57,13 @@ export default function DashboardHeaderFilters({
             </div>
 
             <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full lg:w-auto">
-                {showSiteFilter && isSuperAdmin && onSiteFilterChange && (
+                {showSiteFilter && onSiteFilterChange && (
                     <DashboardSelect
                         icon={MonitorPlay}
                         value={siteFilter}
                         onChange={(e) => onSiteFilterChange(e.target.value)}
                         options={options}
+                        disabled={!isSuperAdmin}
                         className="w-full sm:w-auto sm:min-w-[150px]"
                     />
                 )}

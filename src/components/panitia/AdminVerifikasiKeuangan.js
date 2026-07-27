@@ -8,6 +8,8 @@ import {
 import { getPesertaKeuangan, updateStatusPembayaranPeserta } from '@/api/supabase/admin/peserta';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
 import TablePagination from '@/components/panitia/TablePagination';
+import ExportExcelButton from '@/components/panitia/finance/ExportExcelButton';
+import PrintPDFButton from '@/components/panitia/finance/PrintPDFButton';
 import { formatDateTime } from '@/lib/dashboardUtils';
 
 const ITEMS_PER_PAGE = 10;
@@ -65,11 +67,10 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
     }, [data]);
 
     // Filter data by active tab (jenis_form), search query, and status filter
-    const filteredData = useMemo(() => {
+    // Filter data Form Wajib by search query and status filter
+    const filteredWajib = useMemo(() => {
         return data.filter(item => {
-            // Filter by activeTab (wajib vs register)
-            if (activeTab === 'wajib' && item.jenis_form !== 'wajib') return false;
-            if (activeTab === 'register' && item.jenis_form !== 'register') return false;
+            if (item.jenis_form !== 'wajib') return false;
 
             // Filter by statusPembayaran
             if (statusFilter === 'lunas' && item.status_pembayaran?.toLowerCase() !== 'lunas') return false;
@@ -89,7 +90,37 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
 
             return true;
         });
-    }, [data, activeTab, statusFilter, searchQuery]);
+    }, [data, statusFilter, searchQuery]);
+
+    // Filter data Form Register by search query and status filter
+    const filteredRegister = useMemo(() => {
+        return data.filter(item => {
+            if (item.jenis_form !== 'register') return false;
+
+            // Filter by statusPembayaran
+            if (statusFilter === 'lunas' && item.status_pembayaran?.toLowerCase() !== 'lunas') return false;
+            if (statusFilter === 'ditolak' && item.status_pembayaran?.toLowerCase() !== 'ditolak') return false;
+            if (statusFilter === 'pending' && (item.status_pembayaran && item.status_pembayaran?.toLowerCase() !== 'pending')) return false;
+
+            // Search query filter
+            if (searchQuery.trim()) {
+                const searchLower = searchQuery.toLowerCase();
+                const matchNama = item.nama && item.nama.toLowerCase().includes(searchLower);
+                const matchNim = item.nim && item.nim.toLowerCase().includes(searchLower);
+                const matchKampus = item.kampus && item.kampus.toLowerCase().includes(searchLower);
+                const matchEmailWa = item.email_wa && item.email_wa.toLowerCase().includes(searchLower);
+                const matchKategori = item.kategori && item.kategori.toLowerCase().includes(searchLower);
+                return matchNama || matchNim || matchKampus || matchEmailWa || matchKategori;
+            }
+
+            return true;
+        });
+    }, [data, statusFilter, searchQuery]);
+
+    // Active filtered data for displaying in table
+    const filteredData = useMemo(() => {
+        return activeTab === 'wajib' ? filteredWajib : filteredRegister;
+    }, [activeTab, filteredWajib, filteredRegister]);
 
     const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE) || 1;
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -98,6 +129,34 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
     useEffect(() => {
         setCurrentPage(1);
     }, [searchQuery, statusFilter, activeTab]);
+
+    // Formatted sheets for Excel multi-sheet export
+    const excelSheets = useMemo(() => {
+        const cols = [
+            { key: 'nama', label: 'Nama Peserta' },
+            { key: 'kampus', label: 'Kampus' },
+            { key: 'nim', label: 'NIM' },
+            { key: 'prodi', label: 'Prodi' },
+            { key: 'kategori', label: 'Kategori' },
+            { key: 'email_wa', label: 'Email/WA' },
+            { key: 'jenis_form', label: 'Jenis Form' },
+            { key: 'kode_form', label: 'Kode Form' },
+            { key: 'status_pembayaran', label: 'Status Pembayaran' },
+            { key: 'metode_pembayaran', label: 'Metode' }
+        ];
+        return [
+            { sheetName: 'Form Wajib', data: filteredWajib, columns: cols },
+            { sheetName: 'Form Register', data: filteredRegister, columns: cols }
+        ];
+    }, [filteredWajib, filteredRegister]);
+
+    // Formatted dataSets for PDF multi-table generation
+    const pdfDataSets = useMemo(() => {
+        return [
+            { title: 'Form Wajib', data: filteredWajib },
+            { title: 'Form Register', data: filteredRegister }
+        ];
+    }, [filteredWajib, filteredRegister]);
 
     const handleUpdateStatus = async (status) => {
         if (!verifikasiItem) return;
@@ -216,8 +275,8 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
                             type="button"
                             onClick={() => setActiveTab('wajib')}
                             className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'wajib'
-                                    ? 'bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-sm'
-                                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                                ? 'bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-sm'
+                                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                                 }`}
                         >
                             <FileText size={16} />
@@ -232,10 +291,10 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
                             disabled={isPkkmbAdmin}
                             title={isPkkmbAdmin ? "Form Register tidak tersedia untuk role Admin PKKMB" : ""}
                             className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${isPkkmbAdmin
-                                    ? 'opacity-40 cursor-not-allowed text-gray-400 dark:text-gray-500'
-                                    : activeTab === 'register'
-                                        ? 'bg-white dark:bg-gray-900 text-violet-600 dark:text-violet-400 shadow-sm'
-                                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                                ? 'opacity-40 cursor-not-allowed text-gray-400 dark:text-gray-500'
+                                : activeTab === 'register'
+                                    ? 'bg-white dark:bg-gray-900 text-violet-600 dark:text-violet-400 shadow-sm'
+                                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                                 }`}
                         >
                             <UserCheck size={16} />
@@ -273,6 +332,71 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
                                 <option value="lunas">Lunas</option>
                                 <option value="ditolak">Ditolak</option>
                             </select>
+                        </div>
+
+                        {/* Export Buttons */}
+                        <div className="flex items-center gap-2 shrink-0">
+                            {siteType === 'pose' ? (
+                                <ExportExcelButton
+                                    sheets={excelSheets}
+                                    filename={`Verifikasi_Peserta_POSE`}
+                                />
+                            ) : (
+                                <ExportExcelButton
+                                    data={filteredData}
+                                    columns={[
+                                        { key: 'nama', label: 'Nama Peserta' },
+                                        { key: 'kampus', label: 'Kampus' },
+                                        { key: 'nim', label: 'NIM' },
+                                        { key: 'prodi', label: 'Prodi' },
+                                        { key: 'kategori', label: 'Kategori' },
+                                        { key: 'email_wa', label: 'Email/WA' },
+                                        { key: 'jenis_form', label: 'Jenis Form' },
+                                        { key: 'kode_form', label: 'Kode Form' },
+                                        { key: 'status_pembayaran', label: 'Status Pembayaran' },
+                                        { key: 'metode_pembayaran', label: 'Metode' }
+                                    ]}
+                                    filename={`Verifikasi_Peserta_${activeTab}_${siteType}`}
+                                />
+                            )}
+                            {siteType === 'pose' ? (
+                                <PrintPDFButton
+                                    title="Laporan Verifikasi Pendaftaran POSE"
+                                    site={siteType}
+                                    data={pdfDataSets}
+                                    documentType="verifikasi_report"
+                                    columns={[
+                                        { key: 'nama', label: 'Nama Peserta' },
+                                        { key: 'kampus', label: 'Kampus' },
+                                        { key: 'nim', label: 'NIM' },
+                                        { key: 'prodi', label: 'Prodi' },
+                                        { key: 'kategori', label: 'Kategori' },
+                                        { key: 'email_wa', label: 'Email/WA' },
+                                        { key: 'jenis_form', label: 'Jenis Form' },
+                                        { key: 'kode_form', label: 'Kode Form' },
+                                        { key: 'metode_pembayaran', label: 'Metode' },
+                                        { key: 'status_pembayaran', label: 'Status Pembayaran' }
+                                    ]}
+                                />
+                            ) : (
+                                <PrintPDFButton
+                                    title={`Laporan Verifikasi Pendaftaran (${activeTab.toUpperCase()})`}
+                                    site={siteType}
+                                    data={filteredData}
+                                    columns={[
+                                        { key: 'nama', label: 'Nama Peserta' },
+                                        { key: 'kampus', label: 'Kampus' },
+                                        { key: 'nim', label: 'NIM' },
+                                        { key: 'prodi', label: 'Prodi' },
+                                        { key: 'kategori', label: 'Kategori' },
+                                        { key: 'email_wa', label: 'Email/WA' },
+                                        { key: 'jenis_form', label: 'Jenis Form' },
+                                        { key: 'kode_form', label: 'Kode Form' },
+                                        { key: 'metode_pembayaran', label: 'Metode' },
+                                        { key: 'status_pembayaran', label: 'Status Pembayaran' }
+                                    ]}
+                                />
+                            )}
                         </div>
                     </div>
                 </div>
@@ -377,10 +501,10 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
                                                     type="button"
                                                     onClick={() => handleOpenVerifikasi(item)}
                                                     className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 w-full rounded-xl text-xs font-extrabold transition-all shadow-xs ${isLunas
-                                                            ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 hover:bg-emerald-100'
-                                                            : isDitolak
-                                                                ? 'bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50 hover:bg-rose-100'
-                                                                : 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 hover:bg-amber-100'
+                                                        ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 hover:bg-emerald-100'
+                                                        : isDitolak
+                                                            ? 'bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50 hover:bg-rose-100'
+                                                            : 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 hover:bg-amber-100'
                                                         }`}
                                                 >
                                                     {isLunas ? (
@@ -528,7 +652,7 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
                                 <div className="flex justify-between items-start text-xs sm:text-sm">
                                     <span className="text-gray-500 font-medium">Status Saat Ini</span>
                                     <span className={`font-extrabold text-right ${verifikasiItem.status_pembayaran?.toLowerCase() === 'lunas' ? 'text-emerald-600 dark:text-emerald-400' :
-                                            verifikasiItem.status_pembayaran?.toLowerCase() === 'ditolak' ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400'
+                                        verifikasiItem.status_pembayaran?.toLowerCase() === 'ditolak' ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400'
                                         }`}>
                                         {verifikasiItem.status_pembayaran || 'pending'}
                                     </span>

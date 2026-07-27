@@ -912,4 +912,136 @@ CREATE POLICY "Allow Updates and Deletes" ON storage.objects FOR UPDATE TO publi
 CREATE POLICY "Allow Deletes" ON storage.objects FOR DELETE TO public USING (bucket_id = 'team-images');
 CREATE POLICY "Public Read team-images" ON storage.objects FOR SELECT TO public USING (bucket_id = 'team-images');
 CREATE POLICY "Public Upload team-images" ON storage.objects FOR INSERT TO public WITH CHECK (bucket_id = 'team-images');
+
+-- 1. Master Account (Chart of Accounts)
+CREATE TABLE public.master_account (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    kode_id VARCHAR(20) NOT NULL UNIQUE,
+    kode_akun VARCHAR(10) NOT NULL UNIQUE,
+    nama_akun VARCHAR(255) NOT NULL,
+    akun_type VARCHAR(50) NOT NULL CHECK (akun_type IN ('Asset', 'Liability', 'Equity', 'Revenue', 'Expense')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2. Master Transaction Category
+CREATE TABLE public.master_transaction_category (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    kode_id VARCHAR(20) NOT NULL UNIQUE,
+    site site_type NOT NULL,
+    type_transaksi VARCHAR(10) NOT NULL CHECK (type_transaksi IN ('income', 'expense')),
+    nama_kategori VARCHAR(255) NOT NULL,
+    nama_sub_kategori VARCHAR(255),
+    kategori_lomba VARCHAR(255),
+    nama_lomba VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 3. Transaction Finance (Buku Besar Transaksi)
+CREATE TABLE public.transaction_finance (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    kode_id VARCHAR(20) NOT NULL UNIQUE,
+    site site_type NOT NULL,
+    nama_kampus VARCHAR(255),
+    tanggal_transaksi DATE NOT NULL DEFAULT CURRENT_DATE,
+    kategori_transaksi_id UUID REFERENCES public.master_transaction_category(id) ON DELETE SET NULL,
+    akun_pembayaran_id UUID REFERENCES public.master_account(id) ON DELETE SET NULL,
+    nama_payer VARCHAR(255),
+    kode_payer VARCHAR(255),
+    kategori_payer VARCHAR(255),
+    metode_pembayaran VARCHAR(50),
+    keterangan TEXT,
+    nominal DECIMAL(15,2) NOT NULL DEFAULT 0,
+    bukti_pembayaran VARCHAR(500),
+    created_by UUID REFERENCES public.admins(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 4. Journal Entry (Double-Entry Bookkeeping)
+CREATE TABLE public.journal_entry (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    kode_id VARCHAR(20) NOT NULL UNIQUE,
+    transaction_id UUID NOT NULL REFERENCES public.transaction_finance(id) ON DELETE CASCADE,
+    account_id UUID NOT NULL REFERENCES public.master_account(id) ON DELETE RESTRICT,
+    debit DECIMAL(15,2) NOT NULL DEFAULT 0,
+    credit DECIMAL(15,2) NOT NULL DEFAULT 0,
+    description TEXT,
+    journal_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 5. Form Transaksi Pengeluaran
+CREATE TABLE public.form_transaksi_pengeluaran (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    judul VARCHAR(255) NOT NULL,
+    keterangan TEXT,
+    nominal DECIMAL(15,2) NOT NULL DEFAULT 0,
+    metode_pembayaran VARCHAR(50),
+    bukti_pembayaran VARCHAR(500),
+    penanggung_jawab VARCHAR(255),
+    site site_type NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- RLS Policies
+ALTER TABLE public.master_account ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "read_all_master_account" ON public.master_account FOR SELECT TO public USING (true);
+CREATE POLICY "auth_all_master_account" ON public.master_account FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.master_transaction_category ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "read_all_mtc" ON public.master_transaction_category FOR SELECT TO public USING (true);
+CREATE POLICY "auth_all_mtc" ON public.master_transaction_category FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.transaction_finance ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "read_all_tf" ON public.transaction_finance FOR SELECT TO authenticated USING (true);
+CREATE POLICY "auth_all_tf" ON public.transaction_finance FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.journal_entry ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "read_all_je" ON public.journal_entry FOR SELECT TO authenticated USING (true);
+CREATE POLICY "auth_all_je" ON public.journal_entry FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.form_transaksi_pengeluaran ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "read_all_ftp" ON public.form_transaksi_pengeluaran FOR SELECT TO authenticated USING (true);
+CREATE POLICY "auth_all_ftp" ON public.form_transaksi_pengeluaran FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE master_account ADD COLUMN IF NOT EXISTS site site_type;
+ALTER TABLE journal_entry ADD COLUMN IF NOT EXISTS site site_type;
+-- Tambah kolom site ke master_account (jika belum ada)
+ALTER TABLE public.master_account 
+ADD COLUMN IF NOT EXISTS site site_type;
+
+-- Update data lama agar tidak null (opsional, sesuai kebutuhan)
+-- UPDATE public.master_account SET site = 'pose' WHERE site IS NULL;
+
+-- Tambah kolom site ke journal_entry (jika belum ada)
+ALTER TABLE public.journal_entry 
+ADD COLUMN IF NOT EXISTS site site_type;
+
+-- Auto-populate site dari transaction.site via trigger atau update manual:
+UPDATE public.journal_entry je
+SET site = tf.site
+FROM public.transaction_finance tf
+WHERE je.transaction_id = tf.id
+AND je.site IS NULL;
+
+CREATE TABLE documents (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    site site_type NOT NULL,
+    document_type VARCHAR(50) NOT NULL, -- 'invoice', 'receipt', 'certificate', 'report'
+    document_code VARCHAR(50) NOT NULL UNIQUE, -- INV-2026-000001, KWT-2026-000001, dst
+    reference_id UUID,                 -- FK ke tabel terkait (transaksi_id, peserta_id, dll)
+    reference_table VARCHAR(100),      -- nama tabel referensi ('transaction_finance', 'peserta', dll)
+    printed_by VARCHAR(255),           -- email admin yang mencetak
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- RLS
+ALTER TABLE public.documents ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Enable read for all on documents" 
+    ON public.documents FOR SELECT TO public USING (true);
+CREATE POLICY "Enable all for authenticated on documents" 
+    ON public.documents FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
 ```

@@ -23,13 +23,17 @@ Proyek ini menggunakan Next.js (App Router) berbasis JavaScript murni (bukan Typ
     "jsqr": "^1.4.0",
     "lucide-react": "^1.21.0",
     "nanoid": "^5.1.16",
-    "next": "16.2.9",
+    "next": "^16.2.11",
     "next-themes": "^0.4.6",
     "openai": "^6.45.0",
+    "pdf-lib": "^1.17.1",
+    "puppeteer": "^25.3.0",
+    "qrcode": "^1.5.4",
     "react": "19.2.4",
     "react-chartjs-2": "^5.3.1",
     "react-dom": "19.2.4",
-    "react-image-crop": "^11.1.2"
+    "react-image-crop": "^11.1.2",
+    "xlsx": "^0.18.5"
   },
 }
 ```
@@ -39,460 +43,544 @@ Proyek ini menggunakan Next.js (App Router) berbasis JavaScript murni (bukan Typ
 ### B. Konfigurasi Database Supabase yang Sudah Aktif
 
 ```sql
--- =============================================
--- 1. EXTENSIONS & ENUMS
--- =============================================
+-- ============================================================================
+-- 1. EXTENSIONS & ENUM TYPES
+-- ============================================================================
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Custom Enum Types
 CREATE TYPE site_type AS ENUM ('pkkmb', 'pose', 'portal');
-CREATE TYPE jenis_jadwal_enum AS ENUM ('pendaftaran', 'seleksi', 'acara');
+CREATE TYPE jenis_jadwal_type AS ENUM ('pendaftaran', 'seleksi', 'acara');
 
--- =============================================
--- 2. TABEL-TABEL UTAMA
--- =============================================
+-- ============================================================================
+-- 2. TABEL INDEPENDEN (TANPA FOREIGN KEY KECUALI AUTH)
+-- ============================================================================
+
+-- Tabel Admins
+CREATE TABLE public.admins (
+    id UUID NOT NULL DEFAULT uuid_generate_v4(),
+    user_id UUID,
+    nama VARCHAR NOT NULL UNIQUE,
+    email VARCHAR NOT NULL UNIQUE,
+    role VARCHAR NOT NULL,
+    is_online BOOLEAN DEFAULT false,
+    last_active TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    qrcode VARCHAR DEFAULT NULL UNIQUE,
+    limit_login BOOLEAN DEFAULT false,
+    failed_attempts INTEGER DEFAULT 0,
+    lockout_until TIMESTAMP WITH TIME ZONE,
+    first_failed_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT admins_pkey PRIMARY KEY (id),
+    CONSTRAINT admins_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+);
+
+-- Tabel Audit Logs
+CREATE TABLE public.audit_logs (
+    id UUID NOT NULL DEFAULT uuid_generate_v4(),
+    admin_id UUID,
+    admin_email VARCHAR,
+    action VARCHAR NOT NULL,
+    target_id UUID,
+    details TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT audit_logs_pkey PRIMARY KEY (id)
+);
 
 -- Tabel Berita / Pemberitahuan
-CREATE TABLE berita (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    title VARCHAR(255) NOT NULL,
+CREATE TABLE public.berita (
+    id UUID NOT NULL DEFAULT uuid_generate_v4(),
+    title VARCHAR NOT NULL,
     content TEXT NOT NULL,
     type site_type NOT NULL,
     custom_date DATE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Tabel Kelompok / Team
-CREATE TABLE team (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    title VARCHAR(255) NOT NULL,
-    content TEXT NOT NULL,
-    type site_type NOT NULL,
-    instagram_link VARCHAR(255),
-    gambar VARCHAR(255),
-    jenis_lomba VARCHAR(255),
-    nama_lomba VARCHAR(255),
-    poin1 BOOLEAN, -- Default false dihapus sesuai log alter terakhir
-    poin2 BOOLEAN,
-    poin3 BOOLEAN,
-    poin4 BOOLEAN,
-    poin5 BOOLEAN,
-    verivikasi BOOLEAN,
-    bukti_bayar VARCHAR(255),
-    user_token VARCHAR(255),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Tabel Anggota Tim (Team Members)
-CREATE TABLE team_members (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    team_id UUID REFERENCES team(id) ON DELETE CASCADE,
-    nama VARCHAR(255) NOT NULL,
-    jabatan VARCHAR(255),
-    prodi VARCHAR(255),
-    angkatan VARCHAR(255),
-    nim VARCHAR(255),
-    email_wa VARCHAR(255),
-    kampus VARCHAR(255),
-    status_bayar BOOLEAN,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT berita_pkey PRIMARY KEY (id)
 );
 
 -- Tabel Trafik Kunjungan
-CREATE TABLE trafik_kunjungan (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE public.trafik_kunjungan (
+    id UUID NOT NULL DEFAULT uuid_generate_v4(),
     site site_type NOT NULL,
-    visited_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    visited_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT trafik_kunjungan_pkey PRIMARY KEY (id)
 );
 
--- Tabel Riwayat Pertanyaan User (Untuk FAQ Admin)
-CREATE TABLE riwayat_pertanyaan (
-    id BIGSERIAL PRIMARY KEY,
+-- Tabel Kontak
+CREATE TABLE public.kontak (
+    id UUID NOT NULL DEFAULT uuid_generate_v4(),
+    nama VARCHAR NOT NULL,
+    email VARCHAR,
+    whatsapp VARCHAR,
+    pesan TEXT NOT NULL,
+    site site_type NOT NULL,
+    jawab BOOLEAN,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT kontak_pkey PRIMARY KEY (id)
+);
+
+-- Tabel Riwayat Pertanyaan (FAQ)
+CREATE TABLE public.riwayat_pertanyaan (
+    id BIGSERIAL NOT NULL,
     pertanyaan TEXT NOT NULL,
     jawaban TEXT NOT NULL,
     site site_type NOT NULL,
     is_faq_matched BOOLEAN DEFAULT false,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT riwayat_pertanyaan_pkey PRIMARY KEY (id)
 );
 
--- Tabel Kontak
-CREATE TABLE kontak (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    nama VARCHAR(255) NOT NULL,
-    email VARCHAR(255),
-    whatsapp VARCHAR(20),
-    pesan TEXT NOT NULL,
+-- Tabel Jadwal Acara
+CREATE TABLE public.jadwal_acara (
+    id UUID NOT NULL DEFAULT uuid_generate_v4(),
     site site_type NOT NULL,
-    jawab BOOLEAN DEFAULT false,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Tabel Admins 
--- (Role langsung menggunakan VARCHAR(50) sesuai perubahan terakhir di log Anda)
-CREATE TABLE admins (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    nama VARCHAR(255) NOT NULL UNIQUE,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    role VARCHAR(50) NOT NULL,
-    is_online BOOLEAN DEFAULT false,
-    last_active TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Tabel Jadwal Pertandingan (Untuk Lomba Olahraga)
-CREATE TABLE jadwal_pertandingan (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    team1_id UUID REFERENCES team(id) ON DELETE CASCADE,
-    team2_id UUID REFERENCES team(id) ON DELETE CASCADE,
-    waktu TIMESTAMP WITH TIME ZONE,
-    nama_lomba VARCHAR(255),
-    status VARCHAR(50) DEFAULT 'Belum Mulai',
-    skor_team1 INT DEFAULT 0,
-    skor_team2 INT DEFAULT 0,
-    started_at TIMESTAMP WITH TIME ZONE,
-    ended_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    jenis_jadwal jenis_jadwal_type NOT NULL,
+    waktu_mulai TIMESTAMP WITH TIME ZONE NOT NULL,
+    waktu_selesai TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT jadwal_acara_pkey PRIMARY KEY (id)
 );
 
 -- Tabel Form Register
-CREATE TABLE form_register (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE public.form_register (
+    id UUID NOT NULL DEFAULT uuid_generate_v4(),
+    jenis_lomba VARCHAR NOT NULL,
+    nama_lomba VARCHAR NOT NULL,
+    link_id VARCHAR NOT NULL UNIQUE,
+    gambar VARCHAR,
     keterangan TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    butuh_bukti BOOLEAN DEFAULT true,
+    nominal INTEGER,
+    kategori_pendaftar VARCHAR DEFAULT 'Mahasiswa LP3I,Dosen,Umum',
+    kode_form VARCHAR UNIQUE,
+    site site_type NOT NULL DEFAULT 'pose',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT form_register_pkey PRIMARY KEY (id)
 );
 
--- Tabel Jadwal Umum
-CREATE TABLE jadwal (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+-- Tabel Form Wajib
+CREATE TABLE public.form_wajib (
+    id UUID NOT NULL DEFAULT uuid_generate_v4(),
+    judul VARCHAR NOT NULL,
+    keterangan TEXT,
     site site_type NOT NULL,
-    jenis_jadwal jenis_jadwal_enum NOT NULL,
-    waktu_mulai TIMESTAMP WITH TIME ZONE NOT NULL,
-    waktu_selesai TIMESTAMP WITH TIME ZONE NOT NULL,
+    link_id VARCHAR NOT NULL UNIQUE,
+    gambar VARCHAR,
+    nominal INTEGER,
+    kode_form VARCHAR UNIQUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT form_wajib_pkey PRIMARY KEY (id)
+);
+
+-- Tabel Peserta
+CREATE TABLE public.peserta (
+    id UUID NOT NULL DEFAULT uuid_generate_v4(),
+    kategori VARCHAR NOT NULL,
+    nama VARCHAR NOT NULL,
+    kampus VARCHAR,
+    nim VARCHAR,
+    prodi VARCHAR,
+    angkatan VARCHAR,
+    semester INTEGER,
+    email_wa VARCHAR,
+    bukti_bayar VARCHAR,
+    metode_pembayaran VARCHAR,
+    status_pembayaran VARCHAR DEFAULT 'Pending',
+    site_type site_type,
+    jenis_form VARCHAR,
+    kode_form VARCHAR,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT peserta_pkey PRIMARY KEY (id)
+);
+
+-- Tabel Materi PKKMB
+CREATE TABLE public.materi_pkkmb (
+    id UUID NOT NULL DEFAULT uuid_generate_v4(),
+    judul VARCHAR NOT NULL,
+    pemateri VARCHAR NOT NULL,
+    tanggal TIMESTAMP WITH TIME ZONE NOT NULL,
+    status BOOLEAN NOT NULL DEFAULT false,
+    foto_header VARCHAR NOT NULL,
+    file_pdf VARCHAR NOT NULL,
+    link_tugas VARCHAR NOT NULL UNIQUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT materi_pkkmb_pkey PRIMARY KEY (id)
+);
+
+-- Tabel Team / Kelompok
+CREATE TABLE public.team (
+    id UUID NOT NULL DEFAULT uuid_generate_v4(),
+    title VARCHAR NOT NULL UNIQUE,
+    content TEXT NOT NULL,
+    type site_type NOT NULL,
+    instagram_link VARCHAR,
+    gambar VARCHAR,
+    jenis_lomba VARCHAR,
+    nama_lomba VARCHAR,
+    verivikasi BOOLEAN,
+    bukti_bayar VARCHAR,
+    user_token UUID,
+    kode_form VARCHAR UNIQUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT team_pkey PRIMARY KEY (id)
+);
+
+-- ============================================================================
+-- 3. TABEL DEPENDEN (MEMILIKI FOREIGN KEY HASIL RELASI)
+-- ============================================================================
+
+-- Tabel Anggota Tim
+CREATE TABLE public.team_members (
+    id UUID NOT NULL DEFAULT uuid_generate_v4(),
+    team_id UUID,
+    nama VARCHAR NOT NULL,
+    jabatan VARCHAR,
+    kode VARCHAR,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT team_members_pkey PRIMARY KEY (id),
+    CONSTRAINT team_members_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.team(id) ON DELETE CASCADE
+);
+
+-- Tabel Jadwal Pertandingan
+CREATE TABLE public.jadwal_pertandingan (
+    id UUID NOT NULL DEFAULT uuid_generate_v4(),
+    team1_id UUID,
+    team2_id UUID,
+    waktu TIMESTAMP WITH TIME ZONE,
+    started_at TIMESTAMP WITH TIME ZONE,
+    ended_at TIMESTAMP WITH TIME ZONE,
+    nama_lomba VARCHAR,
+    jenis_lomba VARCHAR,
+    status VARCHAR DEFAULT 'Belum Mulai',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT jadwal_pertandingan_pkey PRIMARY KEY (id),
+    CONSTRAINT jadwal_pertandingan_team1_id_fkey FOREIGN KEY (team1_id) REFERENCES public.team(id) ON DELETE CASCADE,
+    CONSTRAINT jadwal_pertandingan_team2_id_fkey FOREIGN KEY (team2_id) REFERENCES public.team(id) ON DELETE CASCADE
+);
+
+-- Tabel Hasil Pertandingan
+CREATE TABLE public.hasil_pertandingan (
+    id UUID NOT NULL DEFAULT uuid_generate_v4(),
+    pertandingan_id UUID NOT NULL,
+    team_id UUID NOT NULL,
+    skor INTEGER NOT NULL DEFAULT 0,
+    menang BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT hasil_pertandingan_pkey PRIMARY KEY (id),
+    CONSTRAINT hasil_pertandingan_pertandingan_id_fkey FOREIGN KEY (pertandingan_id) REFERENCES public.jadwal_pertandingan(id) ON DELETE CASCADE,
+    CONSTRAINT hasil_pertandingan_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.team(id) ON DELETE CASCADE,
+    CONSTRAINT hasil_pertandingan_unique_match UNIQUE (pertandingan_id, team_id)
+);
+
+-- Tabel Tugas Materi PKKMB
+CREATE TABLE public.tugas_materi (
+    id UUID NOT NULL DEFAULT uuid_generate_v4(),
+    materi_id UUID NOT NULL,
+    keterangan TEXT,
+    nama VARCHAR NOT NULL,
+    kampus VARCHAR NOT NULL,
+    nim VARCHAR NOT NULL,
+    file_tugas VARCHAR NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT tugas_materi_pkey PRIMARY KEY (id),
+    CONSTRAINT tugas_materi_materi_id_fkey FOREIGN KEY (materi_id) REFERENCES public.materi_pkkmb(id) ON DELETE CASCADE
+);
+
+-- Tabel Form Pengumpulan
+CREATE TABLE public.form_pengumpulan (
+    id UUID NOT NULL DEFAULT uuid_generate_v4(),
+    form_id UUID NOT NULL,
+    link_id VARCHAR NOT NULL UNIQUE,
+    status BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT form_pengumpulan_pkey PRIMARY KEY (id),
+    CONSTRAINT form_pengumpulan_form_id_fkey FOREIGN KEY (form_id) REFERENCES public.form_register(id) ON DELETE CASCADE
+);
+
+-- Tabel Pengumpulan Lomba
+CREATE TABLE public.pengumpulan_lomba (
+    id UUID NOT NULL DEFAULT uuid_generate_v4(),
+    form_id UUID NOT NULL,
+    team_id UUID NOT NULL,
+    keterangan TEXT,
+    file_link VARCHAR NOT NULL,
+    status_pengumpulan BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT pengumpulan_lomba_pkey PRIMARY KEY (id),
+    CONSTRAINT pengumpulan_lomba_form_id_fkey FOREIGN KEY (form_id) REFERENCES public.form_pengumpulan(id) ON DELETE CASCADE,
+    CONSTRAINT pengumpulan_lomba_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.team(id) ON DELETE CASCADE
+);
+
+-- ============================================================================
+-- 4. ROW LEVEL SECURITY (RLS) & POLICIES (SESUAI LAMPIRAN PDF)
+-- ============================================================================
+
+-- Aktifkan RLS pada seluruh tabel
+ALTER TABLE public.admins ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.berita ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.form_pengumpulan ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.form_register ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.form_wajib ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.hasil_pertandingan ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.jadwal_acara ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.jadwal_pertandingan ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.kontak ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.materi_pkkmb ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.pengumpulan_lomba ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.peserta ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.riwayat_pertanyaan ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.team ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.team_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.trafik_kunjungan ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tugas_materi ENABLE ROW LEVEL SECURITY;
+
+-- Policy: admins
+CREATE POLICY "Enable read access for public on admins" ON public.admins FOR SELECT TO public USING (true);
+CREATE POLICY "Enable insert for all users" ON public.admins FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "Enable update for all users" ON public.admins FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Enable delete for all users" ON public.admins FOR DELETE TO authenticated USING (true);
+
+-- Policy: berita
+CREATE POLICY "select" ON public.berita FOR SELECT TO public USING (true);
+CREATE POLICY "all" ON public.berita FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Policy: form_register
+CREATE POLICY "Enable read Access for all users on form_register" ON public.form_register FOR SELECT TO public USING (true);
+CREATE POLICY "Enable all access for authenticated users on form_register" ON public.form_register FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Policy: form_wajib
+CREATE POLICY "Enable read access for all users on form_wajib" ON public.form_wajib FOR SELECT TO public USING (true);
+CREATE POLICY "Enable all access for authenticated users on form_wajib" ON public.form_wajib FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Policy: hasil_pertandingan
+CREATE POLICY "Enable read for all on hasil_pertandingan" ON public.hasil_pertandingan FOR SELECT TO public USING (true);
+CREATE POLICY "Enable all for authenticated on hasil_pertandingan" ON public.hasil_pertandingan FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Policy: jadwal_acara
+CREATE POLICY "Enable read access for all users on jadwal_acara" ON public.jadwal_acara FOR SELECT TO public USING (true);
+CREATE POLICY "Enable all access for authenticated users on jadwal_acara" ON public.jadwal_acara FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Policy: jadwal_pertandingan
+CREATE POLICY "Enable read access for all users on jadwal_pertandingan" ON public.jadwal_pertandingan FOR SELECT TO public USING (true);
+CREATE POLICY "Enable all access for authenticated users on jadwal_pertandingan" ON public.jadwal_pertandingan FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Policy: kontak
+CREATE POLICY "insert" ON public.kontak FOR INSERT TO public WITH CHECK (true);
+CREATE POLICY "all" ON public.kontak FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Policy: peserta
+CREATE POLICY "cek" ON public.peserta FOR SELECT TO public USING (true);
+CREATE POLICY "Enable insert access for all users on peserta_wajib" ON public.peserta FOR INSERT TO public WITH CHECK (true);
+CREATE POLICY "Enable all access for authenticated users on peserta_wajib" ON public.peserta FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Policy: riwayat_pertanyaan
+CREATE POLICY "insert" ON public.riwayat_pertanyaan FOR INSERT TO public WITH CHECK (true);
+CREATE POLICY "all" ON public.riwayat_pertanyaan FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Policy: team
+CREATE POLICY "Team" ON public.team FOR ALL TO public USING (true) WITH CHECK (true);
+
+-- Policy: team_members
+CREATE POLICY "Enable read access for all users on team_members" ON public.team_members FOR SELECT TO public USING (true);
+CREATE POLICY "insert" ON public.team_members FOR INSERT TO public WITH CHECK (true);
+CREATE POLICY "Enable all access for authenticated users on team_members" ON public.team_members FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Policy: trafik_kunjungan
+CREATE POLICY "insert" ON public.trafik_kunjungan FOR INSERT TO public WITH CHECK (true);
+CREATE POLICY "all" ON public.trafik_kunjungan FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Policy: tugas_materi
+CREATE POLICY "Enable read for public on tugas_materi" ON public.tugas_materi FOR SELECT TO public USING (true);
+CREATE POLICY "Enable insert for public on tugas_materi" ON public.tugas_materi FOR INSERT TO public WITH CHECK (true);
+CREATE POLICY "Enable all for authenticated on tugas_materi" ON public.tugas_materi FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- ============================================================================
+-- 5. BUCKET STORAGE & POLICIES (SESUAI LAMPIRAN STORAGE PDF)
+-- ============================================================================
+
+-- Inisialisasi Storage Buckets
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES 
+    ('bukti-bayar', 'bukti-bayar', true, 5242880, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf']),
+    ('materi-header', 'materi-header', true, 5242880, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']),
+    ('materi-pkkmb', 'materi-pkkmb', true, 10485760, ARRAY['application/pdf']),
+    ('materi-tugas', 'materi-tugas', true, 5242880, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']),
+    ('pengumpulan', 'pengumpulan', true, 10485760, NULL),
+    ('team-images', 'team-images', true, 5242880, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'])
+ON CONFLICT (id) DO UPDATE SET
+    public = EXCLUDED.public,
+    file_size_limit = EXCLUDED.file_size_limit,
+    allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+-- Storage Policies: bukti-bayar
+CREATE POLICY "Public Read bukti-bayar" ON storage.objects FOR SELECT TO public USING (bucket_id = 'bukti-bayar');
+CREATE POLICY "Public Upload bukti-bayar" ON storage.objects FOR INSERT TO public WITH CHECK (bucket_id = 'bukti-bayar');
+CREATE POLICY "Authenticated Delete bukti-bayar" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'bukti-bayar');
+
+-- Storage Policies: materi-header
+CREATE POLICY "Public Read materi-header" ON storage.objects FOR SELECT TO public USING (bucket_id = 'materi-header');
+CREATE POLICY "Public Upload materi-header" ON storage.objects FOR INSERT TO public WITH CHECK (bucket_id = 'materi-header');
+CREATE POLICY "Authenticated Update materi-header" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'materi-header');
+CREATE POLICY "Authenticated Delete materi-header" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'materi-header');
+
+-- Storage Policies: materi-pkkmb
+CREATE POLICY "Public Read materi-pkkmb" ON storage.objects FOR SELECT TO public USING (bucket_id = 'materi-pkkmb');
+CREATE POLICY "Public Upload materi-pkkmb" ON storage.objects FOR INSERT TO public WITH CHECK (bucket_id = 'materi-pkkmb');
+CREATE POLICY "Authenticated Update materi-pkkmb" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'materi-pkkmb');
+CREATE POLICY "Authenticated Delete materi-pkkmb" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'materi-pkkmb');
+
+-- Storage Policies: materi-tugas
+CREATE POLICY "Public Read materi-tugas" ON storage.objects FOR SELECT TO public USING (bucket_id = 'materi-tugas');
+CREATE POLICY "Public Upload materi-tugas" ON storage.objects FOR INSERT TO public WITH CHECK (bucket_id = 'materi-tugas');
+CREATE POLICY "Authenticated Update materi-tugas" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'materi-tugas');
+CREATE POLICY "Authenticated Delete materi-tugas" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'materi-tugas');
+
+-- Storage Policies: pengumpulan
+CREATE POLICY "uplod 1v1mai6_0" ON storage.objects FOR INSERT TO public WITH CHECK (bucket_id = 'pengumpulan');
+CREATE POLICY "all 1v1mai6_0" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'pengumpulan');
+CREATE POLICY "all 1v1mai6_1" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'pengumpulan');
+CREATE POLICY "all 1v1mai6_2" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'pengumpulan');
+CREATE POLICY "all 1v1mai6_3" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'pengumpulan');
+
+-- Storage Policies: team-images
+CREATE POLICY "Public Access" ON storage.objects FOR SELECT TO public USING (bucket_id = 'team-images');
+CREATE POLICY "Allow Uploads" ON storage.objects FOR INSERT TO public WITH CHECK (bucket_id = 'team-images');
+CREATE POLICY "Allow Updates and Deletes" ON storage.objects FOR UPDATE TO public USING (bucket_id = 'team-images');
+CREATE POLICY "Allow Deletes" ON storage.objects FOR DELETE TO public USING (bucket_id = 'team-images');
+CREATE POLICY "Public Read team-images" ON storage.objects FOR SELECT TO public USING (bucket_id = 'team-images');
+CREATE POLICY "Public Upload team-images" ON storage.objects FOR INSERT TO public WITH CHECK (bucket_id = 'team-images');
+
+-- 1. Master Account (Chart of Accounts)
+CREATE TABLE public.master_account (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    kode_id VARCHAR(20) NOT NULL UNIQUE,
+    kode_akun VARCHAR(10) NOT NULL UNIQUE,
+    nama_akun VARCHAR(255) NOT NULL,
+    akun_type VARCHAR(50) NOT NULL CHECK (akun_type IN ('Asset', 'Liability', 'Equity', 'Revenue', 'Expense')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2. Master Transaction Category
+CREATE TABLE public.master_transaction_category (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    kode_id VARCHAR(20) NOT NULL UNIQUE,
+    site site_type NOT NULL,
+    type_transaksi VARCHAR(10) NOT NULL CHECK (type_transaksi IN ('income', 'expense')),
+    nama_kategori VARCHAR(255) NOT NULL,
+    nama_sub_kategori VARCHAR(255),
+    kategori_lomba VARCHAR(255),
+    nama_lomba VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 3. Transaction Finance (Buku Besar Transaksi)
+CREATE TABLE public.transaction_finance (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    kode_id VARCHAR(20) NOT NULL UNIQUE,
+    site site_type NOT NULL,
+    nama_kampus VARCHAR(255),
+    tanggal_transaksi DATE NOT NULL DEFAULT CURRENT_DATE,
+    kategori_transaksi_id UUID REFERENCES public.master_transaction_category(id) ON DELETE SET NULL,
+    akun_pembayaran_id UUID REFERENCES public.master_account(id) ON DELETE SET NULL,
+    nama_payer VARCHAR(255),
+    kode_payer VARCHAR(255),
+    kategori_payer VARCHAR(255),
+    metode_pembayaran VARCHAR(50),
+    keterangan TEXT,
+    nominal DECIMAL(15,2) NOT NULL DEFAULT 0,
+    bukti_pembayaran VARCHAR(500),
+    created_by UUID REFERENCES public.admins(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 4. Journal Entry (Double-Entry Bookkeeping)
+CREATE TABLE public.journal_entry (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    kode_id VARCHAR(20) NOT NULL UNIQUE,
+    transaction_id UUID NOT NULL REFERENCES public.transaction_finance(id) ON DELETE CASCADE,
+    account_id UUID NOT NULL REFERENCES public.master_account(id) ON DELETE RESTRICT,
+    debit DECIMAL(15,2) NOT NULL DEFAULT 0,
+    credit DECIMAL(15,2) NOT NULL DEFAULT 0,
+    description TEXT,
+    journal_date DATE NOT NULL DEFAULT CURRENT_DATE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-
--- =============================================
--- 3. RLS POLICY (ROW LEVEL SECURITY)
--- =============================================
-
--- ==========================================
--- RLS: admins
--- ==========================================
-
--- Aktifkan Row Level Security
-ALTER TABLE public.admins ENABLE ROW LEVEL SECURITY;
-
--- SELECT
-CREATE POLICY "Enable read access for authenticated users"
-ON public.admins
-FOR SELECT
-TO authenticated
-USING (true);
-
--- INSERT
-CREATE POLICY "Enable insert for authenticated users"
-ON public.admins
-FOR INSERT
-TO authenticated
-WITH CHECK (true);
-
--- UPDATE
-CREATE POLICY "Enable update for authenticated users"
-ON public.admins
-FOR UPDATE
-TO authenticated
-USING (true)
-WITH CHECK (true);
-
--- DELETE
-CREATE POLICY "Enable delete for authenticated users"
-ON public.admins
-FOR DELETE
-TO authenticated
-USING (true);
-
--- RLS Team Members
-ALTER TABLE team_members ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Enable read access for all users on team_members" 
-ON "public"."team_members" AS PERMISSIVE FOR SELECT TO public USING (true);
-
-CREATE POLICY "Enable all access for authenticated users on team_members" 
-ON "public"."team_members" AS PERMISSIVE FOR ALL TO authenticated USING (true) WITH CHECK (true);
-
--- RLS Jadwal Pertandingan
-ALTER TABLE jadwal_pertandingan ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Enable read access for all users on jadwal_pertandingan" 
-ON "public"."jadwal_pertandingan" AS PERMISSIVE FOR SELECT TO public USING (true);
-
-CREATE POLICY "Enable all access for authenticated users on jadwal_pertandingan" 
-ON "public"."jadwal_pertandingan" AS PERMISSIVE FOR ALL TO authenticated USING (true) WITH CHECK (true);
-
-
--- =============================================
--- 4. STORAGE BUCKETS (SUPABASE STORAGE)
--- =============================================
-
--- Bucket: team-images
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES (
-    'team-images',
-    'team-images',
-    true,
-    5242880, -- 5MB
-    ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-)
-ON CONFLICT (id) DO NOTHING;
-
--- Bucket: bukti-bayar
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES (
-    'bukti-bayar',
-    'bukti-bayar',
-    true,
-    10485760, -- 10MB
-    ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf']
-)
-ON CONFLICT (id) DO NOTHING;
-
-
--- =============================================
--- 5. RLS POLICY UNTUK STORAGE BUCKETS
--- =============================================
-
--- Policy Bucket: team-images
-CREATE POLICY "Public Read team-images"
-ON storage.objects FOR SELECT TO public USING (bucket_id = 'team-images');
-
-CREATE POLICY "Public Upload team-images"
-ON storage.objects FOR INSERT TO public WITH CHECK (bucket_id = 'team-images');
-
--- Policy Bucket: bukti-bayar
-CREATE POLICY "Public Read bukti-bayar"
-ON storage.objects FOR SELECT TO public USING (bucket_id = 'bukti-bayar');
-
-CREATE POLICY "Public Upload bukti-bayar"
-ON storage.objects FOR INSERT TO public WITH CHECK (bucket_id = 'bukti-bayar');
-
-CREATE POLICY "Authenticated Delete bukti-bayar"
-ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'bukti-bayar');
-
--- Tabel form_wajib
-CREATE TABLE form_wajib (
+-- 5. Form Transaksi Pengeluaran
+CREATE TABLE public.form_transaksi_pengeluaran (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     judul VARCHAR(255) NOT NULL,
     keterangan TEXT,
+    nominal DECIMAL(15,2) NOT NULL DEFAULT 0,
+    metode_pembayaran VARCHAR(50),
+    bukti_pembayaran VARCHAR(500),
+    penanggung_jawab VARCHAR(255),
     site site_type NOT NULL,
-    link_id VARCHAR(64) NOT NULL UNIQUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabel peserta_wajib
-CREATE TABLE peserta_wajib (
+-- RLS Policies
+ALTER TABLE public.master_account ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "read_all_master_account" ON public.master_account FOR SELECT TO public USING (true);
+CREATE POLICY "auth_all_master_account" ON public.master_account FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.master_transaction_category ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "read_all_mtc" ON public.master_transaction_category FOR SELECT TO public USING (true);
+CREATE POLICY "auth_all_mtc" ON public.master_transaction_category FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.transaction_finance ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "read_all_tf" ON public.transaction_finance FOR SELECT TO authenticated USING (true);
+CREATE POLICY "auth_all_tf" ON public.transaction_finance FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.journal_entry ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "read_all_je" ON public.journal_entry FOR SELECT TO authenticated USING (true);
+CREATE POLICY "auth_all_je" ON public.journal_entry FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.form_transaksi_pengeluaran ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "read_all_ftp" ON public.form_transaksi_pengeluaran FOR SELECT TO authenticated USING (true);
+CREATE POLICY "auth_all_ftp" ON public.form_transaksi_pengeluaran FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE master_account ADD COLUMN IF NOT EXISTS site site_type;
+ALTER TABLE journal_entry ADD COLUMN IF NOT EXISTS site site_type;
+-- Tambah kolom site ke master_account (jika belum ada)
+ALTER TABLE public.master_account 
+ADD COLUMN IF NOT EXISTS site site_type;
+
+-- Update data lama agar tidak null (opsional, sesuai kebutuhan)
+-- UPDATE public.master_account SET site = 'pose' WHERE site IS NULL;
+
+-- Tambah kolom site ke journal_entry (jika belum ada)
+ALTER TABLE public.journal_entry 
+ADD COLUMN IF NOT EXISTS site site_type;
+
+-- Auto-populate site dari transaction.site via trigger atau update manual:
+UPDATE public.journal_entry je
+SET site = tf.site
+FROM public.transaction_finance tf
+WHERE je.transaction_id = tf.id
+AND je.site IS NULL;
+
+CREATE TABLE documents (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    form_id UUID REFERENCES form_wajib(id) ON DELETE CASCADE,
-    kategori VARCHAR(50) NOT NULL,
-    nama VARCHAR(255) NOT NULL,
-    kampus VARCHAR(255),
-    nim VARCHAR(50),
-    prodi VARCHAR(255),
-    angkatan VARCHAR(50),
-    email_wa VARCHAR(255),
-    bukti_bayar VARCHAR(255),
-    status_pembayaran VARCHAR(50) DEFAULT 'Pending',
+    site site_type NOT NULL,
+    document_type VARCHAR(50) NOT NULL, -- 'invoice', 'receipt', 'certificate', 'report'
+    document_code VARCHAR(50) NOT NULL UNIQUE, -- INV-2026-000001, KWT-2026-000001, dst
+    reference_id UUID,                 -- FK ke tabel terkait (transaksi_id, peserta_id, dll)
+    reference_table VARCHAR(100),      -- nama tabel referensi ('transaction_finance', 'peserta', dll)
+    printed_by VARCHAR(255),           -- email admin yang mencetak
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- RLS form_wajib
-ALTER TABLE public.form_wajib ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Enable read access for all users on form_wajib" 
-ON public.form_wajib AS PERMISSIVE FOR SELECT TO public USING (true);
-CREATE POLICY "Enable all access for authenticated users on form_wajib" 
-ON public.form_wajib AS PERMISSIVE FOR ALL TO authenticated USING (true) WITH CHECK (true);
-
--- RLS peserta_wajib
-ALTER TABLE public.peserta_wajib ENABLE ROW LEVEL SECURITY;
--- Semua orang bisa menginsert (karena form publik)
-CREATE POLICY "Enable insert access for all users on peserta_wajib" 
-ON public.peserta_wajib AS PERMISSIVE FOR INSERT TO public WITH CHECK (true);
--- Hanya admin/authenticated yang bisa read/update/delete
-CREATE POLICY "Enable all access for authenticated users on peserta_wajib" 
-ON public.peserta_wajib AS PERMISSIVE FOR ALL TO authenticated USING (true) WITH CHECK (true);
-
--- Tambah Kolom Gambar ke form_wajib
-ALTER TABLE public.form_wajib ADD COLUMN gambar VARCHAR(255);
-
--- Rename peserta_wajib to peserta
-ALTER TABLE peserta_wajib RENAME TO peserta;
-
--- Add butuh_bukti to form_register
-ALTER TABLE form_register ADD COLUMN butuh_bukti BOOLEAN DEFAULT true;
-
--- Update team_members table
-ALTER TABLE team_members RENAME COLUMN nim TO kode;
-ALTER TABLE team_members DROP COLUMN prodi;
-ALTER TABLE team_members DROP COLUMN angkatan;
-ALTER TABLE team_members DROP COLUMN email_wa;
-ALTER TABLE team_members DROP COLUMN kampus;
-
-ALTER TABLE team
-ADD COLUMN user_token uuid;
-
--- ============================================
--- 1. Tambah form_register_id ke tabel peserta
--- ============================================
-ALTER TABLE public.peserta
-    ADD COLUMN form_register_id UUID REFERENCES form_register(id) ON DELETE SET NULL;
-
--- ============================================
--- 2. Hapus status_bayar dari team_members
--- ============================================
-ALTER TABLE public.team_members
-    DROP COLUMN IF EXISTS status_bayar;
-
--- ============================================
--- 3. Buat tabel hasil_pertandingan
---    (menggabungkan skor & poin dalam satu tabel)
--- ============================================
-CREATE TABLE hasil_pertandingan (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    pertandingan_id UUID NOT NULL REFERENCES jadwal_pertandingan(id) ON DELETE CASCADE,
-    team_id UUID NOT NULL REFERENCES team(id) ON DELETE CASCADE,
-    skor INT NOT NULL DEFAULT 0,
-    menang BOOLEAN NOT NULL DEFAULT false,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(pertandingan_id, team_id)
 );
 
 -- RLS
-ALTER TABLE public.hasil_pertandingan ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Enable read for all on hasil_pertandingan"
-    ON public.hasil_pertandingan FOR SELECT TO public USING (true);
-CREATE POLICY "Enable all for authenticated on hasil_pertandingan"
-    ON public.hasil_pertandingan FOR ALL TO authenticated USING (true) WITH CHECK (true);
-
--- ============================================
--- 4. Migrasi data skor lama → hasil_pertandingan
--- ============================================
--- Skor Tim 1
-INSERT INTO hasil_pertandingan (pertandingan_id, team_id, skor, menang)
-SELECT
-    jp.id,
-    jp.team1_id,
-    COALESCE(jp.skor_team1, 0),
-    COALESCE(jp.skor_team1, 0) > COALESCE(jp.skor_team2, 0)  -- menang jika skor lebih besar
-FROM jadwal_pertandingan jp
-WHERE jp.team1_id IS NOT NULL AND jp.status = 'Selesai'
-ON CONFLICT (pertandingan_id, team_id) DO NOTHING;
-
--- Skor Tim 2
-INSERT INTO hasil_pertandingan (pertandingan_id, team_id, skor, menang)
-SELECT
-    jp.id,
-    jp.team2_id,
-    COALESCE(jp.skor_team2, 0),
-    COALESCE(jp.skor_team2, 0) > COALESCE(jp.skor_team1, 0)
-FROM jadwal_pertandingan jp
-WHERE jp.team2_id IS NOT NULL AND jp.status = 'Selesai'
-ON CONFLICT (pertandingan_id, team_id) DO NOTHING;
-
--- ============================================
--- 5. Hapus kolom lama setelah migrasi berhasil
--- ============================================
-ALTER TABLE public.jadwal_pertandingan
-    DROP COLUMN IF EXISTS skor_team1,
-    DROP COLUMN IF EXISTS skor_team2;
-
-ALTER TABLE public.team
-    DROP COLUMN IF EXISTS poin1,
-    DROP COLUMN IF EXISTS poin2,
-    DROP COLUMN IF EXISTS poin3,
-    DROP COLUMN IF EXISTS poin4,
-    DROP COLUMN IF EXISTS poin5;
-
-
--- Hapus FK constraint form_id → form_wajib
-ALTER TABLE public.peserta DROP CONSTRAINT IF EXISTS peserta_form_id_fkey;
-ALTER TABLE public.peserta DROP CONSTRAINT IF EXISTS peserta_wajib_form_id_fkey;
-
--- Hapus FK constraint form_register_id → form_register
-ALTER TABLE public.peserta DROP CONSTRAINT IF EXISTS peserta_form_register_id_fkey;
-
-ALTER TABLE peserta
-DROP COLUMN IF EXISTS form_id,
-DROP COLUMN IF EXISTS form_register_id;
-
-ALTER TABLE peserta
-ADD COLUMN jenis_form VARCHAR(10);
-
-ALTER TABLE form_register
-ADD COLUMN nominal INT;
-ALTER TABLE form_wajib
-ADD COLUMN nominal INT;
-
-ALTER TABLE peserta
-ADD COLUMN IF NOT EXISTS metode_pembayaran VARCHAR(10);
-ALTER TABLE peserta
-ADD COLUMN IF NOT EXISTS metode_pembayaran VARCHAR(10);
-
-ALTER TABLE admins 
-ADD COLUMN qrcode VARCHAR(64) UNIQUE DEFAULT null,
-ADD COLUMN limit_login BOOLEAN DEFAULT False,
-ADD COLUMN failed_attempts INT DEFAULT 0,
-ADD COLUMN lockout_until TIMESTAMP WITH TIME ZONE,
-ADD COLUMN first_failed_at TIMESTAMP WITH TIME ZONE;
-
-CREATE TABLE audit_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    admin_id UUID, -- Optional, if you track which admin did it
-    admin_email VARCHAR(255),
-    action VARCHAR(255) NOT NULL,
-    target_id UUID,
-    details TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-
-ALTER TABLE peserta
-ADD COLUMN IF NOT EXISTS semester int4;
-ADD kategori_pendaftar VARCHAR(255) DEFAULT 'Mahasiswa LP3I,Siswa,Dosen,Umum';
-
-ALTER TABLE public.form_register ADD COLUMN site site_type;
--- Update data lama agar tidak null
-UPDATE public.form_register SET site = 'pose' WHERE site IS NULL;
-ALTER TABLE public.form_register ALTER COLUMN site SET NOT NULL;
-
-ALTER TABLE team
-ADD CONSTRAINT unique_title_team UNIQUE (title);
-
-ALTER TABLE peserta
-ADD COLUMN IF NOT EXISTS kode_form varchar(10);
-ALTER TABLE form_register
-ADD COLUMN IF NOT EXISTS kode_form varchar(10) Unique;
-ALTER TABLE form_wajib
-ADD COLUMN IF NOT EXISTS kode_form varchar(10) Unique;
-ALTER TABLE team
-ADD COLUMN IF NOT EXISTS kode_form varchar(10) Unique;
-
-CREATE TABLE form_pengumpulan(
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    form_id UUID NOT NULL REFERENCES form_register(id) ON DELETE CASCADE,
-    link_id VARCHAR(64) NOT NULL UNIQUE,
-    status BOOLEAN DEFAULT False,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE TABLE pengumpulan_lomba(
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    form_id UUID NOT NULL REFERENCES form_pengumpulan(id) ON DELETE CASCADE,
-    team_id UUID NOT NULL REFERENCES team(id) ON DELETE CASCADE,
-    keterangan TEXT DEFAULT null,
-    file_link VARCHAR(255) NOT NULL,
-    status_pengumpulan BOOLEAN DEFAULT False,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+ALTER TABLE public.documents ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Enable read for all on documents" 
+    ON public.documents FOR SELECT TO public USING (true);
+CREATE POLICY "Enable all for authenticated on documents" 
+    ON public.documents FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 ```
 
@@ -500,16 +588,21 @@ CREATE TABLE pengumpulan_lomba(
 
 ### C. Struktur Folder Project Eksisting
 ```C:\Users\samba\OneDrive\Documents\PKKMB-POSE\portal-kampus-2026
+├── AGENTS.md
 ├── .env.local
 ├── src/
 │   ├── proxy.js
 │   ├── api/
+│   │   ├── finance/
+│   │   │   └── pdf/
+│   │   │       └── route.js
 │   │   ├── supabase/
 │   │   │   ├── admin/
 │   │   │   │   ├── admin.js
 │   │   │   │   ├── audit.js
 │   │   │   │   ├── auth.js
 │   │   │   │   ├── berita.js
+│   │   │   │   ├── finance.js
 │   │   │   │   ├── jadwal.js
 │   │   │   │   ├── materi.js
 │   │   │   │   ├── peserta.js
@@ -552,7 +645,25 @@ CREATE TABLE pengumpulan_lomba(
 │   │   │   │   └── form/
 │   │   │   │       └── page.js
 │   │   │   ├── keuangan/
+│   │   │   │   ├── buku-besar/
+│   │   │   │   │   └── page.js
 │   │   │   │   ├── dashboard/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── jurnal-entry/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── kas-keluar/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── kas-masuk/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── laporan/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── master-akuntansi/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── master-transaksi/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── neraca-saldo/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── transaksi/
 │   │   │   │   │   └── page.js
 │   │   │   │   └── verifikasi/
 │   │   │   │       └── page.js
@@ -612,6 +723,9 @@ CREATE TABLE pengumpulan_lomba(
 │   │   │   ├── materi/
 │   │   │   │   └── [id]
 │   │   │   │       └── page.js
+│   │   │   ├── pdf/
+│   │   │   │   └── [id]
+│   │   │   │       └── page.js
 │   │   │   └── pemberitahuan/
 │   │   │       └── page.js
 │   │   └── pose/
@@ -624,6 +738,9 @@ CREATE TABLE pengumpulan_lomba(
 │   │       │       └── page.js
 │   │       ├── jadwal/
 │   │       │   └── page.js
+│   │       ├── pdf/
+│   │       │   └── [id]
+│   │       │       └── page.js
 │   │       ├── pemberitahuan/
 │   │       │   └── page.js
 │   │       ├── register/
@@ -634,6 +751,26 @@ CREATE TABLE pengumpulan_lomba(
 │   │       │       └── page.js
 │   │       └── team/
 │   │           └── page.js
+│   ├── assets/
+│   │   ├── logo_pkkmb/
+│   │   │   ├── icon-logo.png
+│   │   │   ├── logo.png
+│   │   │   ├── pecah-gelombang handap lagu.png
+│   │   │   ├── pecah-lagu.png
+│   │   │   ├── pecah-matahari.png
+│   │   │   ├── pecah-motif.png
+│   │   │   └── pecah-titik+gelombang.png
+│   │   ├── logo_pose/
+│   │   │   ├── icon-logo.png
+│   │   │   ├── icon-logo2.png
+│   │   │   ├── logo.png
+│   │   │   └── maskot.png
+│   │   ├── icon-poltek.png
+│   │   ├── logopkkmb.png
+│   │   ├── logopoltek.png
+│   │   ├── logopose.jpg
+│   │   ├── maskotpkkmb.png
+│   │   └── maskotpose.png
 │   ├── components/
 │   │   ├── ContactForm.js
 │   │   ├── ClientTracker.js
@@ -654,6 +791,27 @@ CREATE TABLE pengumpulan_lomba(
 │   │   │   ├── SiteBackground.js
 │   │   │   └── WaveDivider.js
 │   │   └── panitia/
+│   │       ├── finance/
+│   │       │   ├── BuktiPreviewModal.js
+│   │       │   ├── BukuBesarTable.js
+│   │       │   ├── ExportExcelButton.js
+│   │       │   ├── InvoicePrintButton.js
+│   │       │   ├── JurnalEntryTable.js
+│   │       │   ├── KasKeluarTable.js
+│   │       │   ├── KasMasukTable.js
+│   │       │   ├── KwitansiPrintButton.js
+│   │       │   ├── LaporanKeuangan.js
+│   │       │   ├── MasterAkunFormModal.js
+│   │       │   ├── MasterAkunTable.js
+│   │       │   ├── MasterKategoriFormModal.js
+│   │       │   ├── MasterKategoriTable.js
+│   │       │   ├── NeracaLajurTable.js
+│   │       │   ├── NeracaSaldoTable.js
+│   │       │   ├── PemasukanFormModal.js
+│   │       │   ├── PengeluaranFormModal.js
+│   │       │   ├── PrintPDFButton.js
+│   │       │   ├── TransaksiDetailModal.js
+│   │       │   └── TransaksiTable.js
 │   │       ├── AdminFormPengumpulan.js
 │   │       ├── AdminFormRegister.js
 │   │       ├── AdminFormWajib.js
@@ -681,6 +839,15 @@ CREATE TABLE pengumpulan_lomba(
 │   │   └── openai/
 │   │
 │   └── lib/
+│       ├── excel/
+│       │   └── xlsx.js
+│       ├── pdf/
+│       │   ├── certificate.js
+│       │   ├── invoice.js
+│       │   ├── report.js
+│       │   └── template.jsjs
+│       ├── qr/
+│       │   └── qrcode.js
 │       ├── adminRoleData.js
 │       ├── dashboardUtils.js
 │       ├── faqData.js
