@@ -5,7 +5,7 @@ import { checkAdminAuth, insertAuditLog } from './audit';
 
 export const getFormPengumpulan = async () => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         const { data, error } = await supabaseAdmin
@@ -26,7 +26,7 @@ export const getFormPengumpulan = async () => {
 
 export const upsertFormPengumpulan = async (payload, id = null) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!payload) throw new Error('Payload is required');
@@ -39,7 +39,7 @@ export const upsertFormPengumpulan = async (payload, id = null) => {
                 .select()
                 .single();
             if (error) throw error;
-            await insertAuditLog(user.email, 'UPSERT_FORM_PENGUMPULAN', id, `Updated form pengumpulan`);
+            await insertAuditLog(user.email, 'UPSERT_FORM_PENGUMPULAN', id, `Updated form pengumpulan`, adminNama);
             return { success: true, data };
         } else {
             const { data, error } = await supabaseAdmin
@@ -48,7 +48,7 @@ export const upsertFormPengumpulan = async (payload, id = null) => {
                 .select()
                 .single();
             if (error) throw error;
-            await insertAuditLog(user.email, 'UPSERT_FORM_PENGUMPULAN', data.id, `Created new form pengumpulan`);
+            await insertAuditLog(user.email, 'UPSERT_FORM_PENGUMPULAN', data.id, `Created new form pengumpulan`, adminNama);
             return { success: true, data };
         }
     } catch (error) {
@@ -59,7 +59,7 @@ export const upsertFormPengumpulan = async (payload, id = null) => {
 
 export const deleteFormPengumpulan = async (id) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!id) throw new Error('ID is required');
@@ -70,7 +70,7 @@ export const deleteFormPengumpulan = async (id) => {
             .eq('id', id);
 
         if (error) throw error;
-        await insertAuditLog(user.email, 'DELETE_FORM_PENGUMPULAN', id, `Deleted form pengumpulan`);
+        await insertAuditLog(user.email, 'DELETE_FORM_PENGUMPULAN', id, `Deleted form pengumpulan`, adminNama);
         return { success: true };
     } catch (error) {
         console.error("Internal Log - Error deleting form pengumpulan:", error);
@@ -80,7 +80,7 @@ export const deleteFormPengumpulan = async (id) => {
 
 export const getPengumpulanLomba = async () => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         const { data, error } = await supabaseAdmin
@@ -102,7 +102,7 @@ export const getPengumpulanLomba = async () => {
 
 export const updateStatusPengumpulan = async (id, status_pengumpulan) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!id) throw new Error('ID is required');
@@ -113,8 +113,8 @@ export const updateStatusPengumpulan = async (id, status_pengumpulan) => {
             .eq('id', id);
 
         if (error) throw error;
-        
-        await insertAuditLog(user.email, 'UPDATE_STATUS_PENGUMPULAN', id, `Status updated to ${status_pengumpulan}`);
+
+        await insertAuditLog(user.email, 'UPDATE_STATUS_PENGUMPULAN', id, `Status updated to ${status_pengumpulan}`, adminNama);
 
         return { success: true };
     } catch (error) {

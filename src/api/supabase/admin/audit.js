@@ -48,18 +48,18 @@ export const checkAdminAuth = async () => {
         // Check jika user ada di tabel admins
         const { data: adminData, error: adminError } = await supabaseAdmin
             .from('admins')
-            .select('id, role')
+            .select('id, role, nama')
             .eq('user_id', user.id)
             .single();
 
         if (adminError || !adminData) {
-            return { user: null, error: 'Unauthorized access: Not an admin' };
+            return { user: null, adminNama: null, error: 'Unauthorized access: Not an admin' };
         }
 
-        return { user, error: null };
+        return { user, adminNama: adminData.nama, error: null };
     } catch (error) {
         console.error("Auth Check Error:", error);
-        return { user: null, error: 'Internal server error during auth check' };
+        return { user: null, adminNama: null, error: 'Internal server error during auth check' };
     }
 };
 
@@ -69,12 +69,14 @@ export const checkAdminAuth = async () => {
  * @param {string} action - Describe the action (e.g., 'UPDATE_STATUS_PEMBAYARAN').
  * @param {string} targetId - ID of the affected row.
  * @param {string} details - Additional details (e.g., 'Status changed from Pending to Lunas').
+ * @param {string} [adminNama] - Nama of the admin performing the action.
  */
-export const insertAuditLog = async (adminEmail, action, targetId, details) => {
+export const insertAuditLog = async (adminEmail, action, targetId, details, adminNama = null) => {
     try {
         await supabaseAdmin.from('audit_logs').insert([
             {
                 admin_email: adminEmail,
+                admin_nama: adminNama,
                 action,
                 target_id: targetId,
                 details

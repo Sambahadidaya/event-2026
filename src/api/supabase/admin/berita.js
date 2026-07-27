@@ -5,7 +5,7 @@ import { checkAdminAuth, insertAuditLog } from './audit';
 
 export const upsertBerita = async (payload, id = null) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!payload) throw new Error('Payload is required');
@@ -22,7 +22,7 @@ export const upsertBerita = async (payload, id = null) => {
                 .insert([payload]);
             if (error) throw error;
         }
-        await insertAuditLog(user.email, id ? 'UPDATE_BERITA' : 'CREATE_BERITA', id, `Berita ${id ? 'updated' : 'created'}`);
+        await insertAuditLog(user.email, id ? 'UPDATE_BERITA' : 'CREATE_BERITA', id, `Berita ${id ? 'updated' : 'created'}`, adminNama);
         return { success: true };
     } catch (error) {
         console.error("Internal Log - Error upserting berita:", error);
@@ -32,7 +32,7 @@ export const upsertBerita = async (payload, id = null) => {
 
 export const deleteBerita = async (id) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!id) throw new Error('ID is required');
@@ -43,7 +43,7 @@ export const deleteBerita = async (id) => {
             .eq('id', id);
 
         if (error) throw error;
-        await insertAuditLog(user.email, 'DELETE_BERITA', id, `Berita deleted`);
+        await insertAuditLog(user.email, 'DELETE_BERITA', id, `Berita deleted`, adminNama);
         return { success: true };
     } catch (error) {
         console.error("Internal Log - Error deleting berita:", error);
@@ -53,7 +53,7 @@ export const deleteBerita = async (id) => {
 
 export const deleteMultipleBerita = async (ids) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!ids || !Array.isArray(ids)) throw new Error('IDs array is required');
@@ -64,7 +64,7 @@ export const deleteMultipleBerita = async (ids) => {
             .in('id', ids);
 
         if (error) throw error;
-        await insertAuditLog(user.email, 'DELETE_MULTIPLE_BERITA', null, `Deleted ${ids.length} berita`);
+        await insertAuditLog(user.email, 'DELETE_MULTIPLE_BERITA', null, `Deleted ${ids.length} berita`, adminNama);
         return { success: true };
     } catch (error) {
         console.error("Internal Log - Error deleting multiple berita:", error);

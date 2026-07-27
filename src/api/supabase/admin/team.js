@@ -5,7 +5,7 @@ import { checkAdminAuth, insertAuditLog } from './audit';
 
 export const upsertTeam = async (teamPayload, membersPayload, editingId = null) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!teamPayload) throw new Error('Team payload is required');
@@ -17,7 +17,7 @@ export const upsertTeam = async (teamPayload, membersPayload, editingId = null) 
                 .from('team')
                 .update(teamPayload)
                 .eq('id', editingId);
-            
+
             if (updateError) throw updateError;
         } else {
             const { data: newTeam, error: insertError } = await supabaseAdmin
@@ -25,7 +25,7 @@ export const upsertTeam = async (teamPayload, membersPayload, editingId = null) 
                 .insert([teamPayload])
                 .select()
                 .single();
-                
+
             if (insertError) throw insertError;
             currentTeamId = newTeam.id;
         }
@@ -39,7 +39,7 @@ export const upsertTeam = async (teamPayload, membersPayload, editingId = null) 
             if (memberError) throw memberError;
         }
 
-        await insertAuditLog(user.email, editingId ? 'UPDATE_TEAM' : 'CREATE_TEAM', currentTeamId, `Team ${editingId ? 'updated' : 'created'}`);
+        await insertAuditLog(user.email, editingId ? 'UPDATE_TEAM' : 'CREATE_TEAM', currentTeamId, `Team ${editingId ? 'updated' : 'created'}`, adminNama);
         return { success: true };
     } catch (error) {
         console.error("Internal Log - Error upserting team:", error);
@@ -49,7 +49,7 @@ export const upsertTeam = async (teamPayload, membersPayload, editingId = null) 
 
 export const deleteTeam = async (id) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!id) throw new Error('Team ID is required');
@@ -60,7 +60,7 @@ export const deleteTeam = async (id) => {
             .eq('id', id);
 
         if (error) throw error;
-        await insertAuditLog(user.email, 'DELETE_TEAM', id, `Team deleted`);
+        await insertAuditLog(user.email, 'DELETE_TEAM', id, `Team deleted`, adminNama);
         return { success: true };
     } catch (error) {
         console.error("Internal Log - Error deleting team:", error);
@@ -70,7 +70,7 @@ export const deleteTeam = async (id) => {
 
 export const deleteMultipleTeams = async (ids) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!ids || !Array.isArray(ids)) throw new Error('Team IDs array is required');
@@ -81,7 +81,7 @@ export const deleteMultipleTeams = async (ids) => {
             .in('id', ids);
 
         if (error) throw error;
-        await insertAuditLog(user.email, 'DELETE_MULTIPLE_TEAMS', null, `Deleted ${ids.length} teams`);
+        await insertAuditLog(user.email, 'DELETE_MULTIPLE_TEAMS', null, `Deleted ${ids.length} teams`, adminNama);
         return { success: true };
     } catch (error) {
         console.error("Internal Log - Error deleting multiple teams:", error);

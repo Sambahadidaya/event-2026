@@ -76,7 +76,7 @@ export async function generateQRCodeBase64(text, site = 'pose') {
  * @returns {string} Public verification URL
  */
 export function generateVerifyUrl(site = 'pose', documentId = '') {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://kampus.samba.my.id';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://event.plb.ac.id/';
     const sitePath = site === 'pkkmb' ? 'pkkmb' : 'pose';
     return `${baseUrl}/${sitePath}/pdf/${documentId}`;
 }

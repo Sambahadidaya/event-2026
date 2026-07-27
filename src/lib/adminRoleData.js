@@ -152,6 +152,23 @@ export const getLombaFilter = (role) => {
 };
 
 /**
+ * Format role key into a user-friendly label
+ */
+const formatRoleLabel = (roleKey) => {
+  if (roleKey === 'super_admin') return 'Super Admin';
+  if (LOMBA_ROLE_MAP[roleKey]) return `PJ ${LOMBA_ROLE_MAP[roleKey]}`;
+  return roleKey
+    .split('_')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+};
+
+export const ALL_ROLES = Object.keys(rolePermissions).map(roleKey => ({
+  value: roleKey,
+  label: formatRoleLabel(roleKey),
+}));
+
+/**
  * Export role map for reference
  */
 export { LOMBA_ROLE_MAP };

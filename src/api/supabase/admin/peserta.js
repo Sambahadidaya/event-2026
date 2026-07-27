@@ -6,7 +6,7 @@ import { autoCreateTransactionFromPeserta, autoDeleteTransactionFromPeserta } fr
 
 export const getPeserta = async (siteType) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         const { data, error } = await supabaseAdmin
@@ -25,7 +25,7 @@ export const getPeserta = async (siteType) => {
 
 export const getPesertaKeuangan = async (siteType) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         let query = supabaseAdmin
@@ -51,7 +51,7 @@ export const getPesertaKeuangan = async (siteType) => {
 
 export const updateStatusPembayaranPeserta = async (id, status) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!id || !status) throw new Error('ID and Status are required');
@@ -79,8 +79,8 @@ export const updateStatusPembayaranPeserta = async (id, status) => {
         } else {
             await autoDeleteTransactionFromPeserta(updatedPeserta);
         }
-        
-        await insertAuditLog(user.email, 'UPDATE_STATUS_PEMBAYARAN_PESERTA', id, `Status updated to ${status}`);
+
+        await insertAuditLog(user.email, 'UPDATE_STATUS_PEMBAYARAN_PESERTA', id, `Status updated to ${status}`, adminNama);
 
         return { success: true };
     } catch (error) {
@@ -91,7 +91,7 @@ export const updateStatusPembayaranPeserta = async (id, status) => {
 
 export const deletePeserta = async (id) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!id) throw new Error('ID is required');
@@ -113,8 +113,8 @@ export const deletePeserta = async (id) => {
             .eq('id', id);
 
         if (error) throw error;
-        
-        await insertAuditLog(user.email, 'DELETE_PESERTA', id, `Peserta deleted`);
+
+        await insertAuditLog(user.email, 'DELETE_PESERTA', id, `Peserta deleted`, adminNama);
 
         return { success: true };
     } catch (error) {
@@ -125,7 +125,7 @@ export const deletePeserta = async (id) => {
 
 export const deleteMultiplePeserta = async (ids) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!ids || !Array.isArray(ids)) throw new Error('IDs array is required');
@@ -148,8 +148,8 @@ export const deleteMultiplePeserta = async (ids) => {
             .in('id', ids);
 
         if (error) throw error;
-        
-        await insertAuditLog(user.email, 'DELETE_MULTIPLE_PESERTA', null, `Deleted IDs: ${ids.join(', ')}`);
+
+        await insertAuditLog(user.email, 'DELETE_MULTIPLE_PESERTA', null, `Deleted IDs: ${ids.join(', ')}`, adminNama);
 
         return { success: true };
     } catch (error) {
@@ -162,7 +162,7 @@ export const deleteMultiplePeserta = async (ids) => {
 
 export const upsertFormWajib = async (payload, id = null) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!payload) throw new Error('Payload is required');
@@ -175,7 +175,7 @@ export const upsertFormWajib = async (payload, id = null) => {
                 .select()
                 .single();
             if (error) throw error;
-            await insertAuditLog(user.email, 'UPSERT_FORM_WAJIB', id, `Updated form wajib`);
+            await insertAuditLog(user.email, 'UPSERT_FORM_WAJIB', id, `Updated form wajib`, adminNama);
             return { success: true, data };
         } else {
             const { data, error } = await supabaseAdmin
@@ -184,7 +184,7 @@ export const upsertFormWajib = async (payload, id = null) => {
                 .select()
                 .single();
             if (error) throw error;
-            await insertAuditLog(user.email, 'UPSERT_FORM_WAJIB', data.id, `Created new form wajib`);
+            await insertAuditLog(user.email, 'UPSERT_FORM_WAJIB', data.id, `Created new form wajib`, adminNama);
             return { success: true, data };
         }
     } catch (error) {
@@ -195,7 +195,7 @@ export const upsertFormWajib = async (payload, id = null) => {
 
 export const deleteFormWajib = async (id) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!id) throw new Error('ID is required');
@@ -206,7 +206,7 @@ export const deleteFormWajib = async (id) => {
             .eq('id', id);
 
         if (error) throw error;
-        await insertAuditLog(user.email, 'DELETE_FORM_WAJIB', id, `Deleted form wajib`);
+        await insertAuditLog(user.email, 'DELETE_FORM_WAJIB', id, `Deleted form wajib`, adminNama);
         return { success: true };
     } catch (error) {
         console.error("Internal Log - Error deleting form wajib:", error);
@@ -218,7 +218,7 @@ export const deleteFormWajib = async (id) => {
 
 export const upsertFormRegister = async (payload, id = null) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!payload) throw new Error('Payload is required');
@@ -231,7 +231,7 @@ export const upsertFormRegister = async (payload, id = null) => {
                 .select()
                 .single();
             if (error) throw error;
-            await insertAuditLog(user.email, 'UPSERT_FORM_REGISTER', id, `Updated form register`);
+            await insertAuditLog(user.email, 'UPSERT_FORM_REGISTER', id, `Updated form register`, adminNama);
             return { success: true, data };
         } else {
             const { data, error } = await supabaseAdmin
@@ -240,7 +240,7 @@ export const upsertFormRegister = async (payload, id = null) => {
                 .select()
                 .single();
             if (error) throw error;
-            await insertAuditLog(user.email, 'UPSERT_FORM_REGISTER', data.id, `Created new form register`);
+            await insertAuditLog(user.email, 'UPSERT_FORM_REGISTER', data.id, `Created new form register`, adminNama);
             return { success: true, data };
         }
     } catch (error) {
@@ -251,7 +251,7 @@ export const upsertFormRegister = async (payload, id = null) => {
 
 export const deleteFormRegister = async (id) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!id) throw new Error('ID is required');
@@ -262,7 +262,7 @@ export const deleteFormRegister = async (id) => {
             .eq('id', id);
 
         if (error) throw error;
-        await insertAuditLog(user.email, 'DELETE_FORM_REGISTER', id, `Deleted form register`);
+        await insertAuditLog(user.email, 'DELETE_FORM_REGISTER', id, `Deleted form register`, adminNama);
         return { success: true };
     } catch (error) {
         console.error("Internal Log - Error deleting form register:", error);
@@ -274,7 +274,7 @@ export const deleteFormRegister = async (id) => {
 
 export const getPesertaLunas = async (siteType) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         let query = supabaseAdmin
@@ -299,7 +299,7 @@ export const getPesertaLunas = async (siteType) => {
 
 export const getFormWajibAll = async () => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         const { data, error } = await supabaseAdmin
@@ -316,7 +316,7 @@ export const getFormWajibAll = async () => {
 
 export const getFormRegisterAll = async () => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         const { data, error } = await supabaseAdmin

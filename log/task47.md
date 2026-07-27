@@ -1,2 +1,7 @@
-ALTER TABLE peserta 
-ADD COLUMN IF NOT EXISTS status_transaksi BOOLEAN DEFAULT false;
+fokus ke halaman admin yaitu tepatnya pada src/app/panitia/admin/status/page.js,
+saya ingin ada kolom baru yaitu untuk menunjukan apakah akun itu sudah diblokir atau belum yang datanya diambil dari tabel admins kolom limit_login, jika kolom limit_login itu false maka tidak diblokir dan jika true maka diblokir.
+terus saya ingin menambahkan kolom lagi yaitu untuk melihat akun itu sudah berapa kali gagal yang datanya diambil dari kolom failed_attempts.
+terus dikolom aksi itu saya ingin ada tombol lagi yaitu untuk mengedit akun itu tapi untuk email dan password tidak bisa diedit (disable kolom email dan passwordnya), terus jika saat diedit kolom limit_login itu false maka otomatis failed_attempts nya juga menjadi 0 terus kolom lockout_untilnya null dan first_failed_atnya juga null.
+terus saya ingin untuk status itukan dihitungnya berdasarkan tidak aktif 5 menit yang jika tidak aktif dalam 5 menit maka otomatis keluar, nah saya ingin kolom is_online didatabase juga false karna kolom is_online itu menunjukan jika true maka online dan jika false maka ofline.
+terus saya ingin saat mengedit role itu berupa pencarian tapi dropdown yang datanya saya ingin diatur atau dimaintenance dari adminRoleData.js
+terus untuk tombol refersh saya ingin dibawah teks refreshnya ada waktu kapan terakhir refresh.

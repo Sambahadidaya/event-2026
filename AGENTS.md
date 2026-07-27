@@ -582,6 +582,8 @@ CREATE POLICY "Enable read for all on documents"
 CREATE POLICY "Enable all for authenticated on documents" 
     ON public.documents FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
+ALTER TABLE audit_logs
+ADD COLUMN admin_nama VARCHAR(100);
 ```
 
 ---

@@ -43,7 +43,8 @@ ${faqContext}
 ATURAN PENTING:
 1. Jika pertanyaan user BERKAITAN dengan topik di data referensi FAQ, jawab berdasarkan informasi tersebut tapi JANGAN copy-paste — sampaikan dengan bahasamu sendiri yang natural dan santai.
 2. Jika pertanyaan user TIDAK BERKAITAN sama sekali dengan ${siteName} atau topik kampus (misalnya soal cuaca, politik, coding, dll), jawab dengan sopan bahwa kamu tidak bisa membantu dan hanya bisa membantu seputar ${siteName} dan arahkan user ke menu Kontak jika butuh bantuan lebih lanjut.
-3. Tambahkan "[FAQ_MATCH]" di AKHIR jawabanmu jika pertanyaan berkaitan dengan data FAQ. Tambahkan "[NOT_FAQ]" di akhir jika tidak berkaitan. Tag ini WAJIB ada di setiap jawaban.`;
+3. Tambahkan "[FAQ_MATCH]" di AKHIR jawabanmu jika pertanyaan berkaitan dengan data FAQ. Tambahkan "[NOT_FAQ]" di akhir jika tidak berkaitan. Tag ini WAJIB ada di setiap jawaban.
+`;
 
         // Menyimpan logic dummy dari task33 yang menampilkan log di server console
         const {

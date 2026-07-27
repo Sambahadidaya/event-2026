@@ -25,7 +25,7 @@ export const getAdmins = async () => {
 
 export const addAdmin = async (payload) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!payload) throw new Error('Payload is required');
@@ -52,7 +52,7 @@ export const addAdmin = async (payload) => {
             throw error;
         }
 
-        await insertAuditLog(user.email, 'ADD_ADMIN', null, `Added admin: ${payload.email}`);
+        await insertAuditLog(user.email, 'ADD_ADMIN', null, `Added admin: ${payload.email}`, adminNama);
         return { success: true };
     } catch (error) {
         console.error("Internal Log - Error adding admin:", error);
@@ -60,9 +60,43 @@ export const addAdmin = async (payload) => {
     }
 };
 
+export const updateAdmin = async (id, payload) => {
+    try {
+        const { user, adminNama, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        if (!id) throw new Error('ID is required');
+
+        const updateData = {
+            nama: payload.nama,
+            role: payload.role,
+            limit_login: payload.limit_login
+        };
+
+        if (payload.limit_login === false) {
+            updateData.failed_attempts = 0;
+            updateData.lockout_until = null;
+            updateData.first_failed_at = null;
+        }
+
+        const { error } = await supabaseAdmin
+            .from('admins')
+            .update(updateData)
+            .eq('id', id);
+
+        if (error) throw error;
+
+        await insertAuditLog(user.email, 'UPDATE_ADMIN', id, `Updated admin: ${payload.nama}`, adminNama);
+        return { success: true };
+    } catch (error) {
+        console.error("Internal Log - Error updating admin:", error);
+        return { success: false, error: 'Terjadi kesalahan internal pada server.' };
+    }
+};
+
 export const deleteAdmin = async (id) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!id) throw new Error('ID is required');
@@ -73,7 +107,7 @@ export const deleteAdmin = async (id) => {
             .eq('id', id);
 
         if (error) throw error;
-        await insertAuditLog(user.email, 'DELETE_ADMIN', id, `Admin deleted`);
+        await insertAuditLog(user.email, 'DELETE_ADMIN', id, `Admin deleted`, adminNama);
         return { success: true };
     } catch (error) {
         console.error("Internal Log - Error deleting admin:", error);
@@ -137,7 +171,7 @@ export const getKontak = async () => {
 
 export const updateKontakJawab = async (id, jawabStatus) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
          if (!id) throw new Error('ID is required');
@@ -147,7 +181,7 @@ export const updateKontakJawab = async (id, jawabStatus) => {
             .eq('id', id);
             
          if (error) throw error;
-         await insertAuditLog(user.email, 'UPDATE_KONTAK_JAWAB', id, `Kontak jawab updated to ${jawabStatus}`);
+         await insertAuditLog(user.email, 'UPDATE_KONTAK_JAWAB', id, `Kontak jawab updated to ${jawabStatus}`, adminNama);
          return { success: true };
     } catch (error) {
          console.error("Internal Log - Error updating kontak:", error);
@@ -157,7 +191,7 @@ export const updateKontakJawab = async (id, jawabStatus) => {
 
 export const deleteMultipleKontak = async (ids) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!ids || !Array.isArray(ids)) throw new Error('IDs array is required');
@@ -168,7 +202,7 @@ export const deleteMultipleKontak = async (ids) => {
             .in('id', ids);
 
         if (error) throw error;
-        await insertAuditLog(user.email, 'DELETE_MULTIPLE_KONTAK', null, `Deleted ${ids.length} kontak`);
+        await insertAuditLog(user.email, 'DELETE_MULTIPLE_KONTAK', null, `Deleted ${ids.length} kontak`, adminNama);
         return { success: true };
     } catch (error) {
         console.error("Internal Log - Error deleting multiple kontak:", error);
@@ -199,7 +233,7 @@ export const getTrafik = async (isoDateStart) => {
 
 export const deleteMultipleTrafik = async (ids) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!ids || !Array.isArray(ids)) throw new Error('IDs array is required');
@@ -210,7 +244,7 @@ export const deleteMultipleTrafik = async (ids) => {
             .in('id', ids);
 
         if (error) throw error;
-        await insertAuditLog(user.email, 'DELETE_MULTIPLE_TRAFIK', null, `Deleted ${ids.length} trafik`);
+        await insertAuditLog(user.email, 'DELETE_MULTIPLE_TRAFIK', null, `Deleted ${ids.length} trafik`, adminNama);
         return { success: true };
     } catch (error) {
         console.error("Internal Log - Error deleting multiple trafik:", error);
@@ -240,7 +274,7 @@ export const getRiwayatPertanyaan = async () => {
 
 export const deleteMultipleRiwayat = async (ids) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!ids || !Array.isArray(ids)) throw new Error('IDs array is required');
@@ -251,7 +285,7 @@ export const deleteMultipleRiwayat = async (ids) => {
             .in('id', ids);
 
         if (error) throw error;
-        await insertAuditLog(user.email, 'DELETE_MULTIPLE_RIWAYAT', null, `Deleted ${ids.length} riwayat`);
+        await insertAuditLog(user.email, 'DELETE_MULTIPLE_RIWAYAT', null, `Deleted ${ids.length} riwayat`, adminNama);
         return { success: true };
     } catch (error) {
         console.error("Internal Log - Error deleting multiple riwayat:", error);

@@ -5,7 +5,7 @@ import { checkAdminAuth, insertAuditLog } from './audit';
 
 export const upsertJadwalPertandingan = async (payload, id = null) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!payload) throw new Error('Payload is required');
@@ -22,7 +22,7 @@ export const upsertJadwalPertandingan = async (payload, id = null) => {
                 .insert([payload]);
             if (error) throw error;
         }
-        await insertAuditLog(user.email, id ? 'UPDATE_JADWAL_PERTANDINGAN' : 'CREATE_JADWAL_PERTANDINGAN', id, `Jadwal pertandingan ${id ? 'updated' : 'created'}`);
+        await insertAuditLog(user.email, id ? 'UPDATE_JADWAL_PERTANDINGAN' : 'CREATE_JADWAL_PERTANDINGAN', id, `Jadwal pertandingan ${id ? 'updated' : 'created'}`, adminNama);
         return { success: true };
     } catch (error) {
         console.error("Internal Log - Error upserting jadwal pertandingan:", error);
@@ -32,7 +32,7 @@ export const upsertJadwalPertandingan = async (payload, id = null) => {
 
 export const upsertHasilPertandingan = async (hasilArray) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!hasilArray || !Array.isArray(hasilArray)) {
@@ -44,7 +44,7 @@ export const upsertHasilPertandingan = async (hasilArray) => {
             .upsert(hasilArray);
 
         if (error) throw error;
-        await insertAuditLog(user.email, 'UPSERT_HASIL_PERTANDINGAN', null, `Upserted ${hasilArray.length} hasil`);
+        await insertAuditLog(user.email, 'UPSERT_HASIL_PERTANDINGAN', null, `Upserted ${hasilArray.length} hasil`, adminNama);
         return { success: true };
     } catch (error) {
         console.error("Internal Log - Error upserting hasil pertandingan:", error);
@@ -54,7 +54,7 @@ export const upsertHasilPertandingan = async (hasilArray) => {
 
 export const deleteJadwalPertandingan = async (id) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!id) throw new Error('ID is required');
@@ -65,7 +65,7 @@ export const deleteJadwalPertandingan = async (id) => {
             .eq('id', id);
 
         if (error) throw error;
-        await insertAuditLog(user.email, 'DELETE_JADWAL_PERTANDINGAN', id, `Jadwal pertandingan deleted`);
+        await insertAuditLog(user.email, 'DELETE_JADWAL_PERTANDINGAN', id, `Jadwal pertandingan deleted`, adminNama);
         return { success: true };
     } catch (error) {
         console.error("Internal Log - Error deleting jadwal pertandingan:", error);
@@ -74,8 +74,8 @@ export const deleteJadwalPertandingan = async (id) => {
 };
 
 export const upsertJadwalAcara = async (payload, id = null) => {
-     try {
-        const { user, error: authError } = await checkAdminAuth();
+    try {
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!payload) throw new Error('Payload is required');
@@ -95,11 +95,11 @@ export const upsertJadwalAcara = async (payload, id = null) => {
                 .from(tableName)
                 .insert([payload]);
             if (error) {
-                 const res = await supabaseAdmin.from('jadwal').insert([payload]);
-                 if (res.error) throw res.error;
+                const res = await supabaseAdmin.from('jadwal').insert([payload]);
+                if (res.error) throw res.error;
             }
         }
-        await insertAuditLog(user.email, id ? 'UPDATE_JADWAL_ACARA' : 'CREATE_JADWAL_ACARA', id, `Jadwal acara ${id ? 'updated' : 'created'}`);
+        await insertAuditLog(user.email, id ? 'UPDATE_JADWAL_ACARA' : 'CREATE_JADWAL_ACARA', id, `Jadwal acara ${id ? 'updated' : 'created'}`, adminNama);
         return { success: true };
     } catch (error) {
         console.error("Internal Log - Error upserting jadwal acara:", error);
@@ -109,7 +109,7 @@ export const upsertJadwalAcara = async (payload, id = null) => {
 
 export const deleteJadwalAcara = async (id) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!id) throw new Error('ID is required');
@@ -120,10 +120,10 @@ export const deleteJadwalAcara = async (id) => {
             .eq('id', id);
 
         if (error) {
-             const res = await supabaseAdmin.from('jadwal').delete().eq('id', id);
-             if (res.error) throw res.error;
+            const res = await supabaseAdmin.from('jadwal').delete().eq('id', id);
+            if (res.error) throw res.error;
         }
-        await insertAuditLog(user.email, 'DELETE_JADWAL_ACARA', id, `Jadwal acara deleted`);
+        await insertAuditLog(user.email, 'DELETE_JADWAL_ACARA', id, `Jadwal acara deleted`, adminNama);
         return { success: true };
     } catch (error) {
         console.error("Internal Log - Error deleting jadwal acara:", error);

@@ -20,14 +20,14 @@ const ALLOWED_MIME_TYPES = [
 export const uploadFile = async (formData, bucket, pathPrefix = '') => {
     try {
         const file = formData.get('file');
-        
+
         if (!file || !(file instanceof File)) {
             throw new Error('No valid file provided in FormData');
         }
 
         // Limit file size to 10MB
         if (file.size > 10 * 1024 * 1024) {
-             return { success: false, error: 'Ukuran file melebihi batas maksimal (10MB).' };
+            return { success: false, error: 'Ukuran file melebihi batas maksimal (10MB).' };
         }
 
         const arrayBuffer = await file.arrayBuffer();
@@ -36,7 +36,7 @@ export const uploadFile = async (formData, bucket, pathPrefix = '') => {
         // Deep File Inspection
         const fileTypeResult = await fileTypeFromBuffer(buffer);
         if (!fileTypeResult || !ALLOWED_MIME_TYPES.includes(fileTypeResult.mime)) {
-             return { success: false, error: 'Tipe file tidak valid atau berpotensi berbahaya.' };
+            return { success: false, error: 'Tipe file tidak valid atau berpotensi berbahaya.' };
         }
 
         // Generate a random file name to avoid collisions
@@ -73,21 +73,21 @@ export const uploadFile = async (formData, bucket, pathPrefix = '') => {
  */
 export const deleteFile = async (bucket, filePath) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!filePath) return { success: true }; // Nothing to delete
-        
+
         const { error } = await supabaseAdmin.storage
             .from(bucket)
             .remove([filePath]);
-            
+
         if (error) throw error;
-        
-        await insertAuditLog(user.email, 'DELETE_FILE', null, `Deleted ${filePath} from ${bucket}`);
+
+        await insertAuditLog(user.email, 'DELETE_FILE', null, `Deleted ${filePath} from ${bucket}`, adminNama);
         return { success: true };
     } catch (error) {
-         console.error("Internal Log - Storage delete error:", error);
-         return { success: false, error: 'Gagal menghapus file.' };
+        console.error("Internal Log - Storage delete error:", error);
+        return { success: false, error: 'Gagal menghapus file.' };
     }
 };

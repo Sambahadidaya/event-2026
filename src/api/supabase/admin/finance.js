@@ -34,7 +34,7 @@ export const getMasterAccount = async (site = 'all') => {
 
 export const upsertMasterAccount = async (payload, id = null) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!payload) throw new Error('Payload is required');
@@ -48,7 +48,7 @@ export const upsertMasterAccount = async (payload, id = null) => {
                 .single();
 
             if (error) throw error;
-            await insertAuditLog(user.email, 'UPDATE_MASTER_ACCOUNT', id, `Updated master account ${payload.nama_akun}`);
+            await insertAuditLog(user.email, 'UPDATE_MASTER_ACCOUNT', id, `Updated master account ${payload.nama_akun}`, adminNama);
             return { success: true, data };
         } else {
             const kode_id = `MA${Math.floor(100 + Math.random() * 900)}`;
@@ -59,7 +59,7 @@ export const upsertMasterAccount = async (payload, id = null) => {
                 .single();
 
             if (error) throw error;
-            await insertAuditLog(user.email, 'CREATE_MASTER_ACCOUNT', data.id, `Created master account ${payload.nama_akun}`);
+            await insertAuditLog(user.email, 'CREATE_MASTER_ACCOUNT', data.id, `Created master account ${payload.nama_akun}`, adminNama);
             return { success: true, data };
         }
     } catch (error) {
@@ -70,7 +70,7 @@ export const upsertMasterAccount = async (payload, id = null) => {
 
 export const deleteMasterAccount = async (id) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!id) throw new Error('ID is required');
@@ -81,7 +81,7 @@ export const deleteMasterAccount = async (id) => {
             .eq('id', id);
 
         if (error) throw error;
-        await insertAuditLog(user.email, 'DELETE_MASTER_ACCOUNT', id, `Deleted master account`);
+        await insertAuditLog(user.email, 'DELETE_MASTER_ACCOUNT', id, `Deleted master account`, adminNama);
         return { success: true };
     } catch (error) {
         console.error("Internal Log - Error deleting master account:", error);
@@ -119,7 +119,7 @@ export const getMasterTransactionCategory = async (site = 'all') => {
 
 export const upsertMasterTransactionCategory = async (payload, id = null) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!payload) throw new Error('Payload is required');
@@ -133,7 +133,7 @@ export const upsertMasterTransactionCategory = async (payload, id = null) => {
                 .single();
 
             if (error) throw error;
-            await insertAuditLog(user.email, 'UPDATE_MASTER_TRANSACTION_CATEGORY', id, `Updated category ${payload.nama_kategori}`);
+            await insertAuditLog(user.email, 'UPDATE_MASTER_TRANSACTION_CATEGORY', id, `Updated category ${payload.nama_kategori}`, adminNama);
             return { success: true, data };
         } else {
             const kode_id = `MT${Math.floor(100 + Math.random() * 900)}`;
@@ -144,7 +144,7 @@ export const upsertMasterTransactionCategory = async (payload, id = null) => {
                 .single();
 
             if (error) throw error;
-            await insertAuditLog(user.email, 'CREATE_MASTER_TRANSACTION_CATEGORY', data.id, `Created category ${payload.nama_kategori}`);
+            await insertAuditLog(user.email, 'CREATE_MASTER_TRANSACTION_CATEGORY', data.id, `Created category ${payload.nama_kategori}`, adminNama);
             return { success: true, data };
         }
     } catch (error) {
@@ -155,7 +155,7 @@ export const upsertMasterTransactionCategory = async (payload, id = null) => {
 
 export const deleteMasterTransactionCategory = async (id) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!id) throw new Error('ID is required');
@@ -166,7 +166,7 @@ export const deleteMasterTransactionCategory = async (id) => {
             .eq('id', id);
 
         if (error) throw error;
-        await insertAuditLog(user.email, 'DELETE_MASTER_TRANSACTION_CATEGORY', id, `Deleted category`);
+        await insertAuditLog(user.email, 'DELETE_MASTER_TRANSACTION_CATEGORY', id, `Deleted category`, adminNama);
         return { success: true };
     } catch (error) {
         console.error("Internal Log - Error deleting master category:", error);
@@ -214,7 +214,7 @@ export const getTransactionFinance = async (site = 'all', startDate = null, endD
 
 export const createTransactionFinance = async (payload) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         const kode_id = `TF${Math.floor(100 + Math.random() * 900)}`;
@@ -225,7 +225,7 @@ export const createTransactionFinance = async (payload) => {
             .single();
 
         if (error) throw error;
-        await insertAuditLog(user.email, 'CREATE_TRANSACTION_FINANCE', data.id, `Created transaction ${data.kode_id}`);
+        await insertAuditLog(user.email, 'CREATE_TRANSACTION_FINANCE', data.id, `Created transaction ${data.kode_id}`, adminNama);
         return { success: true, data };
     } catch (error) {
         console.error("Internal Log - Error creating transaction:", error);
@@ -235,7 +235,7 @@ export const createTransactionFinance = async (payload) => {
 
 export const deleteTransactionFinance = async (id) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         const { error } = await supabaseAdmin
@@ -244,7 +244,7 @@ export const deleteTransactionFinance = async (id) => {
             .eq('id', id);
 
         if (error) throw error;
-        await insertAuditLog(user.email, 'DELETE_TRANSACTION_FINANCE', id, `Deleted transaction`);
+        await insertAuditLog(user.email, 'DELETE_TRANSACTION_FINANCE', id, `Deleted transaction`, adminNama);
         return { success: true };
     } catch (error) {
         console.error("Internal Log - Error deleting transaction:", error);
@@ -324,7 +324,7 @@ export const getFormTransaksiPengeluaran = async (site = 'all') => {
 
 export const createFormTransaksiPengeluaran = async (payload) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         const {
@@ -407,7 +407,7 @@ export const createFormTransaksiPengeluaran = async (payload) => {
             ]);
         }
 
-        await insertAuditLog(user.email, 'CREATE_FORM_PENGELUARAN', formExpense.id, `Created expense ${judul}`);
+        await insertAuditLog(user.email, 'CREATE_FORM_PENGELUARAN', formExpense.id, `Created expense ${judul}`, adminNama);
         return { success: true, data: formExpense };
     } catch (error) {
         console.error("Internal Log - Error creating expense form:", error);
@@ -417,7 +417,7 @@ export const createFormTransaksiPengeluaran = async (payload) => {
 
 export const deleteFormTransaksiPengeluaran = async (id) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         const { error } = await supabaseAdmin
@@ -426,7 +426,7 @@ export const deleteFormTransaksiPengeluaran = async (id) => {
             .eq('id', id);
 
         if (error) throw error;
-        await insertAuditLog(user.email, 'DELETE_FORM_PENGELUARAN', id, `Deleted expense form`);
+        await insertAuditLog(user.email, 'DELETE_FORM_PENGELUARAN', id, `Deleted expense form`, adminNama);
         return { success: true };
     } catch (error) {
         console.error("Internal Log - Error deleting expense form:", error);
@@ -700,7 +700,7 @@ export const createDocument = async ({
 
         if (error) throw error;
 
-        await insertAuditLog(user?.email || 'system', 'CREATE_DOCUMENT', data.id, `Created document ${document_code}`);
+        await insertAuditLog(user?.email || 'system', 'CREATE_DOCUMENT', data.id, `Created document ${document_code}`, adminName);
         return { success: true, data };
     } catch (error) {
         console.error("Internal Log - Error creating document:", error);
@@ -739,7 +739,7 @@ export const getDocumentById = async (id) => {
 
 export const createFormTransaksiPemasukan = async (payload) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         const {
@@ -805,7 +805,7 @@ export const createFormTransaksiPemasukan = async (payload) => {
             ]);
         }
 
-        await insertAuditLog(user.email, 'CREATE_FORM_PEMASUKAN', tf.id, `Created income transaction ${judul}`);
+        await insertAuditLog(user.email, 'CREATE_FORM_PEMASUKAN', tf.id, `Created income transaction ${judul}`, adminNama);
         return { success: true, data: tf };
     } catch (error) {
         console.error("Internal Log - Error creating income transaction:", error);

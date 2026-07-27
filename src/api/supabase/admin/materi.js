@@ -5,7 +5,7 @@ import { checkAdminAuth, insertAuditLog } from './audit';
 
 export const upsertMateri = async (payload, id = null) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!payload) throw new Error('Payload is required');
@@ -18,7 +18,7 @@ export const upsertMateri = async (payload, id = null) => {
                 .select()
                 .single();
             if (error) throw error;
-            await insertAuditLog(user.email, 'UPDATE_MATERI', id, `Materi updated`);
+            await insertAuditLog(user.email, 'UPDATE_MATERI', id, `Materi updated`, adminNama);
             return { success: true, data };
         } else {
             const { data, error } = await supabaseAdmin
@@ -27,7 +27,7 @@ export const upsertMateri = async (payload, id = null) => {
                 .select()
                 .single();
             if (error) throw error;
-            await insertAuditLog(user.email, 'CREATE_MATERI', data.id, `Materi created`);
+            await insertAuditLog(user.email, 'CREATE_MATERI', data.id, `Materi created`, adminNama);
             return { success: true, data };
         }
     } catch (error) {
@@ -38,7 +38,7 @@ export const upsertMateri = async (payload, id = null) => {
 
 export const deleteMateri = async (id) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!id) throw new Error('ID is required');
@@ -49,7 +49,7 @@ export const deleteMateri = async (id) => {
             .eq('id', id);
 
         if (error) throw error;
-        await insertAuditLog(user.email, 'DELETE_MATERI', id, `Materi deleted`);
+        await insertAuditLog(user.email, 'DELETE_MATERI', id, `Materi deleted`, adminNama);
         return { success: true };
     } catch (error) {
         console.error("Internal Log - Error deleting materi:", error);
@@ -59,7 +59,7 @@ export const deleteMateri = async (id) => {
 
 export const deleteTugas = async (id) => {
     try {
-        const { user, error: authError } = await checkAdminAuth();
+        const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         if (!id) throw new Error('ID is required');
@@ -70,7 +70,7 @@ export const deleteTugas = async (id) => {
             .eq('id', id);
 
         if (error) throw error;
-        await insertAuditLog(user.email, 'DELETE_TUGAS', id, `Tugas deleted`);
+        await insertAuditLog(user.email, 'DELETE_TUGAS', id, `Tugas deleted`, adminNama);
         return { success: true };
     } catch (error) {
         console.error("Internal Log - Error deleting tugas:", error);

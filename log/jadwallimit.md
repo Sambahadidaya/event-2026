@@ -19,9 +19,9 @@ pw      ; 202101013
 gemini  ✅; 7/26/2026, 11:31:25 PM.
 claude  ❌; 7/31/2026, 4:16:00 AM.
 6. Akun wahdanclient
-pw      ; clientsambakedua
+pw      ; clientsambakesatu
 gemini  ✅; 7/25/2026, 9:07:17 PM
-claude  ✅; 7/26/2026, 6:24:12 PM
+claude  ❌; 8/3/2026, 10:14:57 PM
 7. Akun thmfimclient
 pw      ; clientsambakedua
 gemini  ❌; 8/1/2026, 11:55:17 PM

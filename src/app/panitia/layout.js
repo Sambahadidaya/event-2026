@@ -24,6 +24,7 @@ export default function PanitiaLayout({ children }) {
     const activityTimer = useRef(null);
     const heartbeatInterval = useRef(null);
     const handleLogoutRef = useRef(null);
+    const userIdRef = useRef(null);
 
     // Activity tracking for auto logout (5 minutes = 300,000 ms)
     const INACTIVITY_LIMIT = 300000;
@@ -73,6 +74,9 @@ export default function PanitiaLayout({ children }) {
             const adminUser = await getCurrentAdmin();
             if (adminUser) {
                 setAdminData(adminUser);
+                if (adminUser.user_id) {
+                    userIdRef.current = adminUser.user_id;
+                }
             } else {
                 setLoading(false);
                 router.push('/panitia/login');
@@ -103,13 +107,15 @@ export default function PanitiaLayout({ children }) {
     }, [pathname]);
 
     const handleLogout = async () => {
-        if (adminData?.user_id) {
-            await logoutAdmin(adminData.user_id);
+        const userId = adminData?.user_id || userIdRef.current;
+        if (userId) {
+            await logoutAdmin(userId);
         } else {
             await logoutAdmin();
         }
         document.cookie = "sb-access-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
         setAdminData(null);
+        userIdRef.current = null;
         router.push('/panitia/login');
     };
 
