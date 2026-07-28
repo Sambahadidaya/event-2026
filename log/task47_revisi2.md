@@ -1,0 +1,2 @@
+ada revisi dirole admins yang berarti mencakup halaman admins dan file adminRoleData.js
+saya ingin untuk site pose role adminnya saya ingin ada yang dikombinasikan yaitu seperti role keuangan dengan salah satu role admin_pose_lomba itu disatukan, seperti ada panitia yang role atau divisinya itu double job yaitu megang divisi keaungan dan megang pj lomba ml. jadi saya ingin ada role baru yang bisa digabung yang diaturnya tetap difile adminRoleData.js.

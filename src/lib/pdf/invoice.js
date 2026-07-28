@@ -1,4 +1,4 @@
-import puppeteer from 'puppeteer';
+import { getBrowser } from '@/lib/pdf/browser';
 import path from 'path';
 import fs from 'fs';
 import { generateQRCodeBase64, generateVerifyUrl } from '@/lib/qr/qrcode';
@@ -272,10 +272,7 @@ export async function generateInvoicePDF({
             </html>
         `;
 
-        browser = await puppeteer.launch({
-            headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
-        });
+        browser = await getBrowser();
 
         const page = await browser.newPage();
         await page.setContent(html, { waitUntil: 'networkidle0' });

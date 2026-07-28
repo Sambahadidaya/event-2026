@@ -14,8 +14,10 @@ Proyek ini menggunakan Next.js (App Router) berbasis JavaScript murni (bukan Typ
 ```json
 {
   "dependencies": {
+    "@sparticuz/chromium-min": "^149.0.0",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.108.2",
+    "canvas": "^3.2.3",
     "chart.js": "^4.5.1",
     "file-type": "^22.0.1",
     "fuse.js": "^7.4.2",
@@ -27,7 +29,7 @@ Proyek ini menggunakan Next.js (App Router) berbasis JavaScript murni (bukan Typ
     "next-themes": "^0.4.6",
     "openai": "^6.45.0",
     "pdf-lib": "^1.17.1",
-    "puppeteer": "^25.3.0",
+    "puppeteer-core": "^25.4.0",
     "qrcode": "^1.5.4",
     "react": "19.2.4",
     "react-chartjs-2": "^5.3.1",
@@ -35,6 +37,12 @@ Proyek ini menggunakan Next.js (App Router) berbasis JavaScript murni (bukan Typ
     "react-image-crop": "^11.1.2",
     "xlsx": "^0.18.5"
   },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "babel-plugin-react-compiler": "1.0.0",
+    "puppeteer": "^25.4.0",
+    "tailwindcss": "^4"
+  }
 }
 ```
 
@@ -844,6 +852,7 @@ ADD COLUMN admin_nama VARCHAR(100);
 │       ├── excel/
 │       │   └── xlsx.js
 │       ├── pdf/
+│       │   ├── browser.js
 │       │   ├── certificate.js
 │       │   ├── invoice.js
 │       │   ├── report.js

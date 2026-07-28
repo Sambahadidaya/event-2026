@@ -16,11 +16,11 @@ gemini  ✅; 7/27/2026, 9:04:12 AM
 claude  ✅; 7/27/2026, 8:56:11 AM
 5. Akun yusepandriairawan.k21ab
 pw      ; 202101013
-gemini  ✅; 7/26/2026, 11:31:25 PM.
+gemini  ❌; 7/31/2026, 4:32:04 AM
 claude  ❌; 7/31/2026, 4:16:00 AM.
 6. Akun wahdanclient
 pw      ; clientsambakesatu
-gemini  ✅; 7/25/2026, 9:07:17 PM
+gemini  ❌; 8/1/2026, 10:25:48 PM
 claude  ❌; 8/3/2026, 10:14:57 PM
 7. Akun thmfimclient
 pw      ; clientsambakedua

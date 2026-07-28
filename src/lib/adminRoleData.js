@@ -132,9 +132,29 @@ export const rolePermissions = {
     '/panitia/keuangan/neraca-lajur',
     '/panitia/keuangan/laporan',
   ],
+  admin_pose_keuangan_lomba_ML: [
+    '/panitia/pose/keuangan',
+    '/panitia/keuangan/dashboard',
+    '/panitia/keuangan/verifikasi',
+    '/panitia/keuangan/transaksi',
+    '/panitia/keuangan/master-transaksi',
+    '/panitia/keuangan/master-akuntansi',
+    '/panitia/keuangan/jurnal-entry',
+    '/panitia/keuangan/buku-besar',
+    '/panitia/keuangan/kas-masuk',
+    '/panitia/keuangan/kas-keluar',
+    '/panitia/keuangan/neraca-saldo',
+    '/panitia/keuangan/neraca-lajur',
+    '/panitia/keuangan/laporan',
+    '/panitia/pj_lomba/dashboard',
+    '/panitia/pj_lomba/form_register',
+  ],
   // Spread dynamically generated PJ Lomba roles
   ...pjLombaPermissions
 };
+
+// Map combined role to competition name for filtering
+LOMBA_ROLE_MAP['admin_pose_keuangan_lomba_ML'] = 'Mobile Legend';
 
 export const hasAccess = (role, path) => {
   if (!role || !rolePermissions[role]) return false;
@@ -156,6 +176,7 @@ export const getLombaFilter = (role) => {
  */
 const formatRoleLabel = (roleKey) => {
   if (roleKey === 'super_admin') return 'Super Admin';
+  if (roleKey === 'admin_pose_keuangan_lomba_ML') return 'Keuangan & PJ Mobile Legend';
   if (LOMBA_ROLE_MAP[roleKey]) return `PJ ${LOMBA_ROLE_MAP[roleKey]}`;
   return roleKey
     .split('_')

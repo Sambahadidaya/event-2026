@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactCompiler: true,
+  // Wajib untuk Vercel serverless: jangan bundle puppeteer-core & chromium-min
+  serverExternalPackages: ['puppeteer-core', '@sparticuz/chromium-min', 'puppeteer'],
   async headers() {
     return [
       {

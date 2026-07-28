@@ -1,4 +1,4 @@
-import puppeteer from 'puppeteer';
+import { getBrowser } from '@/lib/pdf/browser';
 import path from 'path';
 import fs from 'fs';
 import { generateQRCodeBase64, generateVerifyUrl } from '@/lib/qr/qrcode';
@@ -223,10 +223,7 @@ export async function generateReportPDF({
             </html>
         `;
 
-        browser = await puppeteer.launch({
-            headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
-        });
+        browser = await getBrowser();
 
         const page = await browser.newPage();
         await page.setContent(html, { waitUntil: 'networkidle0' });
@@ -383,10 +380,7 @@ export async function generateLedgerPDF({
             </html>
         `;
 
-        browser = await puppeteer.launch({
-            headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
-        });
+        browser = await getBrowser();
 
         const page = await browser.newPage();
         await page.setContent(html, { waitUntil: 'networkidle0' });
@@ -775,10 +769,7 @@ export async function generateFinancialReportPDF({
             </html>
         `;
 
-        browser = await puppeteer.launch({
-            headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
-        });
+        browser = await getBrowser();
 
         const page = await browser.newPage();
         await page.setContent(html, { waitUntil: 'networkidle0' });
@@ -916,10 +907,7 @@ export async function generateVerifikasiPDF({
             </html>
         `;
 
-        browser = await puppeteer.launch({
-            headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
-        });
+        browser = await getBrowser();
 
         const page = await browser.newPage();
         await page.setContent(html, { waitUntil: 'networkidle0' });
