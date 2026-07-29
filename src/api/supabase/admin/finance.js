@@ -648,95 +648,6 @@ export const autoDeleteTransactionFromPeserta = async (peserta) => {
     }
 };
 
-// ============================================================================
-// 6. DOCUMENTS TABLE & MANUAL INCOME
-// ============================================================================
-
-export const createDocument = async ({
-    site = 'pose',
-    document_type = 'invoice',
-    document_code = null,
-    reference_id = null,
-    reference_table = null,
-    printed_by = null
-}) => {
-    try {
-        const { user } = await checkAdminAuth();
-        let adminName = printed_by;
-        if (!adminName && user?.id) {
-            const { data: adminRow } = await supabaseAdmin
-                .from('admins')
-                .select('nama')
-                .eq('user_id', user.id)
-                .single();
-            if (adminRow?.nama) {
-                adminName = adminRow.nama;
-            }
-        }
-        if (!adminName) {
-            adminName = user?.email || 'Panitia Keuangan';
-        }
-
-        // Auto-generate code if not provided
-        if (!document_code) {
-            const prefix = document_type === 'invoice' ? 'INV' : document_type === 'receipt' ? 'KWT' : document_type === 'certificate' ? 'CERT' : 'RPT';
-            const year = new Date().getFullYear();
-            const randomNum = Math.floor(100000 + Math.random() * 900000);
-            document_code = `${prefix}-${year}-${randomNum}`;
-        }
-
-        const { data, error } = await supabaseAdmin
-            .from('documents')
-            .insert([{
-                site,
-                document_type,
-                document_code,
-                reference_id,
-                reference_table,
-                printed_by: adminName
-            }])
-            .select()
-            .single();
-
-        if (error) throw error;
-
-        await insertAuditLog(user?.email || 'system', 'CREATE_DOCUMENT', data.id, `Created document ${document_code}`, adminName);
-        return { success: true, data };
-    } catch (error) {
-        console.error("Internal Log - Error creating document:", error);
-        return { success: false, error: error.message };
-    }
-};
-
-export const getDocumentById = async (id) => {
-    try {
-        if (!id) return null;
-        const { data, error } = await supabaseAdmin
-            .from('documents')
-            .select('*')
-            .eq('id', id)
-            .single();
-
-        if (error || !data) return null;
-
-        // Fetch referenced table data if reference_id exists
-        let refData = null;
-        if (data.reference_id && data.reference_table) {
-            const { data: rel } = await supabaseAdmin
-                .from(data.reference_table)
-                .select('*')
-                .eq('id', data.reference_id)
-                .single();
-            refData = rel;
-        }
-
-        return { ...data, reference_data: refData };
-    } catch (error) {
-        console.error("Internal Log - Error fetching document by ID:", error);
-        return null;
-    }
-};
-
 export const createFormTransaksiPemasukan = async (payload) => {
     try {
         const { user, adminNama, error: authError } = await checkAdminAuth();
@@ -809,6 +720,187 @@ export const createFormTransaksiPemasukan = async (payload) => {
         return { success: true, data: tf };
     } catch (error) {
         console.error("Internal Log - Error creating income transaction:", error);
+        return { success: false, error: error.message || 'Terjadi kesalahan internal pada server' };
+    }
+};
+
+// ============================================================================
+// METODE PEMBAYARAN & FORM PRICING ADMIN
+// ============================================================================
+
+export const getMasterAccountAsset = async () => {
+    try {
+        const { error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        const { data, error } = await supabaseAdmin
+            .from('master_account')
+            .select('id, kode_akun, nama_akun, akun_type')
+            .eq('akun_type', 'Asset')
+            .order('kode_akun', { ascending: true });
+
+        if (error) throw error;
+        return data || [];
+    } catch (error) {
+        console.error("Internal Log - Error fetching asset master accounts:", error);
+        return [];
+    }
+};
+
+export const getMetodePembayaranAdmin = async (site = 'all') => {
+    try {
+        const { error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        let query = supabaseAdmin
+            .from('metode_pembayaran')
+            .select(`
+                *,
+                master_account:tipe (
+                    id,
+                    kode_akun,
+                    nama_akun,
+                    akun_type
+                )
+            `)
+            .order('urutan', { ascending: true })
+            .order('created_at', { ascending: false });
+
+        if (site && site !== 'all') {
+            query = query.eq('site', site);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+        return data || [];
+    } catch (error) {
+        console.error("Internal Log - Error fetching admin metode pembayaran:", error);
+        return [];
+    }
+};
+
+export const upsertMetodePembayaran = async (payload, id = null) => {
+    try {
+        const { user, adminNama, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        if (!payload) throw new Error('Payload is required');
+        if (!payload.nama || !payload.site || !payload.tipe) {
+            throw new Error('Nama, site, dan tipe akun (COA) wajib diisi');
+        }
+
+        const dataToSave = {
+            site: payload.site,
+            nama: payload.nama,
+            tipe: payload.tipe,
+            nomor_rekening: payload.nomor_rekening || null,
+            nama_pemilik: payload.nama_pemilik || null,
+            qris_image: payload.qris_image || null,
+            keterangan: payload.keterangan || null,
+            aktif: payload.aktif !== undefined ? payload.aktif : true,
+            urutan: payload.urutan ? parseInt(payload.urutan, 10) : 0
+        };
+
+        if (id) {
+            const { data, error } = await supabaseAdmin
+                .from('metode_pembayaran')
+                .update(dataToSave)
+                .eq('id', id)
+                .select()
+                .single();
+
+            if (error) throw error;
+            await insertAuditLog(user.email, 'UPDATE_METODE_PEMBAYARAN', id, `Updated metode pembayaran ${payload.nama}`, adminNama);
+            return { success: true, data };
+        } else {
+            const { data, error } = await supabaseAdmin
+                .from('metode_pembayaran')
+                .insert([dataToSave])
+                .select()
+                .single();
+
+            if (error) throw error;
+            await insertAuditLog(user.email, 'CREATE_METODE_PEMBAYARAN', data.id, `Created metode pembayaran ${payload.nama}`, adminNama);
+            return { success: true, data };
+        }
+    } catch (error) {
+        console.error("Internal Log - Error upserting metode pembayaran:", error);
+        return { success: false, error: error.message || 'Terjadi kesalahan internal pada server' };
+    }
+};
+
+export const deleteMetodePembayaran = async (id) => {
+    try {
+        const { user, adminNama, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        if (!id) throw new Error('ID is required');
+
+        const { error } = await supabaseAdmin
+            .from('metode_pembayaran')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+        await insertAuditLog(user.email, 'DELETE_METODE_PEMBAYARAN', id, `Deleted metode pembayaran`, adminNama);
+        return { success: true };
+    } catch (error) {
+        console.error("Internal Log - Error deleting metode pembayaran:", error);
+        return { success: false, error: error.message || 'Terjadi kesalahan internal pada server' };
+    }
+};
+
+export const getFormRegisterPricingAdmin = async (formId) => {
+    try {
+        const { error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        if (!formId) return [];
+
+        const { data, error } = await supabaseAdmin
+            .from('form_register_pricing')
+            .select('*')
+            .eq('form_id', formId);
+
+        if (error) throw error;
+        return data || [];
+    } catch (error) {
+        console.error("Internal Log - Error fetching form register pricing admin:", error);
+        return [];
+    }
+};
+
+export const upsertFormRegisterPricing = async (formId, pricingList) => {
+    try {
+        const { user, adminNama, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        if (!formId) throw new Error('form_id is required');
+        if (!Array.isArray(pricingList)) throw new Error('pricingList must be an array');
+
+        await supabaseAdmin
+            .from('form_register_pricing')
+            .delete()
+            .eq('form_id', formId);
+
+        if (pricingList.length > 0) {
+            const rowsToInsert = pricingList.map(item => ({
+                form_id: formId,
+                kategori: item.kategori,
+                nominal: parseInt(item.nominal, 10) || 0
+            }));
+
+            const { error: insertError } = await supabaseAdmin
+                .from('form_register_pricing')
+                .insert(rowsToInsert);
+
+            if (insertError) throw insertError;
+        }
+
+        await insertAuditLog(user.email, 'UPSERT_FORM_REGISTER_PRICING', formId, `Updated pricing for form ${formId}`, adminNama);
+        return { success: true };
+    } catch (error) {
+        console.error("Internal Log - Error upserting form register pricing:", error);
         return { success: false, error: error.message || 'Terjadi kesalahan internal pada server' };
     }
 };

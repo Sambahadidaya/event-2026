@@ -1,6 +1,6 @@
 'use server';
 
-import { createDocument } from '@/api/supabase/admin/finance';
+import { createDocument } from '@/api/supabase/admin/pdf';
 import { checkAdminAuth } from '@/api/supabase/admin/audit';
 import { generateReportPDF, generateLedgerPDF, generateFinancialReportPDF, generateVerifikasiPDF } from '@/lib/pdf/report';
 import { generateInvoicePDF } from '@/lib/pdf/invoice';

@@ -13,7 +13,7 @@ export const insertPeserta = async (payload) => {
         const allowedKeys = [
             'nama', 'nim', 'kampus', 'kategori', 'email_wa', 'bukti_bayar',
             'jenis_form', 'site_type', 'form_register_id', 'metode_pembayaran',
-            'prodi', 'angkatan', 'semester', 'kode_form'
+            'prodi', 'angkatan', 'semester', 'kode_form', 'kelas'
         ];
 
         const sanitizedPayload = {};
@@ -62,7 +62,7 @@ export const insertPesertaBatch = async (pesertaArray) => {
         const allowedKeys = [
             'nama', 'nim', 'kampus', 'kategori', 'email_wa', 'bukti_bayar',
             'jenis_form', 'site_type', 'form_register_id', 'metode_pembayaran',
-            'prodi', 'angkatan', 'semester', 'kode_form'
+            'prodi', 'angkatan', 'semester', 'kode_form', 'kelas'
         ];
 
         const sanitizedArray = [];
@@ -250,5 +250,45 @@ export const checkPesertaPoseWajibByNimAndKampus = async (nim, kampus) => {
     } catch (error) {
         console.error("Internal Log - Error checking peserta pose wajib by nim and kampus:", error);
         return null;
+    }
+};
+
+export const getMetodePembayaran = async (site) => {
+    try {
+        let query = supabaseAdmin
+            .from('metode_pembayaran')
+            .select(`
+                id, site, nama, nomor_rekening, nama_pemilik, qris_image, keterangan, urutan
+            `)
+            .eq('aktif', true)
+            .order('urutan', { ascending: true });
+
+        if (site) {
+            query = query.eq('site', site);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+        return data || [];
+    } catch (error) {
+        console.error("Internal Log - Error fetching public metode pembayaran:", error);
+        return [];
+    }
+};
+
+export const getFormRegisterPricing = async (formId) => {
+    try {
+        if (!formId) return [];
+
+        const { data, error } = await supabaseAdmin
+            .from('form_register_pricing')
+            .select('kategori, nominal')
+            .eq('form_id', formId);
+
+        if (error) throw error;
+        return data || [];
+    } catch (error) {
+        console.error("Internal Log - Error fetching public form register pricing:", error);
+        return [];
     }
 };

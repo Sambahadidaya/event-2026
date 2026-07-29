@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import ThemeToggle from '@/components/ThemeToggle';
-import { User, LayoutDashboard, FileText, ChevronDown, ChevronRight, LogOut, ShieldAlert, Menu, BarChart3, MessageCircle, Mail, Newspaper, Users, Monitor, Lock, Calendar, Settings, BookOpen, FileCheck, ClipboardList, Trophy, Wallet, Receipt, Tags, BookMarked, ArrowLeftRight, BookOpenCheck, TrendingUp, TrendingDown, Scale, Table2, PieChart } from 'lucide-react';
+import { User, LayoutDashboard, FileText, ChevronDown, ChevronRight, LogOut, ShieldAlert, Menu, BarChart3, MessageCircle, Mail, Newspaper, Users, Monitor, Lock, Calendar, Settings, BookOpen, FileCheck, ClipboardList, Trophy, Wallet, Receipt, Tags, BookMarked, ArrowLeftRight, BookOpenCheck, TrendingUp, TrendingDown, Scale, Table2, PieChart, CreditCard } from 'lucide-react';
 import { logoutAdmin, getCurrentAdmin } from '@/api/supabase/admin/auth';
 import { updateAdminStatus } from '@/api/supabase/admin/admin';
 import { hasAccess, rolePermissions } from '@/lib/adminRoleData';
@@ -380,6 +380,7 @@ export default function PanitiaLayout({ children }) {
                                 <NavLink href="/panitia/keuangan/transaksi" icon={ArrowLeftRight} label="Riwayat Transaksi" colorTheme="emerald" />
                                 <NavLink href="/panitia/keuangan/master-transaksi" icon={Tags} label="Master Kategori" colorTheme="emerald" />
                                 <NavLink href="/panitia/keuangan/master-akuntansi" icon={Receipt} label="Master Akun (COA)" colorTheme="emerald" />
+                                <NavLink href="/panitia/keuangan/metode-pembayaran" icon={CreditCard} label="Metode Pembayaran" colorTheme="emerald" />
                                 <NavLink href="/panitia/keuangan/jurnal-entry" icon={BookMarked} label="Jurnal Entry" colorTheme="emerald" />
                                 <NavLink href="/panitia/keuangan/buku-besar" icon={BookOpenCheck} label="Buku Besar" colorTheme="emerald" />
                                 <NavLink href="/panitia/keuangan/kas-masuk" icon={TrendingUp} label="Kas Masuk" colorTheme="emerald" />

@@ -12,6 +12,7 @@ import { JENIS_LOMBA, NAMA_LOMBA, KODE_JENIS_LOMBA, KODE_NAMA_LOMBA } from '@/li
 import { generateKodeFormWajib, generateKodeFormRegister } from '@/lib/kodeFormUtils';
 import { upsertFormWajib, upsertFormRegister } from '@/api/supabase/admin/peserta';
 import { upsertFormPengumpulan } from '@/api/supabase/admin/submission';
+import { upsertFormRegisterPricing } from '@/api/supabase/admin/finance';
 import { uploadFile } from '@/api/supabase/storage';
 import { nanoid } from 'nanoid';
 
@@ -34,6 +35,7 @@ export default function UnifiedFormDashboard() {
     const [jenisLomba, setJenisLomba] = useState('');
     const [namaLomba, setNamaLomba] = useState('');
     const [kategoriPendaftar, setKategoriPendaftar] = useState(['Mahasiswa LP3I', 'Siswa', 'Dosen', 'Umum']);
+    const [pricingKategoriMap, setPricingKategoriMap] = useState({});
 
     const [createLoading, setCreateLoading] = useState(false);
 
@@ -67,6 +69,7 @@ export default function UnifiedFormDashboard() {
         setJenisLomba('');
         setNamaLomba('');
         setKategoriPendaftar(['Mahasiswa LP3I', 'Siswa', 'Dosen', 'Umum']);
+        setPricingKategoriMap({});
     };
 
     const handleOpenModal = () => {
@@ -156,15 +159,21 @@ export default function UnifiedFormDashboard() {
                 site: formSite,
                 kode_form: kodeForm
             });
-            // --- TAMBAHKAN LOGIKA INI UNTUK PENGUMPULAN OTOMATIS ---
-            // Pastikan upsertFormRegister me-return 'data' dari baris yang baru di-insert
-            if (res.success && res.data?.id) {
-                const linkIdPengumpulan = nanoid(64);
 
-                // Eksekusi API submission.js
-                // Sesuaikan 'register_id' dengan nama kolom Foreign Key di tabel form_pengumpulan Anda
+            if (res.success && res.data?.id) {
+                // Save pricing per category
+                const pricingList = kategoriPendaftar.map(kat => ({
+                    kategori: kat,
+                    nominal: pricingKategoriMap[kat] !== undefined && pricingKategoriMap[kat] !== ''
+                        ? parseInt(pricingKategoriMap[kat], 10)
+                        : finalNominal
+                }));
+                await upsertFormRegisterPricing(res.data.id, pricingList);
+
+                // Create pengumpulan otomatis
+                const linkIdPengumpulan = nanoid(64);
                 const resPengumpulan = await upsertFormPengumpulan({
-                    form_id: res.data.id, // <-- Diubah ke form_id
+                    form_id: res.data.id,
                     link_id: linkIdPengumpulan
                 });
 
@@ -415,6 +424,26 @@ export default function UnifiedFormDashboard() {
                                             </label>
                                         ))}
                                     </div>
+
+                                    {kategoriPendaftar.length > 0 && (
+                                        <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 space-y-2">
+                                            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">Nominal Per Kategori (Opsional)</label>
+                                            <p className="text-[11px] text-gray-500">Atur nominal khusus per kategori pendaftar. Kosongkan jika sama dengan nominal default.</p>
+                                            {kategoriPendaftar.map(kat => (
+                                                <div key={kat} className="flex items-center justify-between gap-2">
+                                                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400 w-1/3 truncate">{kat}</span>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        placeholder={`Default (${nominal || 0})`}
+                                                        value={pricingKategoriMap[kat] !== undefined ? pricingKategoriMap[kat] : ''}
+                                                        onChange={(e) => setPricingKategoriMap({ ...pricingKategoriMap, [kat]: e.target.value })}
+                                                        className="w-2/3 px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-500"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             )}
 

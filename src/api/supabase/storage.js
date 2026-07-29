@@ -10,6 +10,31 @@ const ALLOWED_MIME_TYPES = [
     'application/zip', 'application/x-zip-compressed', 'application/x-rar-compressed', 'application/vnd.rar'
 ];
 
+import sharp from 'sharp';
+
+const compressImage = async (buffer, mime) => {
+    try {
+        let imagePipeline = sharp(buffer, { animated: mime === 'image/gif' });
+        const metadata = await imagePipeline.metadata();
+
+        if (metadata.width && metadata.width > 1920) {
+            imagePipeline = imagePipeline.resize({ width: 1920, withoutEnlargement: true });
+        }
+
+        if (mime === 'image/jpeg' || mime === 'image/jpg') {
+            return await imagePipeline.jpeg({ quality: 75, mozjpeg: true }).toBuffer();
+        } else if (mime === 'image/png') {
+            return await imagePipeline.png({ quality: 75, compressionLevel: 9 }).toBuffer();
+        } else if (mime === 'image/webp') {
+            return await imagePipeline.webp({ quality: 75 }).toBuffer();
+        }
+        return buffer;
+    } catch (err) {
+        console.warn("Image compression failed, using original buffer:", err);
+        return buffer;
+    }
+};
+
 /**
  * Uploads a file to Supabase Storage.
  * @param {FormData} formData - The form data containing the file under key 'file'.
@@ -31,12 +56,17 @@ export const uploadFile = async (formData, bucket, pathPrefix = '') => {
         }
 
         const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+        let buffer = Buffer.from(arrayBuffer);
 
         // Deep File Inspection
         const fileTypeResult = await fileTypeFromBuffer(buffer);
         if (!fileTypeResult || !ALLOWED_MIME_TYPES.includes(fileTypeResult.mime)) {
             return { success: false, error: 'Tipe file tidak valid atau berpotensi berbahaya.' };
+        }
+
+        // Compress if file is an image
+        if (fileTypeResult.mime.startsWith('image/')) {
+            buffer = await compressImage(buffer, fileTypeResult.mime);
         }
 
         // Generate a random file name to avoid collisions

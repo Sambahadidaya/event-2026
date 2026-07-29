@@ -1046,4 +1046,80 @@ CREATE POLICY "Enable all for authenticated on documents"
 
 ALTER TABLE audit_logs
 ADD COLUMN admin_nama VARCHAR(100);
+
+CREATE TABLE public.form_register_pricing (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    form_id UUID NOT NULL REFERENCES public.form_register(id) ON DELETE CASCADE,
+    kategori VARCHAR(100) NOT NULL,
+    nominal INT4 NOT NULL DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT form_register_pricing_unique UNIQUE (form_id, kategori)
+);
+ALTER TABLE public.form_register_pricing ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read pricing" ON public.form_register_pricing FOR SELECT TO public USING (true);
+CREATE POLICY "auth all pricing" ON public.form_register_pricing FOR ALL TO authenticated USING (true) WITH CHECK (true);
+```
+dan saya juga sudah menjalankan sql ini ;
+```sql
+CREATE TABLE metode_pembayaran (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    site site_type NOT NULL,
+    nama VARCHAR(100) NOT NULL,
+    tipe UUID NOT NULL REFERENCES master_account(id),
+    nomor_rekening VARCHAR(255),
+    nama_pemilik VARCHAR(255),
+    qris_image VARCHAR(255),
+    keterangan TEXT,
+    aktif BOOLEAN DEFAULT true,
+    urutan INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT metode_pembayaran_unique UNIQUE (site, nama)
+);
+ALTER TABLE public.metode_pembayaran ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read metode" ON public.metode_pembayaran FOR SELECT TO public USING (true);
+CREATE POLICY "auth all metode" ON public.metode_pembayaran FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Membuat bucket
+INSERT INTO storage.buckets (
+    id,
+    name,
+    public,
+    file_size_limit,
+    allowed_mime_types
+)
+VALUES (
+    'qris_image',
+    'qris_image',
+    true,
+    5242880, -- Maksimal 5 MB
+    ARRAY['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
+);
+-- Public dapat melihat file
+CREATE POLICY "Public read qris_image"
+ON storage.objects
+FOR SELECT
+TO public
+USING (bucket_id = 'qris_image');
+
+-- User login dapat upload
+CREATE POLICY "Authenticated upload qris_image"
+ON storage.objects
+FOR INSERT
+TO authenticated
+WITH CHECK (bucket_id = 'qris_image');
+
+-- User login dapat update
+CREATE POLICY "Authenticated update qris_image"
+ON storage.objects
+FOR UPDATE
+TO authenticated
+USING (bucket_id = 'qris_image')
+WITH CHECK (bucket_id = 'qris_image');
+
+-- User login dapat menghapus
+CREATE POLICY "Authenticated delete qris_image"
+ON storage.objects
+FOR DELETE
+TO authenticated
+USING (bucket_id = 'qris_image');
 ```

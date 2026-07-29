@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { uploadFile as serverUploadFile } from '@/api/supabase/storage';
-import { insertPeserta, insertPesertaBatch, checkPesertaPoseWajibByNim, checkPesertaPoseWajibByNimAndKampus } from '@/api/supabase/public/peserta';
+import { insertPeserta, insertPesertaBatch, checkPesertaPoseWajibByNim, checkPesertaPoseWajibByNimAndKampus, getMetodePembayaran, getFormRegisterPricing } from '@/api/supabase/public/peserta';
 import { insertTeamPublic, insertTeamMembers } from '@/api/supabase/public/team';
-import { Trophy, Plus, Trash2, Users, Send, Info, Image as ImageIcon, ArrowLeft } from 'lucide-react';
+import { Trophy, Plus, Trash2, Users, Send, Info, Image as ImageIcon, ArrowLeft, CheckCircle2, ShieldCheck, Download, Copy } from 'lucide-react';
 import Link from 'next/link';
 import { KAMPUS_DATA, METODE_BAYAR_DATA, parseNIM, semesterToAngkatan } from '@/lib/lombaData';
 import { generateKodePeserta } from '@/lib/kodeFormUtils';
@@ -53,17 +53,48 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
 
     // Members (For Wajib, it's just 1 member always)
     const [members, setMembers] = useState([
-        { nama: '', nim: '', kampus: '', kampusLainnya: '', email_wa: '', kontakType: 'whatsapp', jabatan: '', isStudent: false, prodi: '', semester: '' }
+        { nama: '', nim: '', kampus: '', kampusLainnya: '', email_wa: '', kontakType: 'whatsapp', jabatan: '', isStudent: false, prodi: '', semester: '', kelas: '' }
     ]);
 
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
     const [metodePembayaran, setMetodePembayaran] = useState('');
+    const [setujuSK, setSetujuSK] = useState(false);
+    const [copied, setCopied] = useState(false);
+
+    // Dynamic Pricing & Payment Methods
+    const [pricingMap, setPricingMap] = useState({});
+    const [metodeList, setMetodeList] = useState([]);
+
+    useEffect(() => {
+        if (!isWajib && formConfig?.id) {
+            getFormRegisterPricing(formConfig.id).then(data => {
+                const map = {};
+                if (Array.isArray(data)) {
+                    data.forEach(item => {
+                        map[item.kategori] = item.nominal;
+                    });
+                }
+                setPricingMap(map);
+            });
+        }
+    }, [formConfig?.id, isWajib]);
+
+    useEffect(() => {
+        const site = formConfig?.site || 'pose';
+        getMetodePembayaran(site).then(data => {
+            setMetodeList(data || []);
+        });
+    }, [formConfig?.site]);
+
+    const nominalAktif = !isWajib && pricingMap[kategori] !== undefined
+        ? pricingMap[kategori]
+        : (formConfig?.nominal != null ? formConfig.nominal : 0);
 
     const requiresBukti = isWajib || formConfig?.butuh_bukti !== false || kategori !== 'Mahasiswa LP3I';
 
     const handleAddMember = () => {
-        setMembers([...members, { nama: '', nim: '', kampus: '', kampusLainnya: '', email_wa: '', kontakType: 'whatsapp', jabatan: '', isStudent: false, prodi: '', semester: '' }]);
+        setMembers([...members, { nama: '', nim: '', kampus: '', kampusLainnya: '', email_wa: '', kontakType: 'whatsapp', jabatan: '', isStudent: false, prodi: '', semester: '', kelas: '' }]);
     };
 
     const handleRemoveMember = (index) => {
@@ -96,6 +127,30 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
         return result.url;
     };
 
+    const handleCopyRekening = (noRek) => {
+        navigator.clipboard.writeText(noRek);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    const handleDownloadQRIS = async (url, filename) => {
+        try {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = filename || 'qris.png';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(blobUrl);
+        } catch (error) {
+            console.error('Failed to download QRIS image:', error);
+            window.open(url, '_blank');
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -106,7 +161,8 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
             }
         }
 
-        for (const m of members) {
+        for (let i = 0; i < members.length; i++) {
+            const m = members[i];
             if (!isValidInput(m.nama) || !isValidInput(m.jabatan) || (!requiresBukti ? false : !isValidInput(m.email_wa))) {
                 return window.alert("Karakter tidak diperbolehkan pada input anggota.");
             }
@@ -115,6 +171,10 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                 if (m.nim.length !== 9) return window.alert("NIM harus berisi persis 9 karakter.");
                 if (m.kampus === 'Lainnya' && !m.kampusLainnya) {
                     return window.alert("Mohon sebutkan nama kampus jika memilih 'Lainnya'.");
+                }
+                const needKelasInput = isWajib || formConfig?.butuh_bukti !== false;
+                if (needKelasInput && !m.kelas) {
+                    return window.alert(`Mohon pilih Kelas (Reguler / NonReguler) untuk ${m.nama || `anggota ${i + 1}`}.`);
                 }
             }
             if (kategori === 'Dosen') {
@@ -230,6 +290,13 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                     finalNimWajib = generateNim('Siswa', m.nama, m.email_wa);
                 }
 
+                let finalKelasWajib = m.kelas;
+                if (isMhsLP3I) {
+                    finalKelasWajib = m.kelas || 'Reguler';
+                } else {
+                    finalKelasWajib = kategori; // Dosen, Umum, Siswa
+                }
+
                 const kodePesertaWajib = formConfig?.kode_form ? generateKodePeserta(formConfig.kode_form) : null;
 
                 const pesertaPayload = {
@@ -245,7 +312,8 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                     status_pembayaran: 'pending',
                     site_type: formConfig?.site || 'pose',
                     jenis_form: 'wajib',
-                    kode_form: kodePesertaWajib
+                    kode_form: kodePesertaWajib,
+                    kelas: finalKelasWajib
                 };
 
                 pesertaPayload.metode_pembayaran = metodePembayaran || null;
@@ -336,6 +404,17 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
 
                     const mDataWajib = !requiresBukti && isMhsLP3I ? fetchedWajibData[i] : null;
 
+                    let finalKelasReg = m.kelas;
+                    if (isMhsLP3I) {
+                        if (mDataWajib && mDataWajib.kelas) {
+                            finalKelasReg = mDataWajib.kelas;
+                        } else {
+                            finalKelasReg = m.kelas || 'Reguler';
+                        }
+                    } else {
+                        finalKelasReg = kategori; // Dosen, Umum, Siswa
+                    }
+
                     pesertaToInsert.push({
                         kategori: kategori,
                         nama: m.nama,
@@ -350,7 +429,8 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                         site_type: formConfig?.site || 'pose',
                         jenis_form: 'register',
                         metode_pembayaran: mDataWajib ? mDataWajib.metode_pembayaran : (metodePembayaran || null),
-                        kode_form: kodePesertaReg
+                        kode_form: kodePesertaReg,
+                        kelas: finalKelasReg
                     });
                 }
 
@@ -652,6 +732,22 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                                     </div>
                                 )}
 
+                                {isMhsLP3I && (isWajib || formConfig?.butuh_bukti !== false) && (
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Kelas *</label>
+                                        <select
+                                            required
+                                            value={member.kelas || ''}
+                                            onChange={(e) => handleMemberChange(index, 'kelas', e.target.value)}
+                                            className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                        >
+                                            <option value="" disabled>Pilih Kelas</option>
+                                            <option value="Reguler">Reguler</option>
+                                            <option value="NonReguler">NonReguler</option>
+                                        </select>
+                                    </div>
+                                )}
+
                                 {((kategori === 'Umum' && member.isStudent) || kategori === 'Siswa') && (
                                     <div>
                                         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
@@ -697,8 +793,8 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                             Pembayaran & Berkas
                         </h4>
 
-                        <div className="flex flex-row items-end gap-3 sm:gap-6 w-full">
-                            <div className="flex-1 w-1/2">
+                        <div className="flex flex-col md:flex-row items-start md:items-end gap-4 w-full">
+                            <div className="w-full md:w-1/2">
                                 <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 truncate">Upload Bukti Pembayaran *</label>
                                 <div className="relative">
                                     <input
@@ -708,11 +804,11 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                                 </div>
                             </div>
 
-                            <div className="flex-1 w-1/2">
+                            <div className="w-full md:w-1/2">
                                 <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 truncate">Metode Pembayaran *</label>
                                 {(() => {
                                     const siteKey = (formConfig?.site || 'pose').toLowerCase();
-                                    const metodeOptions = Array.isArray(METODE_BAYAR_DATA) 
+                                    const staticMetodeOptions = Array.isArray(METODE_BAYAR_DATA) 
                                         ? METODE_BAYAR_DATA 
                                         : (METODE_BAYAR_DATA[siteKey] || METODE_BAYAR_DATA.pose || []);
 
@@ -721,32 +817,123 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                                             required
                                             value={metodePembayaran}
                                             onChange={(e) => setMetodePembayaran(e.target.value)}
-                                            className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer appearance-none"
+                                            className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer"
                                         >
-                                            <option value="" disabled>Pilih Bank / E-Wallet</option>
-                                            {metodeOptions.map(m => <option key={m} value={m}>{m}</option>)}
+                                            <option value="" disabled>Pilih Metode Pembayaran</option>
+                                            {metodeList.length > 0 ? (
+                                                metodeList.map(m => (
+                                                    <option key={m.id} value={m.nama}>{m.nama}</option>
+                                                ))
+                                            ) : (
+                                                staticMetodeOptions.map(m => <option key={m} value={m}>{m}</option>)
+                                            )}
                                         </select>
                                     );
                                 })()}
                             </div>
                         </div>
 
-                        {formConfig?.nominal != null && formConfig.nominal > 0 && (
+                        {/* Detail Info Rekening / QRIS yang dipilih */}
+                        {(() => {
+                            const selectedMetode = metodeList.find(m => m.nama === metodePembayaran);
+                            if (!selectedMetode) return null;
+
+                            return (
+                                <div className="p-4 rounded-2xl bg-blue-50/70 dark:bg-blue-900/20 border border-blue-200/70 dark:border-blue-800/40 text-blue-900 dark:text-blue-200 space-y-3 animate-fadeIn">
+                                    <div className="flex items-center gap-2 font-bold text-sm">
+                                        <Info size={18} className="text-blue-600 dark:text-blue-400" />
+                                        Detail Pembayaran: {selectedMetode.nama}
+                                    </div>
+
+                                    {selectedMetode.nomor_rekening && (
+                                        <div className="bg-white dark:bg-gray-900 p-3 rounded-xl border border-blue-100 dark:border-gray-800 flex justify-between items-center">
+                                            <div>
+                                                <p className="text-xs text-gray-500">Nomor Rekening / No HP</p>
+                                                <p className="font-mono text-base font-bold text-gray-900 dark:text-white">{selectedMetode.nomor_rekening}</p>
+                                                {selectedMetode.nama_pemilik && (
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Atas Nama: <strong>{selectedMetode.nama_pemilik}</strong></p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {selectedMetode.qris_image && (
+                                        <div className="text-center bg-white dark:bg-gray-900 p-4 rounded-xl border border-blue-100 dark:border-gray-800">
+                                            <p className="text-xs text-gray-500 mb-2 font-semibold">Scan QRIS di bawah ini untuk membayar:</p>
+                                            <img src={selectedMetode.qris_image} alt="QRIS Code" className="max-w-[200px] h-auto mx-auto rounded-lg shadow-sm border" />
+                                        </div>
+                                    )}
+
+                                    {selectedMetode.keterangan && (
+                                        <p className="text-xs text-blue-800 dark:text-blue-300 leading-relaxed bg-blue-100/50 dark:bg-blue-900/40 p-2.5 rounded-lg">
+                                            {selectedMetode.keterangan}
+                                        </p>
+                                    )}
+
+                                    {/* Action Buttons */}
+                                    {selectedMetode.qris_image ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDownloadQRIS(selectedMetode.qris_image, `QRIS_${selectedMetode.nama.replace(/\s+/g, '_')}.png`)}
+                                            className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm text-sm"
+                                        >
+                                            <Download size={16} />
+                                            Unduh QRIS
+                                        </button>
+                                    ) : selectedMetode.nomor_rekening ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleCopyRekening(selectedMetode.nomor_rekening)}
+                                            className={`w-full py-2.5 px-4 font-semibold rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm text-sm ${copied ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+                                        >
+                                            {copied ? (
+                                                <>
+                                                    <CheckCircle2 size={16} />
+                                                    Tersalin!
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Copy size={16} />
+                                                    Salin Nomor Rekening
+                                                </>
+                                            )}
+                                        </button>
+                                    ) : null}
+                                </div>
+                            );
+                        })()}
+
+                        {/* Nominal Tagihan */}
+                        {nominalAktif > 0 && (
                             <div className="mt-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex justify-between items-center">
-                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Tagihan (Sesuai Kategori)</span>
+                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Tagihan ({kategori})</span>
                                 <span className="text-lg font-bold text-gray-900 dark:text-white">
-                                    Rp {formConfig.nominal.toLocaleString('id-ID')}
+                                    Rp {nominalAktif.toLocaleString('id-ID')}
                                 </span>
                             </div>
                         )}
                     </div>
                 )}
 
-                <div className="pt-6 border-t border-gray-100 dark:border-gray-800">
+                {/* Checkbox Persetujuan Syarat & Ketentuan */}
+                <div className="p-4 rounded-2xl bg-amber-50/70 dark:bg-amber-900/10 border border-amber-200/80 dark:border-amber-800/30 flex items-start gap-3">
+                    <input
+                        type="checkbox"
+                        id="syarat-ketentuan-check"
+                        checked={setujuSK}
+                        onChange={(e) => setSetujuSK(e.target.checked)}
+                        className="mt-1 w-5 h-5 accent-blue-600 rounded cursor-pointer shrink-0"
+                    />
+                    <label htmlFor="syarat-ketentuan-check" className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed cursor-pointer select-none">
+                        Saya menyatakan bahwa seluruh data yang diisi adalah benar dan akurat. <strong className="text-blue-600 dark:text-blue-400">Saya Setuju Dengan Syarat & Ketentuan yang berlaku</strong>.
+                    </label>
+                </div>
+
+                <div className="pt-2">
                     <button
                         type="submit"
-                        disabled={submitting}
-                        className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl font-bold text-lg flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
+                        disabled={submitting || !setujuSK}
+                        className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl font-bold text-lg flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                     >
                         {submitting ? (
                             <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-white"></div>

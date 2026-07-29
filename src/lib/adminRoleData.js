@@ -59,6 +59,7 @@ export const rolePermissions = {
     '/panitia/keuangan/transaksi',
     '/panitia/keuangan/master-transaksi',
     '/panitia/keuangan/master-akuntansi',
+    '/panitia/keuangan/metode-pembayaran',
     '/panitia/keuangan/jurnal-entry',
     '/panitia/keuangan/buku-besar',
     '/panitia/keuangan/kas-masuk',

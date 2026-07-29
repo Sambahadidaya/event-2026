@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { FileCheck2, Loader2 } from 'lucide-react';
-import { generatePdfAction } from '@/api/finance/pdf/route';
+import { generatePdfAction } from '@/api/pdf/route';
 
 export default function KwitansiPrintButton({
     transaction = null,

@@ -1,4 +1,4 @@
-import { getDocumentById } from '@/api/supabase/admin/finance';
+import { getDocumentById } from '@/api/supabase/public/pdf';
 import { ShieldCheck, FileText, CheckCircle2, AlertTriangle, Building2, Calendar, User, CreditCard } from 'lucide-react';
 import Link from 'next/link';
 
