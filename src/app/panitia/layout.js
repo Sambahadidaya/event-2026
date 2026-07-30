@@ -353,7 +353,8 @@ export default function PanitiaLayout({ children }) {
                         <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.pj_lomba ? 'max-h-40 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
                             <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
                                 <NavLink href="/panitia/pj_lomba/dashboard" icon={LayoutDashboard} label="Dashboard" colorTheme="violet" />
-                                <NavLink href="/panitia/pj_lomba/form_register" icon={FileText} label="Manajemen Register" colorTheme="violet" />
+                                <NavLink href="/panitia/pj_lomba/form_register" icon={Users} label="Manajemen Team" colorTheme="violet" />
+                                <NavLink href="/panitia/pj_lomba/form_submit" icon={FileText} label="Manajemen Submit" colorTheme="violet" />
                             </ul>
                         </div>
                     </div>

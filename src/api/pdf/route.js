@@ -5,6 +5,7 @@ import { checkAdminAuth } from '@/api/supabase/admin/audit';
 import { generateReportPDF, generateLedgerPDF, generateFinancialReportPDF, generateVerifikasiPDF } from '@/lib/pdf/report';
 import { generateInvoicePDF } from '@/lib/pdf/invoice';
 import { generateCertificatePDF } from '@/lib/pdf/certificate';
+import { generateTeamReportPDF } from '@/lib/pdf/teamReport';
 
 /**
  * Server action to generate PDF securely for logged in admin users
@@ -29,7 +30,10 @@ export async function generatePdfAction(payload = {}) {
             transaction = null,
             peserta = null,
             tabType = 'laba_rugi',
-            metrics = {}
+            metrics = {},
+            lombaName = 'Semua Lomba',
+            activeTab = 'pendaftar',
+            pengumpulanData = []
         } = payload;
 
         let pdfBuffer = null;
@@ -120,6 +124,26 @@ export async function generatePdfAction(payload = {}) {
                 documentId: docData.id || '',
                 documentCode: docData.document_code || 'RPT-2026-000000',
                 printedBy: docData.printed_by || 'Panitia Keuangan'
+            });
+        } else if (type === 'team_report') {
+            const docRes = await createDocument({
+                site,
+                document_type: 'report',
+                reference_id: null,
+                reference_table: null
+            });
+
+            const docData = docRes.data || {};
+            pdfBuffer = await generateTeamReportPDF({
+                title,
+                site,
+                lombaName,
+                activeTab,
+                data,
+                pengumpulanData,
+                documentId: docData.id || '',
+                documentCode: docData.document_code || 'RPT-2026-000000',
+                printedBy: docData.printed_by || 'PJ Lomba'
             });
         } else {
             // Default report PDF

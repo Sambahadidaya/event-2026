@@ -20,6 +20,7 @@ export async function getBrowser() {
         const puppeteer = await import('puppeteer');
         return puppeteer.default.launch({
             headless: true,
+            channel: 'chrome', // Use installed Chrome on user's PC (fixes spawn UNKNOWN on Windows)
             args: ['--no-sandbox', '--disable-setuid-sandbox'],
         });
     }

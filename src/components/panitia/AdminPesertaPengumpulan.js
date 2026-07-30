@@ -8,7 +8,7 @@ import { formatDateTime } from '@/lib/dashboardUtils';
 
 const ITEMS_PER_PAGE = 10;
 
-export default function AdminPesertaPengumpulan({ refreshTrigger = 0 }) {
+export default function AdminPesertaPengumpulan({ refreshTrigger = 0, lockedLomba = null, namaLomba = 'all' }) {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -36,13 +36,21 @@ export default function AdminPesertaPengumpulan({ refreshTrigger = 0 }) {
         }
     };
 
-    const filteredData = data.filter(item => 
-        item.team?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.team?.kode_form?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.form_pengumpulan?.form_register?.nama_lomba?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filteredData = data.filter(item => {
+        const targetLomba = lockedLomba || (namaLomba !== 'all' ? namaLomba : null);
+        if (targetLomba && item.form_pengumpulan?.form_register?.nama_lomba !== targetLomba) {
+            return false;
+        }
 
-    const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+        const query = searchQuery.toLowerCase();
+        return (
+            item.team?.title?.toLowerCase().includes(query) ||
+            item.team?.kode_form?.toLowerCase().includes(query) ||
+            item.form_pengumpulan?.form_register?.nama_lomba?.toLowerCase().includes(query)
+        );
+    });
+
+    const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE) || 1;
     const paginatedData = filteredData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
     return (

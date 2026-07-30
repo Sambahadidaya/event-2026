@@ -1,15 +1,21 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Users, Search, Eye, CheckCircle2, XCircle, Clock, Filter } from 'lucide-react';
+import { Users, Search, Eye, CheckCircle2, XCircle, Clock, Filter, Copy, Link as LinkIcon, Printer, FileSpreadsheet, ChevronDown, Check, X } from 'lucide-react';
 import { getTeams } from '@/api/supabase/public/team';
 import { upsertTeam } from '@/api/supabase/admin/team';
 import { getPeserta } from '@/api/supabase/admin/peserta';
 import { getCurrentAdmin } from '@/api/supabase/admin/auth';
+import { getFormRegister } from '@/api/supabase/public/peserta';
+import { getFormPengumpulan, getPengumpulanLomba } from '@/api/supabase/admin/submission';
+import { generatePdfAction } from '@/api/pdf/route';
+import { exportToExcel } from '@/lib/excel/xlsx';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
 import DashboardSelect from '@/components/panitia/DashboardSelect';
 import DetailModal from '@/components/panitia/DetailModal';
 import TablePagination from '@/components/panitia/TablePagination';
+import DashboardOverviewCards from '@/components/panitia/DashboardOverviewCards';
+import AdminPesertaPengumpulan from '@/components/panitia/AdminPesertaPengumpulan';
 import { formatDateTime } from '@/lib/dashboardUtils';
 import { JENIS_LOMBA, NAMA_LOMBA } from '@/lib/lombaData';
 import { getLombaFilter } from '@/lib/adminRoleData';
@@ -31,6 +37,26 @@ export default function AdminPesertaRegister() {
     const [verifikasiLoading, setVerifikasiLoading] = useState(false);
     const [adminRole, setAdminRole] = useState(null);
     const [lockedLomba, setLockedLomba] = useState(null);
+
+    const [activeTab, setActiveTab] = useState('pendaftar');
+    const [activeDetailTeam, setActiveDetailTeam] = useState(null);
+    const [pengumpulanList, setPengumpulanList] = useState([]);
+    const [registerForms, setRegisterForms] = useState([]);
+    const [submissionForms, setSubmissionForms] = useState([]);
+    const [filterVerifikasi, setFilterVerifikasi] = useState('all');
+    const [filterPengumpulan, setFilterPengumpulan] = useState('all');
+    const [showExportDropdown, setShowExportDropdown] = useState(false);
+    const [pdfLoading, setPdfLoading] = useState(false);
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (showExportDropdown && !e.target.closest('#export-dropdown-wrapper')) {
+                setShowExportDropdown(false);
+            }
+        };
+        document.addEventListener('click', handleClickOutside);
+        return () => document.removeEventListener('click', handleClickOutside);
+    }, [showExportDropdown]);
 
     const fetchData = useCallback(async (forceRefresh = false) => {
         setLoading(true);
@@ -61,9 +87,15 @@ export default function AdminPesertaRegister() {
         if (!forceRefresh) {
             const cachedData = localStorage.getItem(cacheKey);
             const cachedAt = localStorage.getItem(timeKey);
+            const cachedSub = localStorage.getItem(cacheKey + '_sub');
+            const cachedRegForms = localStorage.getItem(cacheKey + '_regf');
+            const cachedSubForms = localStorage.getItem(cacheKey + '_subf');
             if (cachedData) {
                 try {
                     setData(JSON.parse(cachedData));
+                    if (cachedSub) setPengumpulanList(JSON.parse(cachedSub));
+                    if (cachedRegForms) setRegisterForms(JSON.parse(cachedRegForms));
+                    if (cachedSubForms) setSubmissionForms(JSON.parse(cachedSubForms));
                     if (cachedAt) setLastSyncedAt(Number(cachedAt));
                     setLoading(false);
                     return;
@@ -73,10 +105,14 @@ export default function AdminPesertaRegister() {
             }
         }
 
-        // Fetch team + team_members
-        const teamData = await getTeams('pose');
-        // Fetch peserta register
-        const pesertaData = await getPeserta('pose');
+        // Fetch team + team_members, submissions and form lists
+        const [teamData, pesertaData, submissions, regForms, subForms] = await Promise.all([
+            getTeams('pose'),
+            getPeserta('pose'),
+            getPengumpulanLomba(),
+            getFormRegister('pose'),
+            getFormPengumpulan()
+        ]);
 
         // Filter peserta to only 'register' type
         const registerPeserta = (pesertaData || []).filter(p => p.jenis_form === 'register');
@@ -107,6 +143,20 @@ export default function AdminPesertaRegister() {
             const now = Date.now();
             localStorage.setItem(cacheKey, JSON.stringify(enrichedTeams));
             localStorage.setItem(timeKey, now.toString());
+
+            if (submissions) {
+                setPengumpulanList(submissions);
+                localStorage.setItem(cacheKey + '_sub', JSON.stringify(submissions));
+            }
+            if (regForms) {
+                setRegisterForms(regForms);
+                localStorage.setItem(cacheKey + '_regf', JSON.stringify(regForms));
+            }
+            if (subForms) {
+                setSubmissionForms(subForms);
+                localStorage.setItem(cacheKey + '_subf', JSON.stringify(subForms));
+            }
+
             setLastSyncedAt(now);
         }
         setLoading(false);
@@ -143,8 +193,30 @@ export default function AdminPesertaRegister() {
                 (item.team_members && item.team_members.some(m => m.nama?.toLowerCase().includes(searchLower)))
             );
         }
+
+        // Apply tab specific filters
+        if (activeTab === 'pendaftar') {
+            if (filterVerifikasi === 'verified') {
+                result = result.filter(item => item.verivikasi === true);
+            } else if (filterVerifikasi === 'pending') {
+                result = result.filter(item => item.verivikasi !== true && item.verivikasi !== false);
+            } else if (filterVerifikasi === 'rejected') {
+                result = result.filter(item => item.verivikasi === false);
+            }
+        } else {
+            if (filterPengumpulan === 'submitted') {
+                result = result.filter(item =>
+                    (pengumpulanList || []).some(sub => sub.team_id === item.id)
+                );
+            } else if (filterPengumpulan === 'unsubmitted') {
+                result = result.filter(item =>
+                    !(pengumpulanList || []).some(sub => sub.team_id === item.id)
+                );
+            }
+        }
+
         return result;
-    }, [data, jenisLomba, namaLomba, kategoriFilter, searchQuery]);
+    }, [data, jenisLomba, namaLomba, kategoriFilter, searchQuery, activeTab, filterVerifikasi, filterPengumpulan, pengumpulanList]);
 
     const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE) || 1;
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -152,7 +224,7 @@ export default function AdminPesertaRegister() {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [jenisLomba, namaLomba, searchQuery]);
+    }, [jenisLomba, namaLomba, searchQuery, activeTab, filterVerifikasi, filterPengumpulan]);
 
     const handleVerifikasi = async (status) => {
         if (!verifikasiItem) return;
@@ -180,7 +252,8 @@ export default function AdminPesertaRegister() {
             { label: 'Jenis Lomba', value: item.jenis_lomba || '-' },
             { label: 'Nama Lomba', value: item.nama_lomba || '-' },
             { label: 'Tanggal Daftar', value: formatDateTime(item.created_at) },
-            { label: 'Status Verifikasi', value: item.verivikasi === true ? 'Lunas' : item.verivikasi === false ? 'Ditolak' : 'Pending' },
+            { label: 'Status Verifikasi', value: item.verivikasi === true ? 'Valid' : item.verivikasi === false ? 'Ditolak' : 'Pending' },
+            { label: 'Kode Team', value: item.kode_form || '-' },
             {
                 label: 'Bukti Pembayaran',
                 value: item.bukti_bayar ? (
@@ -197,7 +270,7 @@ export default function AdminPesertaRegister() {
                         {item.team_members?.map((m, idx) => (
                             <div key={idx} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm border border-gray-100 dark:border-gray-700">
                                 <p className="font-semibold">{m.nama} <span className="text-gray-500 font-normal">({m.jabatan || 'Anggota'})</span></p>
-                                <p className="text-gray-600 dark:text-gray-400">Kode: {m.kode || '-'}</p>
+                                <p className="text-gray-600 dark:text-gray-400">NIM/Kode: {m.kode || '-'}</p>
                             </div>
                         ))}
                     </div>
@@ -213,7 +286,7 @@ export default function AdminPesertaRegister() {
                                 <div className="grid grid-cols-[140px_10px_1fr] gap-y-1 text-sm text-gray-700 dark:text-gray-300">
                                     <div className="font-semibold">Nama</div><div>:</div><div>{p.nama || '-'}</div>
                                     <div className="font-semibold">Kategori</div><div>:</div><div>{p.kategori || '-'}</div>
-                                    <div className="font-semibold">NIM</div><div>:</div><div>{p.nim || '-'}</div>
+                                    <div className="font-semibold">NIM/Kode</div><div>:</div><div>{p.nim || '-'}</div>
                                     <div className="font-semibold">Prodi</div><div>:</div><div>{p.prodi || '-'}</div>
                                     <div className="font-semibold">Angkatan</div><div>:</div><div>{p.angkatan || '-'}</div>
                                     <div className="font-semibold">Semester</div><div>:</div><div>{p.semester || '-'}</div>
@@ -235,6 +308,302 @@ export default function AdminPesertaRegister() {
                 isCustom: true
             },
         ];
+    };
+
+    const overviewCards = useMemo(() => {
+        const totalTeam = filteredData.length;
+        const totalPeserta = filteredData.reduce((sum, item) => sum + (item.peserta?.length || 0), 0);
+
+        if (activeTab === 'pendaftar') {
+            const totalVerif = filteredData.filter(item => item.verivikasi === true).length;
+            return [
+                { label: 'Total Team', value: totalTeam, icon: Users, iconBg: 'bg-blue-50 dark:bg-blue-900/20', iconClass: 'text-blue-500' },
+                { label: 'Total Peserta', value: totalPeserta, icon: Users, iconBg: 'bg-indigo-50 dark:bg-indigo-900/20', iconClass: 'text-indigo-500' },
+                { label: 'Total Sudah Verifikasi', value: totalVerif, icon: CheckCircle2, iconBg: 'bg-green-50 dark:bg-green-900/20', iconClass: 'text-green-500', subtext: `${totalTeam - totalVerif} Pending/Ditolak`, subtextClass: 'text-amber-500' }
+            ];
+        } else {
+            const totalSubmitted = filteredData.filter(item =>
+                (pengumpulanList || []).some(sub => sub.team_id === item.id)
+            ).length;
+            return [
+                { label: 'Total Team', value: totalTeam, icon: Users, iconBg: 'bg-blue-50 dark:bg-blue-900/20', iconClass: 'text-blue-500' },
+                { label: 'Total Peserta', value: totalPeserta, icon: Users, iconBg: 'bg-indigo-50 dark:bg-indigo-900/20', iconClass: 'text-indigo-500' },
+                { label: 'Total Sudah Pengumpulan', value: totalSubmitted, icon: CheckCircle2, iconBg: 'bg-green-50 dark:bg-green-900/20', iconClass: 'text-green-500', subtext: `${totalTeam - totalSubmitted} Belum Mengumpulkan`, subtextClass: 'text-amber-500' }
+            ];
+        }
+    }, [filteredData, activeTab, pengumpulanList]);
+
+    const activeFormLink = useMemo(() => {
+        let currentLombaName = lockedLomba || (namaLomba !== 'all' ? namaLomba : null);
+
+        // Fallback: If not explicitly set via dropdown or lock, but all data belongs to ONE lomba, use that.
+        if (!currentLombaName && data && data.length > 0) {
+            const uniqueLombas = [...new Set(data.map(d => d.nama_lomba).filter(Boolean))];
+            if (uniqueLombas.length === 1) {
+                currentLombaName = uniqueLombas[0];
+            }
+        }
+
+        if (!currentLombaName) return '';
+
+        const normalizedName = currentLombaName.toLowerCase().trim();
+
+        if (activeTab === 'pendaftar') {
+            const found = (registerForms || []).find(f => f.nama_lomba?.toLowerCase().trim() === normalizedName);
+            return found ? `${window.location.origin}/pose/register/${found.link_id}` : '';
+        } else {
+            const found = (submissionForms || []).find(f => f.form_register?.nama_lomba?.toLowerCase().trim() === normalizedName);
+            return found ? `${window.location.origin}/pose/submission/${found.link_id}` : '';
+        }
+    }, [activeTab, lockedLomba, namaLomba, registerForms, submissionForms, data]);
+
+    const handlePrintPDF = async () => {
+        if (filteredData.length === 0) {
+            window.alert('Tidak ada data untuk dicetak.');
+            return;
+        }
+        setPdfLoading(true);
+        try {
+            const currentLombaName = lockedLomba || (namaLomba !== 'all' ? namaLomba : 'Semua Lomba');
+
+            const printData = filteredData.map(item => {
+                const hasSubmitted = (pengumpulanList || []).some(sub => sub.team_id === item.id);
+                return {
+                    ...item,
+                    hasSubmitted
+                };
+            });
+
+            const res = await generatePdfAction({
+                type: 'team_report',
+                title: activeTab === 'pendaftar' ? 'Laporan Registrasi Tim Lomba' : 'Laporan Pengumpulan Tim Lomba',
+                site: 'pose',
+                lombaName: currentLombaName,
+                activeTab,
+                data: printData,
+                pengumpulanData: pengumpulanList
+            });
+
+            if (!res || !res.success) {
+                throw new Error(res?.error || 'Gagal membuat PDF');
+            }
+
+            const byteCharacters = atob(res.base64Pdf);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'application/pdf' });
+
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const tabLabel = activeTab === 'pendaftar' ? 'pendaftar' : 'pengumpulan';
+            a.download = `laporan_tim_${tabLabel}_${currentLombaName.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Print PDF Error:', err);
+            window.alert(`Gagal mencetak PDF: ${err.message}`);
+        } finally {
+            setPdfLoading(false);
+        }
+    };
+
+    const handleExportExcel = () => {
+        if (filteredData.length === 0) {
+            window.alert('Tidak ada data untuk diexport.');
+            return;
+        }
+
+        const currentLombaName = lockedLomba || (namaLomba !== 'all' ? namaLomba : 'Semua Lomba');
+        const sheets = [];
+
+        if (activeTab === 'pendaftar') {
+            // Sheet 1: Daftar Team
+            const teamColumns = [
+                { key: 'title', label: 'Nama Team' },
+                { key: 'jml_anggota', label: 'Jumlah Anggota' },
+                { key: 'status_verifikasi', label: 'Status Verifikasi' },
+                { key: 'kode_team', label: 'Kode Team' },
+                { key: 'tanggal', label: 'Tanggal Daftar' }
+            ];
+
+            const teamSheetData = filteredData.map(item => ({
+                title: item.title,
+                jml_anggota: `${item.team_members?.length || 0} Orang`,
+                status_verifikasi: item.verivikasi === true ? 'Valid' : item.verivikasi === false ? 'Ditolak' : 'Pending',
+                kode_team: item.kode_form || '-',
+                tanggal: item.created_at ? new Date(item.created_at).toLocaleDateString('id-ID') : '-'
+            }));
+
+            sheets.push({
+                sheetName: 'Daftar Team',
+                data: teamSheetData,
+                columns: teamColumns
+            });
+
+            // Sheet 2-N: Peserta perkategori
+            const categories = ['Mahasiswa LP3I', 'Siswa', 'Dosen', 'Umum'];
+            categories.forEach(cat => {
+                const catPesertaRows = [];
+                filteredData.forEach(team => {
+                    const matchedPesertas = (team.peserta || []).filter(p => {
+                        const pk = (p.kategori || '').toLowerCase().trim();
+                        const ck = cat.toLowerCase().trim();
+                        if (ck === 'mahasiswa lp3i') {
+                            return pk === 'mahasiswa lp3i';
+                        }
+                        return pk === ck;
+                    });
+
+                    matchedPesertas.forEach((p, pIdx) => {
+                        const isFirst = pIdx === 0;
+                        const row = {
+                            nama_team: isFirst ? (team.title || '-') : '',
+                            kode_team: isFirst ? (team.kode_form || '-') : '',
+                            nama: p.nama || '-',
+                            kategori: p.kategori || '-',
+                            nim: p.nim || '-',
+                            kampus: p.kampus || '-',
+                            semester: p.semester ? `Sem. ${p.semester}` : '-',
+                            prodi: p.prodi || '-',
+                            email_wa: p.email_wa || '-',
+                            bukti_bayar: p.bukti_bayar || '-',
+                            status_pembayaran: p.status_pembayaran || 'Pending',
+                            metode_pembayaran: p.metode_pembayaran || '-'
+                        };
+                        catPesertaRows.push(row);
+                    });
+                });
+
+                if (catPesertaRows.length > 0) {
+                    let columns = [];
+                    if (cat === 'Mahasiswa LP3I') {
+                        columns = [
+                            { key: 'nama_team', label: 'Nama Team' },
+                            { key: 'kode_team', label: 'Kode Team' },
+                            { key: 'nama', label: 'Nama' },
+                            { key: 'kategori', label: 'Kategori' },
+                            { key: 'nim', label: 'NIM' },
+                            { key: 'kampus', label: 'Kampus' },
+                            { key: 'semester', label: 'Semester' },
+                            { key: 'prodi', label: 'Prodi' },
+                            { key: 'email_wa', label: 'Email/WA' },
+                            { key: 'bukti_bayar', label: 'Link Bukti Pembayaran' },
+                            { key: 'status_pembayaran', label: 'Status Pembayaran' },
+                            { key: 'metode_pembayaran', label: 'Metode Pembayaran' }
+                        ];
+                    } else if (cat === 'Siswa') {
+                        columns = [
+                            { key: 'nama_team', label: 'Nama Team' },
+                            { key: 'kode_team', label: 'Kode Team' },
+                            { key: 'nama', label: 'Nama' },
+                            { key: 'kategori', label: 'Kategori' },
+                            { key: 'kampus', label: 'Sekolah' },
+                            { key: 'prodi', label: 'Jurusan' },
+                            { key: 'nim', label: 'Kode' },
+                            { key: 'email_wa', label: 'Email/WA' },
+                            { key: 'bukti_bayar', label: 'Link Bukti Pembayaran' },
+                            { key: 'status_pembayaran', label: 'Status Pembayaran' },
+                            { key: 'metode_pembayaran', label: 'Metode Pembayaran' }
+                        ];
+                    } else if (cat === 'Dosen') {
+                        columns = [
+                            { key: 'nama_team', label: 'Nama Team' },
+                            { key: 'kode_team', label: 'Kode Team' },
+                            { key: 'nama', label: 'Nama' },
+                            { key: 'kampus', label: 'Kampus' },
+                            { key: 'email_wa', label: 'Email/WA' },
+                            { key: 'bukti_bayar', label: 'Link Bukti Pembayaran' },
+                            { key: 'status_pembayaran', label: 'Status Pembayaran' },
+                            { key: 'metode_pembayaran', label: 'Metode Pembayaran' }
+                        ];
+                    } else { // Umum
+                        columns = [
+                            { key: 'nama_team', label: 'Nama Team' },
+                            { key: 'kode_team', label: 'Kode Team' },
+                            { key: 'nama', label: 'Nama' },
+                            { key: 'kampus', label: 'Kampus' },
+                            { key: 'prodi', label: 'Prodi' },
+                            { key: 'email_wa', label: 'Email/WA' },
+                            { key: 'bukti_bayar', label: 'Link Bukti Pembayaran' },
+                            { key: 'status_pembayaran', label: 'Status Pembayaran' },
+                            { key: 'metode_pembayaran', label: 'Metode Pembayaran' }
+                        ];
+                    }
+
+                    sheets.push({
+                        sheetName: `Peserta - ${cat.substring(0, 20)}`, // excel limits sheetName to 31 chars
+                        data: catPesertaRows,
+                        columns: columns
+                    });
+                }
+            });
+
+            import('@/lib/excel/xlsx').then(({ exportToExcelMultiSheet }) => {
+                exportToExcelMultiSheet(sheets, `daftar_pendaftar_${currentLombaName.toLowerCase().replace(/[^a-z0-9]/g, '_')}`);
+            });
+        } else {
+            // Sheet 1: Ringkasan Pengumpulan
+            const summaryColumns = [
+                { key: 'title', label: 'Nama Team' },
+                { key: 'nama_lomba', label: 'Lomba' },
+                { key: 'status_pengumpulan', label: 'Status Pengumpulan' },
+                { key: 'kode_team', label: 'Kode Team' },
+                { key: 'tanggal', label: 'Tanggal Submit' }
+            ];
+
+            const summarySheetData = filteredData.map(item => {
+                const hasSubmitted = (pengumpulanList || []).some(sub => sub.team_id === item.id);
+                return {
+                    title: item.title,
+                    nama_lomba: item.nama_lomba || currentLombaName || '-',
+                    status_pengumpulan: hasSubmitted ? 'Sudah Mengumpulkan' : 'Belum Mengumpulkan',
+                    kode_team: item.kode_form || '-',
+                    tanggal: item.created_at ? new Date(item.created_at).toLocaleDateString('id-ID') : '-'
+                };
+            });
+
+            sheets.push({
+                sheetName: 'Ringkasan Pengumpulan',
+                data: summarySheetData,
+                columns: summaryColumns
+            });
+
+            // Sheet 2: Detail Pengumpulan
+            const detailColumns = [
+                { key: 'title', label: 'Nama Team' },
+                { key: 'lomba', label: 'Lomba' },
+                { key: 'kode_team', label: 'Kode Team' },
+                { key: 'file_link', label: 'File/Link Pengumpulan' },
+                { key: 'tanggal', label: 'Tanggal Submit' }
+            ];
+
+            const allowedTeamIds = new Set(filteredData.map(t => t.id));
+            const filteredSubmissions = (pengumpulanList || []).filter(sub => allowedTeamIds.has(sub.team_id));
+
+            const detailSheetData = filteredSubmissions.map(sub => ({
+                title: sub.team?.title || '-',
+                lomba: sub.form_pengumpulan?.form_register?.nama_lomba || '-',
+                kode_team: sub.team?.kode_form || '-',
+                file_link: sub.file_link || '-',
+                tanggal: sub.created_at ? new Date(sub.created_at).toLocaleDateString('id-ID') : '-'
+            }));
+
+            sheets.push({
+                sheetName: 'Detail Pengumpulan',
+                data: detailSheetData,
+                columns: detailColumns
+            });
+
+            import('@/lib/excel/xlsx').then(({ exportToExcelMultiSheet }) => {
+                exportToExcelMultiSheet(sheets, `daftar_pengumpulan_${currentLombaName.toLowerCase().replace(/[^a-z0-9]/g, '_')}`);
+            });
+        }
     };
 
     const extraFilters = (
@@ -275,17 +644,60 @@ export default function AdminPesertaRegister() {
                     { value: 'all', label: 'Semua Kategori' },
                     { value: 'Mahasiswa LP3I', label: 'Mahasiswa LP3I' },
                     { value: 'Dosen', label: 'Dosen' },
+                    { value: 'Siswa', label: 'Siswa' },
                     { value: 'Umum', label: 'Umum' }
                 ]}
             />
+
+            {/* Export Dropdown */}
+            <div className="relative inline-block text-left w-full sm:w-auto" id="export-dropdown-wrapper">
+                <button
+                    type="button"
+                    onClick={() => setShowExportDropdown(!showExportDropdown)}
+                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2.5 rounded-xl text-sm font-medium transition-colors w-full sm:w-auto justify-center shadow-sm"
+                >
+                    <Printer size={16} />
+                    <span>Cetak / Export</span>
+                    <ChevronDown size={14} />
+                </button>
+                {showExportDropdown && (
+                    <div className="absolute right-0 mt-2 w-48 rounded-xl bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black/5 dark:ring-white/10 z-[110] overflow-hidden">
+                        <div className="py-1">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowExportDropdown(false);
+                                    handlePrintPDF();
+                                }}
+                                disabled={pdfLoading}
+                                className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                            >
+                                <Printer size={14} />
+                                <span>{pdfLoading ? 'Memproses...' : 'Cetak PDF'}</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowExportDropdown(false);
+                                    handleExportExcel();
+                                }}
+                                className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                            >
+                                <FileSpreadsheet size={14} />
+                                <span>Export Excel</span>
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
         </>
     );
 
     return (
         <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-500">
             <DashboardHeaderFilters
-                title="Manajemen Registrasi"
-                subtitle={lockedLomba ? `Data registrasi untuk ${lockedLomba}` : 'Kelola tim yang mendaftar lomba POSE'}
+                title="Manajemen Team Lomba"
+                subtitle={lockedLomba ? `Data Team Lomba untuk ${lockedLomba}` : 'Kelola tim yang mendaftar lomba POSE'}
                 icon={Users}
                 showSiteFilter={false}
                 extraFilters={extraFilters}
@@ -294,105 +706,274 @@ export default function AdminPesertaRegister() {
                 lastSyncedAt={lastSyncedAt}
             />
 
-            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
-                <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <h3 className="font-bold text-base sm:text-lg text-gray-800 dark:text-gray-200">Daftar Pendaftar</h3>
-                    <div className="relative flex-1 sm:flex-none sm:w-64">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            {/* Overview Cards */}
+            <DashboardOverviewCards cards={overviewCards} />
+
+            {/* Switch & Search Toolbar */}
+            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                {/* Switch tab button */}
+                <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl shadow-xs">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setActiveTab('pendaftar');
+                            setCurrentPage(1);
+                        }}
+                        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'pendaftar'
+                                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                            }`}
+                    >
+                        Daftar Pendaftar
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setActiveTab('pengumpulan');
+                            setCurrentPage(1);
+                        }}
+                        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'pengumpulan'
+                                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                            }`}
+                    >
+                        Daftar Pengumpulan
+                    </button>
+                </div>
+
+                {/* Search Input beside switch */}
+                <div className="relative w-full md:w-72">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                    <input
+                        type="text"
+                        placeholder="Cari nama tim..."
+                        value={searchQuery}
+                        onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            setCurrentPage(1);
+                        }}
+                        className="w-full pl-9 pr-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:ring-2 focus:ring-blue-500/30"
+                    />
+                </div>
+            </div>
+
+            {/* Dynamic Form Link */}
+            {activeFormLink && (
+                <div className="flex flex-col sm:flex-row items-center gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-2xl text-sm">
+                    <span className="font-semibold text-blue-700 dark:text-blue-300 shrink-0">
+                        Link Form {activeTab === 'pendaftar' ? 'Pendaftaran' : 'Pengumpulan'} Lomba:
+                    </span>
+                    <div className="flex items-center gap-2 w-full sm:w-auto flex-1">
                         <input
                             type="text"
-                            placeholder="Cari nama tim atau anggota..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-9 pr-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:ring-2 focus:ring-blue-500/30"
+                            readOnly
+                            value={activeFormLink}
+                            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-1.5 text-xs w-full sm:w-96 text-gray-600 dark:text-gray-300 font-mono focus:ring-2 focus:ring-blue-500"
                         />
+                        <button
+                            onClick={() => {
+                                navigator.clipboard.writeText(activeFormLink);
+                                window.alert('Link berhasil disalin!');
+                            }}
+                            className="p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:text-blue-500 hover:border-blue-500 dark:hover:border-blue-500 transition-colors shadow-xs"
+                            title="Salin Link"
+                        >
+                            <Copy size={14} />
+                        </button>
+                        <a
+                            href={activeFormLink.replace(window.location.origin, '')}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:text-blue-500 hover:border-blue-500 dark:hover:border-blue-500 transition-colors shadow-xs"
+                            title="Buka Link"
+                        >
+                            <LinkIcon size={14} />
+                        </a>
                     </div>
+                </div>
+            )}
+
+            {/* Main Table Box */}
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
+                <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <h3 className="font-bold text-base sm:text-lg text-gray-800 dark:text-gray-200">
+                        {activeTab === 'pendaftar' ? 'Daftar Pendaftar' : 'Daftar Pengumpulan'}
+                    </h3>
+
+                    {/* Filter Dropdown */}
+                    {activeTab === 'pendaftar' ? (
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500 font-medium">Filter Verifikasi:</span>
+                            <select
+                                value={filterVerifikasi}
+                                onChange={(e) => {
+                                    setFilterVerifikasi(e.target.value);
+                                    setCurrentPage(1);
+                                }}
+                                className="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-xs font-semibold focus:ring-2 focus:ring-blue-500/30"
+                            >
+                                <option value="all">Semua Status</option>
+                                <option value="verified">Valid</option>
+                                <option value="pending">Pending</option>
+                                <option value="rejected">Ditolak</option>
+                            </select>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500 font-medium">Filter Pengumpulan:</span>
+                            <select
+                                value={filterPengumpulan}
+                                onChange={(e) => {
+                                    setFilterPengumpulan(e.target.value);
+                                    setCurrentPage(1);
+                                }}
+                                className="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-xs font-semibold focus:ring-2 focus:ring-blue-500/30"
+                            >
+                                <option value="all">Semua Status</option>
+                                <option value="submitted">Sudah Mengumpulkan</option>
+                                <option value="unsubmitted">Belum Mengumpulkan</option>
+                            </select>
+                        </div>
+                    )}
                 </div>
 
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
-                            <tr>
-                                <th className="px-4 py-3 font-medium w-12 text-center">No</th>
-                                <th className="px-4 py-3 font-medium">Nama Team</th>
-                                <th className="px-4 py-3 font-medium text-center">Jml Anggota</th>
-                                <th className="px-4 py-3 font-medium">Nama Lomba</th>
-                                <th className="px-4 py-3 font-medium">Jenis Lomba</th>
-                                <th className="px-4 py-3 font-medium text-center">Peserta</th>
-                                <th className="px-4 py-3 font-medium w-44">Tanggal</th>
-                                <th className="px-4 py-3 font-medium w-24 text-center">Lihat</th>
-                                <th className="px-4 py-3 font-medium w-32 text-center">Verifikasi</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                            {loading && data.length === 0 ? (
-                                Array.from({ length: 5 }).map((_, i) => (
-                                    <tr key={`skel-${i}`} className="animate-pulse bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
-                                        <td colSpan={9} className="px-4 py-4"><div className="h-8 bg-gray-100 dark:bg-gray-800 rounded-lg w-full"></div></td>
-                                    </tr>
-                                ))
-                            ) : paginatedData.length === 0 ? (
+                    {activeTab === 'pendaftar' ? (
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
                                 <tr>
-                                    <td colSpan={9} className="px-6 py-16 text-center text-gray-500">Tidak ada pendaftar ditemukan.</td>
+                                    <th className="px-4 py-3 font-medium w-12 text-center">No</th>
+                                    <th className="px-4 py-3 font-medium">Nama Team</th>
+                                    <th className="px-4 py-3 font-medium text-center">Jml Anggota</th>
+                                    <th className="px-4 py-3 font-medium">Nama Lomba</th>
+                                    <th className="px-4 py-3 font-medium">Jenis Lomba</th>
+                                    <th className="px-4 py-3 font-medium text-center">Peserta</th>
+                                    <th className="px-4 py-3 font-medium w-44">Tanggal</th>
+                                    <th className="px-4 py-3 font-medium w-24 text-center">Lihat Detail</th>
+                                    <th className="px-4 py-3 font-medium w-32 text-center">Verifikasi</th>
                                 </tr>
-                            ) : paginatedData.map((item, index) => (
-                                <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                                    <td className="px-4 py-3 text-center text-gray-500 font-medium">{startIndex + index + 1}</td>
-                                    <td className="px-4 py-3 font-semibold text-gray-800 dark:text-gray-200">{item.title}</td>
-                                    <td className="px-4 py-3 text-center">
-                                        <span className="inline-flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full h-6 w-6 text-xs font-bold">
-                                            {item.team_members?.length || 0}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 font-medium">{item.nama_lomba || '-'}</td>
-                                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs">{item.jenis_lomba || '-'}</td>
-                                    <td className="px-4 py-3 text-center">
-                                        <span className="inline-flex items-center justify-center bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full h-6 w-6 text-xs font-bold">
-                                            {item.peserta?.length || 0}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{formatDateTime(item.created_at)}</td>
-                                    <td className="px-4 py-3 text-center">
-                                        <button
-                                            type="button"
-                                            onClick={() => setDetailItem(item)}
-                                            className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 transition-colors"
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                {loading && data.length === 0 ? (
+                                    Array.from({ length: 5 }).map((_, i) => (
+                                        <tr key={`skel-${i}`} className="animate-pulse bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
+                                            <td colSpan={9} className="px-4 py-4"><div className="h-8 bg-gray-100 dark:bg-gray-800 rounded-lg w-full"></div></td>
+                                        </tr>
+                                    ))
+                                ) : paginatedData.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={9} className="px-6 py-16 text-center text-gray-500">Tidak ada pendaftar ditemukan.</td>
+                                    </tr>
+                                ) : paginatedData.map((item, index) => {
+                                    const isSelected = activeDetailTeam?.id === item.id;
+                                    return (
+                                        <tr
+                                            key={item.id}
+                                            onClick={() => setActiveDetailTeam(item)}
+                                            className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer ${isSelected ? 'bg-blue-50/50 dark:bg-blue-900/20 border-l-4 border-blue-500' : ''
+                                                }`}
                                         >
-                                            <Eye size={14} />
-                                            Lihat
-                                        </button>
-                                    </td>
-                                    <td className="px-4 py-3 text-center">
-                                        {item.verivikasi === true ? (
-                                            <button
-                                                type="button"
-                                                onClick={() => setVerifikasiItem(item)}
-                                                className="inline-flex items-center justify-center gap-1 w-full px-2 py-1.5 text-xs font-semibold rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800/50 hover:bg-green-100 transition-colors"
-                                            >
-                                                <CheckCircle2 size={14} /> Lunas
-                                            </button>
-                                        ) : item.verivikasi === false ? (
-                                            <button
-                                                type="button"
-                                                onClick={() => setVerifikasiItem(item)}
-                                                className="inline-flex items-center justify-center gap-1 w-full px-2 py-1.5 text-xs font-semibold rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800/50 hover:bg-red-100 transition-colors"
-                                            >
-                                                <XCircle size={14} /> Ditolak
-                                            </button>
-                                        ) : (
-                                            <button
-                                                type="button"
-                                                onClick={() => setVerifikasiItem(item)}
-                                                className="inline-flex items-center justify-center gap-1 w-full px-2 py-1.5 text-xs font-semibold rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 hover:bg-amber-100 transition-colors"
-                                            >
-                                                <Clock size={14} /> Pending
-                                            </button>
-                                        )}
-                                    </td>
+                                            <td className="px-4 py-3 text-center text-gray-500 font-medium">{startIndex + index + 1}</td>
+                                            <td className="px-4 py-3 font-semibold text-gray-800 dark:text-gray-200">{item.title}</td>
+                                            <td className="px-4 py-3 text-center">
+                                                <span className="inline-flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full h-6 w-6 text-xs font-bold">
+                                                    {item.team_members?.length || 0}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-gray-600 dark:text-gray-400 font-medium">{item.nama_lomba || '-'}</td>
+                                            <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs">{item.jenis_lomba || '-'}</td>
+                                            <td className="px-4 py-3 text-center">
+                                                <span className="inline-flex items-center justify-center bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full h-6 w-6 text-xs font-bold">
+                                                    {item.peserta?.length || 0}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{formatDateTime(item.created_at)}</td>
+                                            <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setDetailItem(item)}
+                                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 transition-colors"
+                                                >
+                                                    <Eye size={14} />
+                                                    Lihat
+                                                </button>
+                                            </td>
+                                            <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                                {item.verivikasi === true ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setVerifikasiItem(item)}
+                                                        className="inline-flex items-center justify-center gap-1 w-full px-2 py-1.5 text-xs font-semibold rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800/50 hover:bg-green-100 transition-colors"
+                                                    >
+                                                        <CheckCircle2 size={14} /> Valid
+                                                    </button>
+                                                ) : item.verivikasi === false ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setVerifikasiItem(item)}
+                                                        className="inline-flex items-center justify-center gap-1 w-full px-2 py-1.5 text-xs font-semibold rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800/50 hover:bg-red-100 transition-colors"
+                                                    >
+                                                        <XCircle size={14} /> Ditolak
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setVerifikasiItem(item)}
+                                                        className="inline-flex items-center justify-center gap-1 w-full px-2 py-1.5 text-xs font-semibold rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 hover:bg-amber-100 transition-colors"
+                                                    >
+                                                        <Clock size={14} /> Pending
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    ) : (
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
+                                <tr>
+                                    <th className="px-4 py-3 font-medium w-12 text-center">No</th>
+                                    <th className="px-4 py-3 font-medium">Nama Team</th>
+                                    <th className="px-4 py-3 font-medium">Lomba</th>
+                                    <th className="px-4 py-3 font-medium text-center">Status Pengumpulan</th>
+                                    <th className="px-4 py-3 font-medium text-center">Kode Team</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                {loading && data.length === 0 ? (
+                                    Array.from({ length: 5 }).map((_, i) => (
+                                        <tr key={`skel-sub-${i}`} className="animate-pulse bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
+                                            <td colSpan={5} className="px-4 py-4"><div className="h-8 bg-gray-100 dark:bg-gray-800 rounded-lg w-full"></div></td>
+                                        </tr>
+                                    ))
+                                ) : paginatedData.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={5} className="px-6 py-16 text-center text-gray-500">Tidak ada pendaftar ditemukan.</td>
+                                    </tr>
+                                ) : paginatedData.map((item, index) => {
+                                    const hasSubmitted = (pengumpulanList || []).some(sub => sub.team_id === item.id);
+                                    return (
+                                        <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                                            <td className="px-4 py-3 text-center text-gray-500 font-medium">{startIndex + index + 1}</td>
+                                            <td className="px-4 py-3 font-semibold text-gray-800 dark:text-gray-200">{item.title}</td>
+                                            <td className="px-4 py-3 text-gray-600 dark:text-gray-400 font-medium">{item.nama_lomba || '-'}</td>
+                                            <td className="px-4 py-3 text-center">
+                                                <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${hasSubmitted
+                                                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                                                        : 'bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400'
+                                                    }`}>
+                                                    {hasSubmitted ? 'Sudah Mengumpulkan' : 'Belum Mengumpulkan'}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-center font-mono text-xs">{item.kode_form || '-'}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
                 <TablePagination
                     currentPage={currentPage}
@@ -400,9 +981,85 @@ export default function AdminPesertaRegister() {
                     totalItems={filteredData.length}
                     itemsPerPage={ITEMS_PER_PAGE}
                     onPageChange={setCurrentPage}
-                    colSpan={9}
+                    colSpan={activeTab === 'pendaftar' ? 9 : 5}
                 />
             </div>
+
+            {/* Detailed Participant Table (under the main table - tab Pendaftar only) */}
+            {activeTab === 'pendaftar' && activeDetailTeam && (
+                <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden mt-6 animate-in fade-in slide-in-from-bottom duration-300">
+                    <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 flex justify-between items-center">
+                        <div>
+                            <h3 className="font-bold text-base sm:text-lg text-gray-800 dark:text-gray-200">
+                                Detail Peserta Tim: <span className="text-blue-600 dark:text-blue-400 font-black">{activeDetailTeam.title}</span>
+                            </h3>
+                            <p className="text-xs text-gray-500">Lomba: {activeDetailTeam.nama_lomba} ({activeDetailTeam.jenis_lomba})</p>
+                        </div>
+                        <button
+                            onClick={() => setActiveDetailTeam(null)}
+                            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 font-bold"
+                        >
+                            Tutup Detail ×
+                        </button>
+                    </div>
+                    <div className="p-4 sm:p-6 overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                                <tr>
+                                    <th className="px-4 py-3 font-semibold w-12 text-center">No</th>
+                                    <th className="px-4 py-3 font-semibold">Nama</th>
+                                    <th className="px-4 py-3 font-semibold">Kategori</th>
+                                    <th className="px-4 py-3 font-semibold">NIM/Kode</th>
+                                    <th className="px-4 py-3 font-semibold">Prodi</th>
+                                    <th className="px-4 py-3 font-semibold">Semester/Angkatan</th>
+                                    <th className="px-4 py-3 font-semibold">Kampus</th>
+                                    <th className="px-4 py-3 font-semibold">Kontak</th>
+                                    <th className="px-4 py-3 font-semibold text-center">Status Bayar</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                {(!activeDetailTeam.peserta || activeDetailTeam.peserta.length === 0) ? (
+                                    <tr>
+                                        <td colSpan={9} className="px-4 py-8 text-center text-gray-500 italic">Belum ada data peserta terhubung.</td>
+                                    </tr>
+                                ) : (
+                                    activeDetailTeam.peserta.map((p, idx) => (
+                                        <tr key={p.id || idx} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/20">
+                                            <td className="px-4 py-3 text-center text-gray-500">{idx + 1}</td>
+                                            <td className="px-4 py-3 font-semibold text-gray-800 dark:text-gray-200">{p.nama}</td>
+                                            <td className="px-4 py-3">{p.kategori || '-'}</td>
+                                            <td className="px-4 py-3 font-mono text-xs">{p.nim || '-'}</td>
+                                            <td className="px-4 py-3">{p.prodi || '-'}</td>
+                                            <td className="px-4 py-3">Sem. {p.semester || '-'} ({p.angkatan || '-'})</td>
+                                            <td className="px-4 py-3">{p.kampus || '-'}</td>
+                                            <td className="px-4 py-3 text-xs">{p.email_wa || '-'}</td>
+                                            <td className="px-4 py-3 text-center">
+                                                <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${p.status_pembayaran?.toLowerCase() === 'pending'
+                                                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400'
+                                                        : p.status_pembayaran?.toLowerCase() === 'ditolak'
+                                                            ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+                                                            : 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                                                    }`}>
+                                                    {p.status_pembayaran || '-'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
+            {/* AdminPesertaPengumpulan Component (under the main table - tab Pengumpulan only) */}
+            {activeTab === 'pengumpulan' && (
+                <AdminPesertaPengumpulan
+                    lockedLomba={lockedLomba}
+                    namaLomba={namaLomba}
+                    refreshTrigger={lastSyncedAt}
+                />
+            )}
 
             <DetailModal
                 open={Boolean(detailItem)}

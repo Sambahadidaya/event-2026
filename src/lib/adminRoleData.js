@@ -33,7 +33,6 @@ Object.values(NAMA_LOMBA).flat().forEach(nama => {
 
 // PJ Lomba routes
 const PJ_LOMBA_ROUTES = [
-  '/panitia/pj_lomba/dashboard',
   '/panitia/pj_lomba/form_register',
 ];
 
