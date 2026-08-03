@@ -36,6 +36,9 @@ export default function UnifiedFormDashboard() {
     const [namaLomba, setNamaLomba] = useState('');
     const [kategoriPendaftar, setKategoriPendaftar] = useState(['Mahasiswa LP3I', 'Siswa', 'Dosen', 'Umum']);
     const [pricingKategoriMap, setPricingKategoriMap] = useState({});
+    const [individusKategoriMap, setIndividusKategoriMap] = useState({});
+    const [maksAnggotaKategoriMap, setMaksAnggotaKategoriMap] = useState({});
+    const [maksTeamKategoriMap, setMaksTeamKategoriMap] = useState({});
 
     const [createLoading, setCreateLoading] = useState(false);
 
@@ -70,6 +73,9 @@ export default function UnifiedFormDashboard() {
         setNamaLomba('');
         setKategoriPendaftar(['Mahasiswa LP3I', 'Siswa', 'Dosen', 'Umum']);
         setPricingKategoriMap({});
+        setIndividusKategoriMap({});
+        setMaksAnggotaKategoriMap({});
+        setMaksTeamKategoriMap({});
     };
 
     const handleOpenModal = () => {
@@ -162,12 +168,18 @@ export default function UnifiedFormDashboard() {
 
             if (res.success && res.data?.id) {
                 // Save pricing per category
-                const pricingList = kategoriPendaftar.map(kat => ({
-                    kategori: kat,
-                    nominal: pricingKategoriMap[kat] !== undefined && pricingKategoriMap[kat] !== ''
-                        ? parseInt(pricingKategoriMap[kat], 10)
-                        : finalNominal
-                }));
+                const pricingList = kategoriPendaftar.map(kat => {
+                    const isIndividu = individusKategoriMap[kat] !== undefined ? individusKategoriMap[kat] : true;
+                    return {
+                        kategori: kat,
+                        nominal: pricingKategoriMap[kat] !== undefined && pricingKategoriMap[kat] !== ''
+                            ? parseInt(pricingKategoriMap[kat], 10)
+                            : finalNominal,
+                        individu: isIndividu,
+                        maks_anggota: isIndividu ? 1 : (maksAnggotaKategoriMap[kat] !== undefined && maksAnggotaKategoriMap[kat] !== '' ? parseInt(maksAnggotaKategoriMap[kat], 10) : 1),
+                        maks_team: maksTeamKategoriMap[kat] !== undefined && maksTeamKategoriMap[kat] !== '' ? parseInt(maksTeamKategoriMap[kat], 10) : 1
+                    };
+                });
                 await upsertFormRegisterPricing(res.data.id, pricingList);
 
                 // Create pengumpulan otomatis
@@ -426,22 +438,71 @@ export default function UnifiedFormDashboard() {
                                     </div>
 
                                     {kategoriPendaftar.length > 0 && (
-                                        <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 space-y-2">
-                                            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">Nominal Per Kategori (Opsional)</label>
-                                            <p className="text-[11px] text-gray-500">Atur nominal khusus per kategori pendaftar. Kosongkan jika sama dengan nominal default.</p>
-                                            {kategoriPendaftar.map(kat => (
-                                                <div key={kat} className="flex items-center justify-between gap-2">
-                                                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400 w-1/3 truncate">{kat}</span>
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        placeholder={`Default (${nominal || 0})`}
-                                                        value={pricingKategoriMap[kat] !== undefined ? pricingKategoriMap[kat] : ''}
-                                                        onChange={(e) => setPricingKategoriMap({ ...pricingKategoriMap, [kat]: e.target.value })}
-                                                        className="w-2/3 px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-500"
-                                                    />
-                                                </div>
-                                            ))}
+                                        <div className="mt-3 space-y-3">
+                                            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">Pengaturan Kategori Pendaftar</label>
+                                            <p className="text-[11px] text-gray-500">Atur detail pendaftaran (nominal, tipe pendaftaran, batas anggota, kuota tim) per kategori.</p>
+                                            {kategoriPendaftar.map(kat => {
+                                                const isIndividu = individusKategoriMap[kat] !== undefined ? individusKategoriMap[kat] : true;
+                                                return (
+                                                    <div key={kat} className="p-3 bg-gray-50/70 dark:bg-gray-800/40 rounded-2xl border border-gray-200/80 dark:border-gray-800 space-y-3 shadow-inner">
+                                                        <div className="flex items-center justify-between border-b border-gray-200/50 dark:border-gray-800 pb-2">
+                                                            <span className="text-xs font-bold text-blue-700 dark:text-blue-400 truncate">{kat}</span>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-[10px] text-gray-500 font-medium">Individu?</span>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setIndividusKategoriMap({ ...individusKategoriMap, [kat]: !isIndividu })}
+                                                                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                                                        isIndividu ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-700'
+                                                                    }`}
+                                                                >
+                                                                    <span
+                                                                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                                                            isIndividu ? 'translate-x-4' : 'translate-x-0'
+                                                                        }`}
+                                                                    />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        <div className="grid grid-cols-3 gap-2">
+                                                            <div>
+                                                                <label className="block text-[10px] text-gray-500 dark:text-gray-400 mb-1 font-semibold">Nominal</label>
+                                                                <input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    placeholder={`(${nominal || 0})`}
+                                                                    value={pricingKategoriMap[kat] !== undefined ? pricingKategoriMap[kat] : ''}
+                                                                    onChange={(e) => setPricingKategoriMap({ ...pricingKategoriMap, [kat]: e.target.value })}
+                                                                    className="w-full px-2.5 py-1.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl text-xs outline-none focus:ring-1 focus:ring-blue-500"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-[10px] text-gray-500 dark:text-gray-400 mb-1 font-semibold">Maks Anggota</label>
+                                                                <input
+                                                                    type="number"
+                                                                    min="1"
+                                                                    disabled={isIndividu}
+                                                                    value={isIndividu ? 1 : (maksAnggotaKategoriMap[kat] !== undefined ? maksAnggotaKategoriMap[kat] : '')}
+                                                                    onChange={(e) => setMaksAnggotaKategoriMap({ ...maksAnggotaKategoriMap, [kat]: e.target.value })}
+                                                                    placeholder="Maks"
+                                                                    className={`w-full px-2.5 py-1.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl text-xs outline-none focus:ring-1 focus:ring-blue-500 ${isIndividu ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-[10px] text-gray-500 dark:text-gray-400 mb-1 font-semibold">Maks Team</label>
+                                                                <input
+                                                                    type="number"
+                                                                    min="1"
+                                                                    value={maksTeamKategoriMap[kat] !== undefined ? maksTeamKategoriMap[kat] : ''}
+                                                                    onChange={(e) => setMaksTeamKategoriMap({ ...maksTeamKategoriMap, [kat]: e.target.value })}
+                                                                    placeholder="Maks"
+                                                                    className="w-full px-2.5 py-1.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl text-xs outline-none focus:ring-1 focus:ring-blue-500"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     )}
                                 </div>

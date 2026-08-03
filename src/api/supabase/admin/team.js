@@ -88,3 +88,42 @@ export const deleteMultipleTeams = async (ids) => {
         return { success: false, error: 'Terjadi kesalahan internal pada server.' };
     }
 };
+
+export const deleteTeamPermanent = async (teamId, kodeForm) => {
+    try {
+        const { user, adminNama, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        if (!teamId) throw new Error('Team ID is required');
+
+        // 1. Fetch peserta records tied to this kode_form
+        if (kodeForm) {
+            const { data: pesertas } = await supabaseAdmin
+                .from('peserta')
+                .select('*')
+                .eq('kode_form', kodeForm);
+
+            if (pesertas && pesertas.length > 0) {
+                // Delete peserta records
+                await supabaseAdmin
+                    .from('peserta')
+                    .delete()
+                    .eq('kode_form', kodeForm);
+            }
+        }
+
+        // 2. Delete team (this should cascade to team_members, etc)
+        const { error } = await supabaseAdmin
+            .from('team')
+            .delete()
+            .eq('id', teamId);
+
+        if (error) throw error;
+
+        await insertAuditLog(user.email, 'DELETE_TEAM_PERMANENT', teamId, `Team & Peserta deleted permanently`, adminNama);
+        return { success: true };
+    } catch (error) {
+        console.error("Internal Log - Error deleting team permanently:", error);
+        return { success: false, error: 'Terjadi kesalahan internal pada server.' };
+    }
+};

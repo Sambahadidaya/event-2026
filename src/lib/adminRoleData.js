@@ -33,13 +33,23 @@ Object.values(NAMA_LOMBA).flat().forEach(nama => {
 
 // PJ Lomba routes
 const PJ_LOMBA_ROUTES = [
+  '/panitia/pj_lomba/dashboard',
   '/panitia/pj_lomba/form_register',
+  '/panitia/pj_lomba/jadwal_pertandingan',
+  '/panitia/pj_lomba/penilaian',
 ];
 
 // Generate rolePermissions for each PJ Lomba role
 const pjLombaPermissions = {};
 Object.keys(LOMBA_ROLE_MAP).forEach(roleKey => {
-  pjLombaPermissions[roleKey] = [...PJ_LOMBA_ROUTES];
+  const namaLomba = LOMBA_ROLE_MAP[roleKey];
+  const isKreativitas = NAMA_LOMBA['Kreativitas']?.includes(namaLomba);
+  pjLombaPermissions[roleKey] = PJ_LOMBA_ROUTES.filter(route => {
+    if (route === '/panitia/pj_lomba/penilaian') {
+      return isKreativitas;
+    }
+    return true;
+  });
 });
 
 export const rolePermissions = {
@@ -66,6 +76,9 @@ export const rolePermissions = {
     '/panitia/keuangan/neraca-saldo',
     '/panitia/keuangan/neraca-lajur',
     '/panitia/keuangan/laporan',
+    '/panitia/absensi_panitia/dashboard',
+    '/panitia/absensi_panitia/form',
+    '/panitia/absensi_panitia/absensi',
   ],
   admin_pose: [
     '/panitia/pose/jadwal_acara',
@@ -80,12 +93,15 @@ export const rolePermissions = {
     '/panitia/pose/peserta_wajib',
     '/panitia/pj_lomba/dashboard',
     '/panitia/pj_lomba/form_register',
+    '/panitia/pj_lomba/jadwal_pertandingan',
+    '/panitia/pj_lomba/penilaian',
     '/panitia/form/form',
     '/panitia/keuangan/dashboard',
     '/panitia/keuangan/verifikasi',
     '/panitia/keuangan/transaksi',
     '/panitia/keuangan/master-transaksi',
     '/panitia/keuangan/master-akuntansi',
+    '/panitia/keuangan/metode-pembayaran',
     '/panitia/keuangan/jurnal-entry',
     '/panitia/keuangan/buku-besar',
     '/panitia/keuangan/kas-masuk',
@@ -93,6 +109,19 @@ export const rolePermissions = {
     '/panitia/keuangan/neraca-saldo',
     '/panitia/keuangan/neraca-lajur',
     '/panitia/keuangan/laporan',
+    '/panitia/absensi_panitia/dashboard',
+    '/panitia/absensi_panitia/form',
+    '/panitia/absensi_panitia/absensi',
+  ],
+  admin_pkkmb_sekretaris: [
+    '/panitia/absensi_panitia/dashboard',
+    '/panitia/absensi_panitia/form',
+    '/panitia/absensi_panitia/absensi',
+  ],
+  admin_pose_sekretaris: [
+    '/panitia/absensi_panitia/dashboard',
+    '/panitia/absensi_panitia/form',
+    '/panitia/absensi_panitia/absensi',
   ],
   admin_pose_form: [
     '/panitia/pose/form_register',
@@ -110,6 +139,7 @@ export const rolePermissions = {
     '/panitia/keuangan/transaksi',
     '/panitia/keuangan/master-transaksi',
     '/panitia/keuangan/master-akuntansi',
+    '/panitia/keuangan/metode-pembayaran',
     '/panitia/keuangan/jurnal-entry',
     '/panitia/keuangan/buku-besar',
     '/panitia/keuangan/kas-masuk',
@@ -124,6 +154,7 @@ export const rolePermissions = {
     '/panitia/keuangan/transaksi',
     '/panitia/keuangan/master-transaksi',
     '/panitia/keuangan/master-akuntansi',
+    '/panitia/keuangan/metode-pembayaran',
     '/panitia/keuangan/jurnal-entry',
     '/panitia/keuangan/buku-besar',
     '/panitia/keuangan/kas-masuk',
@@ -148,6 +179,12 @@ export const rolePermissions = {
     '/panitia/keuangan/laporan',
     '/panitia/pj_lomba/dashboard',
     '/panitia/pj_lomba/form_register',
+  ],
+  admin_pkkmb_belumdiatur: [
+    '/panitia/pkkmb/berita',
+  ],
+  admin_pose_belumdiatur: [
+    '/panitia/pose/berita',
   ],
   // Spread dynamically generated PJ Lomba roles
   ...pjLombaPermissions
@@ -177,6 +214,8 @@ export const getLombaFilter = (role) => {
 const formatRoleLabel = (roleKey) => {
   if (roleKey === 'super_admin') return 'Super Admin';
   if (roleKey === 'admin_pose_keuangan_lomba_ML') return 'Keuangan & PJ Mobile Legend';
+  if (roleKey === 'admin_pkkmb_sekretaris') return 'Sekretaris PKKMB';
+  if (roleKey === 'admin_pose_sekretaris') return 'Sekretaris POSE';
   if (LOMBA_ROLE_MAP[roleKey]) return `PJ ${LOMBA_ROLE_MAP[roleKey]}`;
   return roleKey
     .split('_')

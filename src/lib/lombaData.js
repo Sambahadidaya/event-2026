@@ -24,19 +24,73 @@ export const NAMA_LOMBA = {
     ]
 };
 
-export const PRODI_DATA = [
-    'Akuntansi',
-    'Administrasi Bisnis',
-    'Bisnis Digital',
-    'Hubungan Masyarakat',
-    'Komputerisasi Akuntansi',
-    'Manajemen Informatika',
-    'Manajemen Keuangan Perbankan',
-    'Manajemen Keuangan',
-    'Manajemen Pemasaran',
-    'Manajemen Perusahaan',
-    'Teknik Komputer',
-];
+export const PRODI_DATA = {
+    'Kampus Tasikmalaya' : [
+        'Akuntansi',
+        'Administrasi Bisnis',
+        'Bisnis Digital',
+        'Hubungan Masyarakat',
+        'Komputerisasi Akuntansi',
+        'Manajemen Informatika',
+        'Manajemen Keuangan Perbankan',
+        'Manajemen Keuangan',
+        'Manajemen Pemasaran',
+        'Manajemen Perusahaan',
+        'Teknik Komputer'
+    ],
+    'Kampus Cirebon' : [
+        'Akuntansi',
+        'Administrasi Bisnis',
+        'Bisnis Digital',
+        'Hubungan Masyarakat',
+        'Komputerisasi Akuntansi',
+        'Manajemen Informatika',
+        'Manajemen Keuangan Perbankan',
+        'Manajemen Keuangan',
+        'Manajemen Pemasaran',
+        'Manajemen Perusahaan',
+        'Teknik Komputer'
+    ],
+    'Kampus Pekanbaru' : [
+        'Akuntansi',
+        'Administrasi Bisnis',
+        'Bisnis Digital',
+        'Hubungan Masyarakat',
+        'Komputerisasi Akuntansi',
+        'Manajemen Informatika',
+        'Manajemen Keuangan Perbankan',
+        'Manajemen Keuangan',
+        'Manajemen Pemasaran',
+        'Manajemen Perusahaan',
+        'Teknik Komputer'
+    ],
+    'Kampus Padang' : [
+        'Akuntansi',
+        'Administrasi Bisnis',
+        'Bisnis Digital',
+        'Hubungan Masyarakat',
+        'Komputerisasi Akuntansi',
+        'Manajemen Informatika',
+        'Manajemen Keuangan Perbankan',
+        'Manajemen Keuangan',
+        'Manajemen Pemasaran',
+        'Manajemen Perusahaan',
+        'Teknik Komputer'
+    ],
+    'Kampus Langsa' : [
+        'Akuntansi',
+        'Administrasi Bisnis',
+        'Bisnis Digital',
+        'Hubungan Masyarakat',
+        'Komputerisasi Akuntansi',
+        'Manajemen Informatika',
+        'Manajemen Keuangan Perbankan',
+        'Manajemen Keuangan',
+        'Manajemen Pemasaran',
+        'Manajemen Perusahaan',
+        'Teknik Komputer'
+    ]
+};
 
 export const Angkatan_DATA = [
     '2026',
@@ -63,11 +117,6 @@ export const KAMPUS_DATA = [
     'Lainnya'
 ];
 
-export const STATUS_BAYAR_DATA = [
-    'Sudah Bayar',
-    'Belum Bayar',
-    'Pending'
-];
 
 export const METODE_BAYAR_PKKMB = [
     'Virtual Account',
@@ -84,11 +133,6 @@ export const METODE_BAYAR_DATA = {
     pose: METODE_BAYAR_POSE
 };
 
-export const STATUS_VERIFIKASI_DATA = [
-    'Disetujui',
-    'Ditolak',
-    'Pending'
-];
 
 export const KAMPUS_PRODI_CODES = {
     'Kampus Bandung': {
@@ -97,41 +141,6 @@ export const KAMPUS_PRODI_CODES = {
         '03': 'Akuntansi',
         '04': 'Hubungan Masyarakat',
         '41': 'Bisnis Digital'
-    },
-    'Kampus Tasikmalaya': {
-        '01': 'Manajemen Informatika',
-        '02': 'Akuntansi',
-        '03': 'Hubungan Masyarakat',
-        '04': 'Administrasi Bisnis',
-        '05': 'Teknik Komputer'
-    },
-    'Kampus Cirebon': {
-        '01': 'Manajemen Informatika',
-        '02': 'Akuntansi',
-        '03': 'Hubungan Masyarakat',
-        '04': 'Administrasi Bisnis',
-        '05': 'Teknik Komputer'
-    },
-    'Kampus Pekanbaru': {
-        '01': 'Manajemen Informatika',
-        '02': 'Akuntansi',
-        '03': 'Hubungan Masyarakat',
-        '04': 'Administrasi Bisnis',
-        '05': 'Teknik Komputer'
-    },
-    'Kampus Padang': {
-        '01': 'Manajemen Informatika',
-        '02': 'Akuntansi',
-        '03': 'Hubungan Masyarakat',
-        '04': 'Administrasi Bisnis',
-        '05': 'Teknik Komputer'
-    },
-    'Kampus Langsa': {
-        '01': 'Manajemen Informatika',
-        '02': 'Akuntansi',
-        '03': 'Hubungan Masyarakat',
-        '04': 'Administrasi Bisnis',
-        '05': 'Teknik Komputer'
     }
 };
 

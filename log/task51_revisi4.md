@@ -1,0 +1,1 @@
+dihalaman AdminPesertaPengumpulan.js saya ingin ada fitur delatenya yang ketika didelate otomatis status pengumpulannya menjadi belum mengumpulkan. terus dihalaman FormPengumpulan.js tepatnya saat verifikasi kode_form saya ingin kode formnya sesuai dengan form pengumpulan nama lombanya, jadi form pengumpulan team yang bisa diverifikasinya cuman kode_form yang sama lombannya

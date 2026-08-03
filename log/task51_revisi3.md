@@ -1,0 +1,1 @@
+dihalaman pj_lomba pada saat modal verifikasi itu selain tombol setujui/tolak itu saya ingin ada tombol hapus permanen juga, yang ketika diklik maka data ditabel team/team_members/peserta akan terhapus sesuai dengan id/kode_form itu

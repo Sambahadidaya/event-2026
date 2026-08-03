@@ -22,11 +22,11 @@ const compressImage = async (buffer, mime) => {
         }
 
         if (mime === 'image/jpeg' || mime === 'image/jpg') {
-            return await imagePipeline.jpeg({ quality: 75, mozjpeg: true }).toBuffer();
+            return await imagePipeline.jpeg({ quality: 80, mozjpeg: true }).toBuffer();
         } else if (mime === 'image/png') {
-            return await imagePipeline.png({ quality: 75, compressionLevel: 9 }).toBuffer();
+            return await imagePipeline.png({ quality: 80, compressionLevel: 8 }).toBuffer();
         } else if (mime === 'image/webp') {
-            return await imagePipeline.webp({ quality: 75 }).toBuffer();
+            return await imagePipeline.webp({ quality: 80 }).toBuffer();
         }
         return buffer;
     } catch (err) {

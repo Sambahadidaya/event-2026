@@ -13,7 +13,7 @@ export const getTeams = async (siteType) => {
 
         const { data, error } = await supabaseAdmin
             .from('team')
-            .select('*, team_members(*)')
+            .select('id, title, content, type, gambar, jenis_lomba, nama_lomba, verivikasi, created_at, team_members(id, team_id, nama, jabatan, kode, created_at)')
             .eq('type', siteType)
             .order('created_at', { ascending: false });
 
@@ -29,7 +29,7 @@ export const getVerifiedPoseTeams = async () => {
     try {
         const { data, error } = await supabaseAdmin
             .from('team')
-            .select('*')
+            .select('id, title, content, type, gambar, jenis_lomba, nama_lomba, verivikasi, created_at, team_members(id, team_id, nama, jabatan, kode, created_at)')
             .eq('type', 'pose')
             .eq('verivikasi', true);
 

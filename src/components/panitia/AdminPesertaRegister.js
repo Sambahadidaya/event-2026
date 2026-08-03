@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Users, Search, Eye, CheckCircle2, XCircle, Clock, Filter, Copy, Link as LinkIcon, Printer, FileSpreadsheet, ChevronDown, Check, X } from 'lucide-react';
 import { getTeams } from '@/api/supabase/public/team';
-import { upsertTeam } from '@/api/supabase/admin/team';
+import { upsertTeam, deleteTeamPermanent } from '@/api/supabase/admin/team';
 import { getPeserta } from '@/api/supabase/admin/peserta';
 import { getCurrentAdmin } from '@/api/supabase/admin/auth';
 import { getFormRegister } from '@/api/supabase/public/peserta';
@@ -47,6 +47,63 @@ export default function AdminPesertaRegister() {
     const [filterPengumpulan, setFilterPengumpulan] = useState('all');
     const [showExportDropdown, setShowExportDropdown] = useState(false);
     const [pdfLoading, setPdfLoading] = useState(false);
+
+    const [activeFormPricing, setActiveFormPricing] = useState([]);
+
+    const currentLombaName = useMemo(() => {
+        return lockedLomba || (namaLomba !== 'all' ? namaLomba : null);
+    }, [lockedLomba, namaLomba]);
+
+    const activeForm = useMemo(() => {
+        if (!currentLombaName) return null;
+        return registerForms.find(f => f.nama_lomba?.toLowerCase().trim() === currentLombaName.toLowerCase().trim());
+    }, [registerForms, currentLombaName]);
+
+    useEffect(() => {
+        if (activeForm?.id) {
+            import('@/api/supabase/admin/finance').then(({ getFormRegisterPricingAdmin }) => {
+                getFormRegisterPricingAdmin(activeForm.id).then(pricing => {
+                    setActiveFormPricing(pricing || []);
+                });
+            });
+        } else {
+            setActiveFormPricing([]);
+        }
+    }, [activeForm?.id]);
+
+    const countsPerCategory = useMemo(() => {
+        const counts = {
+            'Mahasiswa LP3I': 0,
+            'Siswa': 0,
+            'Dosen': 0,
+            'Umum': 0
+        };
+        if (!currentLombaName) return counts;
+
+        const targetTeams = data.filter(t => t.nama_lomba?.toLowerCase().trim() === currentLombaName.toLowerCase().trim() && t.verivikasi !== false);
+        targetTeams.forEach(team => {
+            const kat = team.peserta?.[0]?.kategori;
+            if (kat && counts[kat] !== undefined) {
+                counts[kat]++;
+            }
+        });
+        return counts;
+    }, [data, currentLombaName]);
+
+
+    const handleSelectStatus = async (subItem, newStatusBoolean) => {
+        const { updateStatusPengumpulan } = await import('@/api/supabase/admin/submission');
+        const res = await updateStatusPengumpulan(subItem.id, newStatusBoolean);
+        if (res.success) {
+            const updatedSubmissions = pengumpulanList.map(s => 
+                s.id === subItem.id ? { ...s, status_pengumpulan: newStatusBoolean } : s
+            );
+            setPengumpulanList(updatedSubmissions);
+            localStorage.setItem(CACHE_KEY + '_sub', JSON.stringify(updatedSubmissions));
+        } else {
+            window.alert('Gagal mengubah status pengumpulan.');
+        }
+    };
 
     useEffect(() => {
         const handleClickOutside = (e) => {
@@ -241,6 +298,24 @@ export default function AdminPesertaRegister() {
             setData(updated);
             localStorage.setItem(CACHE_KEY, JSON.stringify(updated));
             setVerifikasiItem(null);
+        }
+        setVerifikasiLoading(false);
+    };
+
+    const handleDeletePermanent = async () => {
+        if (!verifikasiItem) return;
+        if (!window.confirm('Apakah Anda yakin ingin menghapus data pendaftar ini secara PERMANEN? Data tim dan seluruh pesertanya akan dihapus!')) return;
+        
+        setVerifikasiLoading(true);
+        const res = await deleteTeamPermanent(verifikasiItem.id, verifikasiItem.kode_form);
+        if (!res.success) {
+            window.alert('Gagal menghapus tim: ' + res.error);
+        } else {
+            const updated = data.filter(d => d.id !== verifikasiItem.id);
+            setData(updated);
+            localStorage.setItem(CACHE_KEY, JSON.stringify(updated));
+            setVerifikasiItem(null);
+            window.alert('Data tim berhasil dihapus secara permanen.');
         }
         setVerifikasiLoading(false);
     };
@@ -709,6 +784,42 @@ export default function AdminPesertaRegister() {
             {/* Overview Cards */}
             <DashboardOverviewCards cards={overviewCards} />
 
+            {/* Status Kuota Kategori Lomba */}
+            {activeForm && activeFormPricing.length > 0 && (
+                <div className="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm space-y-4">
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Users size={16} className="text-blue-500" />
+                        Status Kuota Kategori Lomba: {currentLombaName}
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                        {activeFormPricing.map(p => {
+                            const registered = countsPerCategory[p.kategori] || 0;
+                            const max = p.maks_team || 0;
+                            const remaining = Math.max(0, max - registered);
+                            const percent = max > 0 ? Math.min(100, (registered / max) * 100) : 0;
+                            
+                            return (
+                                <div key={p.id} className="p-4 bg-gray-50 dark:bg-gray-800/30 rounded-xl border border-gray-100 dark:border-gray-800 space-y-2">
+                                    <div className="flex justify-between items-start">
+                                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">{p.kategori}</span>
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${remaining === 0 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                                            {remaining === 0 ? 'Penuh' : `Sisa: ${remaining}`}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between items-end">
+                                        <span className="text-lg font-black text-gray-850 dark:text-white">{registered} <span className="text-xs font-normal text-gray-500">/ {max} Tim</span></span>
+                                        <span className="text-[10px] text-gray-500 font-semibold">{percent.toFixed(0)}%</span>
+                                    </div>
+                                    <div className="w-full bg-gray-200 dark:bg-gray-700 h-1.5 rounded-full overflow-hidden">
+                                        <div className={`h-full rounded-full transition-all duration-500 ${remaining === 0 ? 'bg-red-500' : percent > 80 ? 'bg-amber-500' : 'bg-blue-500'}`} style={{ width: `${percent}%` }}></div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
             {/* Switch & Search Toolbar */}
             <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
                 {/* Switch tab button */}
@@ -845,6 +956,7 @@ export default function AdminPesertaRegister() {
                                     <th className="px-4 py-3 font-medium w-12 text-center">No</th>
                                     <th className="px-4 py-3 font-medium">Nama Team</th>
                                     <th className="px-4 py-3 font-medium text-center">Jml Anggota</th>
+                                    <th className="px-4 py-3 font-medium text-center">Jenis</th>
                                     <th className="px-4 py-3 font-medium">Nama Lomba</th>
                                     <th className="px-4 py-3 font-medium">Jenis Lomba</th>
                                     <th className="px-4 py-3 font-medium text-center">Peserta</th>
@@ -857,12 +969,12 @@ export default function AdminPesertaRegister() {
                                 {loading && data.length === 0 ? (
                                     Array.from({ length: 5 }).map((_, i) => (
                                         <tr key={`skel-${i}`} className="animate-pulse bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
-                                            <td colSpan={9} className="px-4 py-4"><div className="h-8 bg-gray-100 dark:bg-gray-800 rounded-lg w-full"></div></td>
+                                            <td colSpan={10} className="px-4 py-4"><div className="h-8 bg-gray-100 dark:bg-gray-800 rounded-lg w-full"></div></td>
                                         </tr>
                                     ))
                                 ) : paginatedData.length === 0 ? (
                                     <tr>
-                                        <td colSpan={9} className="px-6 py-16 text-center text-gray-500">Tidak ada pendaftar ditemukan.</td>
+                                        <td colSpan={10} className="px-6 py-16 text-center text-gray-500">Tidak ada pendaftar ditemukan.</td>
                                     </tr>
                                 ) : paginatedData.map((item, index) => {
                                     const isSelected = activeDetailTeam?.id === item.id;
@@ -879,6 +991,16 @@ export default function AdminPesertaRegister() {
                                                 <span className="inline-flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full h-6 w-6 text-xs font-bold">
                                                     {item.team_members?.length || 0}
                                                 </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-center">
+                                                {(() => {
+                                                    const isIndiv = item.team_members?.some(m => m.jabatan === 'Individu') || item.team_members?.length === 1;
+                                                    return (
+                                                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${isIndiv ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400' : 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400'}`}>
+                                                            {isIndiv ? 'Individu' : 'Team'}
+                                                        </span>
+                                                    );
+                                                })()}
                                             </td>
                                             <td className="px-4 py-3 text-gray-600 dark:text-gray-400 font-medium">{item.nama_lomba || '-'}</td>
                                             <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs">{item.jenis_lomba || '-'}</td>
@@ -938,6 +1060,7 @@ export default function AdminPesertaRegister() {
                                     <th className="px-4 py-3 font-medium">Nama Team</th>
                                     <th className="px-4 py-3 font-medium">Lomba</th>
                                     <th className="px-4 py-3 font-medium text-center">Status Pengumpulan</th>
+                                    <th className="px-4 py-3 font-medium text-center">Status Diterima</th>
                                     <th className="px-4 py-3 font-medium text-center">Kode Team</th>
                                 </tr>
                             </thead>
@@ -945,17 +1068,25 @@ export default function AdminPesertaRegister() {
                                 {loading && data.length === 0 ? (
                                     Array.from({ length: 5 }).map((_, i) => (
                                         <tr key={`skel-sub-${i}`} className="animate-pulse bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
-                                            <td colSpan={5} className="px-4 py-4"><div className="h-8 bg-gray-100 dark:bg-gray-800 rounded-lg w-full"></div></td>
+                                            <td colSpan={6} className="px-4 py-4"><div className="h-8 bg-gray-100 dark:bg-gray-800 rounded-lg w-full"></div></td>
                                         </tr>
                                     ))
                                 ) : paginatedData.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="px-6 py-16 text-center text-gray-500">Tidak ada pendaftar ditemukan.</td>
+                                        <td colSpan={6} className="px-6 py-16 text-center text-gray-500">Tidak ada pendaftar ditemukan.</td>
                                     </tr>
                                 ) : paginatedData.map((item, index) => {
+                                    const isSelected = activeDetailTeam?.id === item.id;
                                     const hasSubmitted = (pengumpulanList || []).some(sub => sub.team_id === item.id);
+                                    const subItem = (pengumpulanList || []).find(sub => sub.team_id === item.id);
                                     return (
-                                        <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                                        <tr 
+                                            key={item.id} 
+                                            onClick={() => setActiveDetailTeam(item)}
+                                            className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer ${
+                                                isSelected ? 'bg-blue-50/50 dark:bg-blue-900/20 border-l-4 border-blue-500' : ''
+                                            }`}
+                                        >
                                             <td className="px-4 py-3 text-center text-gray-500 font-medium">{startIndex + index + 1}</td>
                                             <td className="px-4 py-3 font-semibold text-gray-800 dark:text-gray-200">{item.title}</td>
                                             <td className="px-4 py-3 text-gray-600 dark:text-gray-400 font-medium">{item.nama_lomba || '-'}</td>
@@ -966,6 +1097,24 @@ export default function AdminPesertaRegister() {
                                                     }`}>
                                                     {hasSubmitted ? 'Sudah Mengumpulkan' : 'Belum Mengumpulkan'}
                                                 </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                                {subItem ? (
+                                                    <select
+                                                        value={subItem.status_pengumpulan ? 'diterima' : 'belum_dicek'}
+                                                        onChange={(e) => handleSelectStatus(subItem, e.target.value === 'diterima')}
+                                                        className={`text-xs font-semibold rounded-lg px-2.5 py-1.5 border outline-none cursor-pointer transition-all ${
+                                                            subItem.status_pengumpulan
+                                                                ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/20 dark:text-green-400 dark:border-green-800/50'
+                                                                : 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-950/20 dark:text-yellow-400 dark:border-yellow-800/50'
+                                                        }`}
+                                                    >
+                                                        <option value="belum_dicek" className="bg-white dark:bg-gray-800 text-yellow-700 font-semibold">Belum Dicek</option>
+                                                        <option value="diterima" className="bg-white dark:bg-gray-800 text-green-700 font-semibold">Diterima</option>
+                                                    </select>
+                                                ) : (
+                                                    <span className="text-gray-400 text-xs italic">-</span>
+                                                )}
                                             </td>
                                             <td className="px-4 py-3 text-center font-mono text-xs">{item.kode_form || '-'}</td>
                                         </tr>
@@ -1053,12 +1202,31 @@ export default function AdminPesertaRegister() {
             )}
 
             {/* AdminPesertaPengumpulan Component (under the main table - tab Pengumpulan only) */}
-            {activeTab === 'pengumpulan' && (
-                <AdminPesertaPengumpulan
-                    lockedLomba={lockedLomba}
-                    namaLomba={namaLomba}
-                    refreshTrigger={lastSyncedAt}
-                />
+            {activeTab === 'pengumpulan' && activeDetailTeam && (
+                <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden mt-6 animate-in fade-in slide-in-from-bottom duration-300">
+                    <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 flex justify-between items-center">
+                        <div>
+                            <h3 className="font-bold text-base sm:text-lg text-gray-800 dark:text-gray-200">
+                                Hasil Pengumpulan Tim: <span className="text-blue-600 dark:text-blue-400 font-black">{activeDetailTeam.title}</span>
+                            </h3>
+                            <p className="text-xs text-gray-500">Lomba: {activeDetailTeam.nama_lomba} ({activeDetailTeam.jenis_lomba})</p>
+                        </div>
+                        <button
+                            onClick={() => setActiveDetailTeam(null)}
+                            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 font-bold"
+                        >
+                            Tutup Detail &times;
+                        </button>
+                    </div>
+                    <div className="p-4 sm:p-6">
+                        <AdminPesertaPengumpulan
+                            teamId={activeDetailTeam.id}
+                            lockedLomba={lockedLomba}
+                            namaLomba={namaLomba}
+                            refreshTrigger={lastSyncedAt}
+                        />
+                    </div>
+                </div>
             )}
 
             <DetailModal
@@ -1108,6 +1276,13 @@ export default function AdminPesertaRegister() {
 
                                 return (
                                     <>
+                                        <button
+                                            onClick={handleDeletePermanent}
+                                            disabled={verifikasiLoading}
+                                            className="px-4 py-2 rounded-xl text-sm font-medium border border-red-500 bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed mr-auto"
+                                        >
+                                            Hapus Permanen
+                                        </button>
                                         <button
                                             onClick={() => handleAction(false)}
                                             disabled={tolakDisabled}

@@ -122,3 +122,26 @@ export const updateStatusPengumpulan = async (id, status_pengumpulan) => {
         return { success: false, error: 'Terjadi kesalahan internal pada server' };
     }
 };
+
+export const deletePengumpulanLomba = async (id) => {
+    try {
+        const { user, adminNama, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        if (!id) throw new Error('ID is required');
+
+        const { error } = await supabaseAdmin
+            .from('pengumpulan_lomba')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+
+        await insertAuditLog(user.email, 'DELETE_PENGUMPULAN_LOMBA', id, `Deleted pengumpulan lomba`, adminNama);
+
+        return { success: true };
+    } catch (error) {
+        console.error("Internal Log - Error deleting pengumpulan_lomba:", error);
+        return { success: false, error: 'Terjadi kesalahan internal pada server' };
+    }
+};

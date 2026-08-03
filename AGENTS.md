@@ -670,6 +670,97 @@ ON storage.objects
 FOR DELETE
 TO authenticated
 USING (bucket_id = 'qris_image');
+
+alter TABLE form_register_pricing
+ADD COLUMN maks_anggota INT4 NOT NULL DEFAULT 1,
+ADD COLUMN maks_team INT4 NOT NULL DEFAULT 1,
+ADD COLUMN individu BOOLEAN NOT NULL DEFAULT TRUE;
+
+alter table jadwal_pertandingan
+ADD COLUMN urutan INT4 default 0;
+
+-- penilaian
+CREATE TABLE form_nilai_lomba (
+    id UUID PRIMARY KEY NOT NULL DEFAULT uuid_generate_v4(),
+    nama_juri VARCHAR(100) NOT NULL,
+    link_id VARCHAR(100) NOT NULL UNIQUE,
+    jenis_lomba VARCHAR(100) NOT NULL,
+    nama_lomba VARCHAR(100) NOT NULL,
+    judul_nilai VARCHAR(200),
+    bobot_nilai VARCHAR(200),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE nilai_lomba (
+    id UUID PRIMARY KEY NOT NULL DEFAULT uuid_generate_v4(),
+    team_id UUID REFERENCES team(id) ON DELETE CASCADE,
+    form_nilai_lomba_id UUID REFERENCES form_nilai_lomba(id) ON DELETE CASCADE,
+    kritik TEXT,
+    saran TEXT,
+    nilai_akhir DECIMAL(5,2),
+    status_public boolean DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE detail_nilai_lomba (
+    id UUID PRIMARY KEY NOT NULL DEFAULT uuid_generate_v4(),
+    nilai_lomba_id UUID REFERENCES nilai_lomba(id) ON DELETE CASCADE,
+    form_nilai_lomba_id UUID REFERENCES form_nilai_lomba(id) ON DELETE CASCADE,
+    judul_nilai VARCHAR(100),
+    bobot_nilai VARCHAR(100),
+    nilai INT4,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE form_nilai_lomba ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read form_nilai_lomba" ON form_nilai_lomba FOR SELECT TO public USING (true);
+CREATE POLICY "auth all form_nilai_lomba" ON form_nilai_lomba FOR ALL TO authenticated USING (true) WITH CHECK (true);
+ALTER TABLE nilai_lomba ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read nilai_lomba" ON nilai_lomba FOR SELECT TO public USING (true);
+CREATE POLICY "auth all nilai_lomba" ON nilai_lomba FOR ALL TO authenticated USING (true) WITH CHECK (true);
+ALTER TABLE detail_nilai_lomba ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read detail_nilai_lomba" ON detail_nilai_lomba FOR SELECT TO public USING (true);
+CREATE POLICY "auth all detail_nilai_lomba" ON detail_nilai_lomba FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+alter table admins
+add column type site_type default 'pkkmb';
+
+UPDATE admins
+SET type = 'pose'
+WHERE role = 'admin_pose';
+
+CREATE TABLE form_absen_panitia (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    site site_type NOT NULL,
+    judul_absen VARCHAR(200),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE data_absen_panitia(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    form_id UUID REFERENCES form_absen_panitia(id) ON DELETE CASCADE,
+    nama_panitia VARCHAR(200) NOT NULL,
+    type_absen VARCHAR(10) NOT NULL CHECK (type_absen IN ('Alpha', 'Sakit','Izin','Hadir')),
+    keterangan_absen VARCHAR(200),
+    create_by VARCHAR(100),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE form_absen_panitia ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth all form_absen_panitia" ON form_absen_panitia FOR ALL TO authenticated USING (true) WITH CHECK (true);
+ALTER TABLE data_absen_panitia ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth all data_absen_panitia" ON data_absen_panitia FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+
+create table total_absen_panitia(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    panitia_id UUID REFERENCES admins(id) ON DELETE CASCADE,
+    data_absen_id UUID REFERENCES data_absen_panitia(id) ON DELETE CASCADE
+);
+
+ALTER TABLE total_absen_panitia ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth all total_absen_panitia" ON total_absen_panitia FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
 ```
 
 ---
@@ -686,6 +777,7 @@ USING (bucket_id = 'qris_image');
 │   │   │       └── route.js
 │   │   ├── supabase/
 │   │   │   ├── admin/
+│   │   │   │   ├── absensi.js
 │   │   │   │   ├── admin.js
 │   │   │   │   ├── audit.js
 │   │   │   │   ├── auth.js
@@ -694,6 +786,7 @@ USING (bucket_id = 'qris_image');
 │   │   │   │   ├── jadwal.js
 │   │   │   │   ├── materi.js
 │   │   │   │   ├── pdf.js
+│   │   │   │   ├── penilaian.js
 │   │   │   │   ├── peserta.js
 │   │   │   │   ├── submission.js
 │   │   │   │   └── team.js
@@ -703,6 +796,7 @@ USING (bucket_id = 'qris_image');
 │   │   │   │   ├── jadwal.js
 │   │   │   │   ├── materi.js
 │   │   │   │   ├── pdf.js
+│   │   │   │   ├── penilaian.js
 │   │   │   │   ├── peserta.js
 │   │   │   │   ├── submission.js
 │   │   │   │   └── team.js
@@ -719,6 +813,13 @@ USING (bucket_id = 'qris_image');
 │   │   ├── panitia/
 │   │   │   ├── layout.js
 │   │   │   ├── page.js
+│   │   │   ├── absensi_panitia/
+│   │   │   │   ├── absensi/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── dashboard/
+│   │   │   │   │   └── page.js
+│   │   │   │   └── form/
+│   │   │   │       └── page.js
 │   │   │   ├── admin/
 │   │   │   │   └── status/
 │   │   │   │       └── page.js
@@ -764,7 +865,13 @@ USING (bucket_id = 'qris_image');
 │   │   │   ├── pj_lomba/
 │   │   │   │   ├── dashboard/
 │   │   │   │   │   └── page.js
-│   │   │   │   └── form_register/
+│   │   │   │   ├── form_register/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── form_submit/
+│   │   │   │   │   └── page.js 
+│   │   │   │   ├── jadwal_pertandingan/
+│   │   │   │   │   └── page.js 
+│   │   │   │   └── penilaian/
 │   │   │   │       └── page.js
 │   │   │   ├── pkkmb/
 │   │   │   │   ├── berita/
@@ -830,6 +937,10 @@ USING (bucket_id = 'qris_image');
 │   │       │       └── page.js
 │   │       ├── jadwal/
 │   │       │   └── page.js
+│   │       ├── nilai/
+│   │       │   ├── [link]
+│   │       │   │   └── page.js
+│   │       │   └── page.js
 │   │       ├── pdf/
 │   │       │   └── [id]
 │   │       │       └── page.js
@@ -883,6 +994,12 @@ USING (bucket_id = 'qris_image');
 │   │   │   ├── SiteBackground.js
 │   │   │   └── WaveDivider.js
 │   │   └── panitia/
+│   │       ├── absensi/
+│   │       │   ├── AbsensiDashboardCharts.js
+│   │       │   ├── AbsensiFormModal.js
+│   │       │   ├── AbsensiRekapTable.js
+│   │       │   ├── FormAbsenModal.jsjs
+│   │       │   └── SearchableDropdown.js
 │   │       ├── finance/
 │   │       │   ├── BuktiPreviewModal.js
 │   │       │   ├── BukuBesarTable.js
@@ -907,7 +1024,9 @@ USING (bucket_id = 'qris_image');
 │   │       ├── AdminFormPengumpulan.js
 │   │       ├── AdminFormRegister.js
 │   │       ├── AdminFormWajib.js
+│   │       ├── AdminJadwalPertandinganPJ.js
 │   │       ├── AdminKeuanganDashboard.js
+│   │       ├── AdminPenilaianPJ.js
 │   │       ├── AdminPesertaPengumpulan.js
 │   │       ├── AdminPesertaRegister.js
 │   │       ├── AdminPesertaWajib.js
@@ -934,9 +1053,11 @@ USING (bucket_id = 'qris_image');
 │       ├── excel/
 │       │   └── xlsx.js
 │       ├── pdf/
+│       │   ├── absensi.js
 │       │   ├── browser.js
 │       │   ├── certificate.js
 │       │   ├── invoice.js
+│       │   ├── penilaian.js
 │       │   ├── report.js
 │       │   ├── teamReport.js
 │       │   └── template.jsjs
@@ -944,6 +1065,7 @@ USING (bucket_id = 'qris_image');
 │       │   └── qrcode.js
 │       ├── adminRoleData.js
 │       ├── dashboardUtils.js
+│       ├── dateUtils.js
 │       ├── faqData.js
 │       ├── kodeFormUtils.js
 │       ├── lombaData.js

@@ -1,0 +1,1 @@
+tapi saya ingin team yang dihitung itu ketika sudah status verifikasi ditabel teamnya true atau nulll, jika  false maka tidak terhitung, jadi dihitungnya bukan cuman dari tabel peserta tapi juga ditabel team dari kolom verifikasi. jadi editlah getTeamCountsByForm diapi public/peserta.js

@@ -1122,4 +1122,56 @@ ON storage.objects
 FOR DELETE
 TO authenticated
 USING (bucket_id = 'qris_image');
+
+alter TABLE form_register_pricing
+ADD COLUMN maks_anggota INT4 NOT NULL DEFAULT 1,
+ADD COLUMN maks_team INT4 NOT NULL DEFAULT 1,
+ADD COLUMN individu BOOLEAN NOT NULL DEFAULT TRUE;
+
+
+alter table jadwal_pertandingan
+ADD COLUMN urutan INT4 default 0;
+
+-- penilaian
+CREATE TABLE form_nilai_lomba (
+    id UUID PRIMARY KEY NOT NULL DEFAULT uuid_generate_v4(),
+    nama_juri VARCHAR(100) NOT NULL,
+    link_id VARCHAR(100) NOT NULL UNIQUE,
+    jenis_lomba VARCHAR(100) NOT NULL,
+    nama_lomba VARCHAR(100) NOT NULL,
+    judul_nilai VARCHAR(200),
+    bobot_nilai VARCHAR(200),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE nilai_lomba (
+    id UUID PRIMARY KEY NOT NULL DEFAULT uuid_generate_v4(),
+    team_id UUID REFERENCES team(id) ON DELETE CASCADE,
+    form_nilai_lomba_id UUID REFERENCES form_nilai_lomba(id) ON DELETE CASCADE,
+    kritik TEXT,
+    saran TEXT,
+    nilai_akhir DECIMAL(5,2),
+    status_public boolean DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE detail_nilai_lomba (
+    id UUID PRIMARY KEY NOT NULL DEFAULT uuid_generate_v4(),
+    nilai_lomba_id UUID REFERENCES nilai_lomba(id) ON DELETE CASCADE,
+    form_nilai_lomba_id UUID REFERENCES form_nilai_lomba(id) ON DELETE CASCADE,
+    judul_nilai VARCHAR(100),
+    bobot_nilai VARCHAR(100),
+    nilai INT4,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE form_nilai_lomba ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read form_nilai_lomba" ON form_nilai_lomba FOR SELECT TO public USING (true);
+CREATE POLICY "auth all form_nilai_lomba" ON form_nilai_lomba FOR ALL TO authenticated USING (true) WITH CHECK (true);
+ALTER TABLE nilai_lomba ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read nilai_lomba" ON nilai_lomba FOR SELECT TO public USING (true);
+CREATE POLICY "auth all nilai_lomba" ON nilai_lomba FOR ALL TO authenticated USING (true) WITH CHECK (true);
+ALTER TABLE detail_nilai_lomba ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read detail_nilai_lomba" ON detail_nilai_lomba FOR SELECT TO public USING (true);
+CREATE POLICY "auth all detail_nilai_lomba" ON detail_nilai_lomba FOR ALL TO authenticated USING (true) WITH CHECK (true);
 ```

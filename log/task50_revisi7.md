@@ -1,0 +1,5 @@
+ada beberapa revisi lagi, yaitu
+1. pada jenis form yang register saya ingin ketika memilih kampus selain kampus bandung inputan Prodi dan Semester jangan dimunculkan kecuali kalau kolom butuh_buktinya true baru dimunculkan, karna kan kalau butuh_buktinya false maka semuanya data diambil dari form wajib seperti dikampus bandung.
+2. terus pada saat berpindah kategori, inputan atau data anggotanya otomatis diclearkan. misal aku sudah mengisi data anggota dikategori mahasiswa lp3i terus aku belum mengirim dan aku berpindah kategori nah pada saat pindah kategori datanya harus diclearkan karna kan itu berbeda kategori inputan.
+3. terus pada saat mengecek atau memvalidasi yang peserta apakah sudah mendaftar diform wajib itu bukan cuman pakai nim tapi juga dengan kampusnya. karna kan bisa aja nimnya itu sama antara kampus yang satu dengan kampus yang lainnya.
+4. terus pada selain kampus bandung saat memilih prodi itu ada pilihan terakhir yaitu lainnya dan ketika memilih lainnya maka akan muncul inputan prodi secara manual bukan dropdown.

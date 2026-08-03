@@ -30,8 +30,13 @@ export default function FormPengumpulan({ formData }) {
 
         const res = await verifyKodeFormTeam(kodeForm.trim());
         if (res.success) {
-            setKodeValid(true);
-            setTeamData(res.data);
+            if (res.data?.nama_lomba !== formData.form_register?.nama_lomba) {
+                setKodeValid(false);
+                setKodeError(`Kode ini tidak terdaftar untuk lomba ${formData.form_register?.nama_lomba}`);
+            } else {
+                setKodeValid(true);
+                setTeamData(res.data);
+            }
         } else {
             setKodeValid(false);
             setKodeError(res.error || 'Kode tidak valid');
@@ -201,13 +206,25 @@ export default function FormPengumpulan({ formData }) {
                             </label>
                             
                             <div className="flex gap-4">
-                                <label className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${!isUrl ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
-                                    <input type="radio" name="uploadType" checked={!isUrl} onChange={() => setIsUrl(false)} className="hidden" />
+                                <label className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                                    !kodeValid
+                                        ? 'border-gray-200 dark:border-gray-700 bg-gray-55/30 text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50'
+                                        : !isUrl
+                                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 cursor-pointer'
+                                            : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer'
+                                }`}>
+                                    <input type="radio" name="uploadType" checked={!isUrl} onChange={() => setIsUrl(false)} disabled={!kodeValid} className="hidden" />
                                     <UploadCloud size={20} />
                                     <span className="font-medium">Upload File</span>
                                 </label>
-                                <label className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${isUrl ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
-                                    <input type="radio" name="uploadType" checked={isUrl} onChange={() => setIsUrl(true)} className="hidden" />
+                                <label className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                                    !kodeValid
+                                        ? 'border-gray-200 dark:border-gray-700 bg-gray-55/30 text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50'
+                                        : isUrl
+                                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 cursor-pointer'
+                                            : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer'
+                                }`}>
+                                    <input type="radio" name="uploadType" checked={isUrl} onChange={() => setIsUrl(true)} disabled={!kodeValid} className="hidden" />
                                     <LinkIcon size={20} />
                                     <span className="font-medium">Input Link</span>
                                 </label>
@@ -221,8 +238,9 @@ export default function FormPengumpulan({ formData }) {
                                             type="file"
                                             onChange={handleFileChange}
                                             required={!isUrl}
+                                            disabled={!kodeValid}
                                             accept=".pdf,.zip,.rar,.png,.jpg,.jpeg"
-                                            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/30 dark:file:text-blue-400"
+                                            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/30 dark:file:text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed"
                                         />
                                         <p className="text-xs text-gray-500 mt-2">Mendukung: PDF, ZIP, RAR, Image</p>
                                     </div>
@@ -232,10 +250,11 @@ export default function FormPengumpulan({ formData }) {
                                         <input
                                             type="url"
                                             required={isUrl}
+                                            disabled={!kodeValid}
                                             value={fileLink}
                                             onChange={(e) => setFileLink(e.target.value)}
                                             placeholder="https://drive.google.com/..."
-                                            className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                                            className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                                         />
                                         <p className="text-xs text-gray-500 mt-2">Pastikan link memiliki akses publik (Siapa saja yang memiliki link dapat melihat).</p>
                                     </div>
@@ -252,8 +271,9 @@ export default function FormPengumpulan({ formData }) {
                                 rows={4}
                                 value={keterangan}
                                 onChange={(e) => setKeterangan(e.target.value)}
+                                disabled={!kodeValid}
                                 placeholder="Jelaskan secara singkat mengenai karya tim Anda..."
-                                className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                                className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                             ></textarea>
                         </div>
 

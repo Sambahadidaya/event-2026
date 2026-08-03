@@ -6,7 +6,8 @@ export const getJadwalPertandingan = async () => {
     try {
         const { data, error } = await supabaseAdmin
             .from('jadwal_pertandingan')
-            .select('*, team1:team1_id(*), team2:team2_id(*)')
+            .select('id, team1_id, team2_id, waktu, started_at, ended_at, nama_lomba, jenis_lomba, status, urutan, created_at, team1:team1_id(id, title, content, gambar, jenis_lomba, nama_lomba, verivikasi), team2:team2_id(id, title, content, gambar, jenis_lomba, nama_lomba, verivikasi)')
+            .order('urutan', { ascending: true })
             .order('waktu', { ascending: true });
 
         if (error) throw error;

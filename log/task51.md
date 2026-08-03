@@ -1,26 +1,16 @@
-saya ingin menambah halaman baru dan database baru yaitu untuk kelompok disite pkkmb, nah saya ingin untuk kelompok itu berasal dari tabel baru didabase bukan pakai tabel team. dan saya sudah menjalankan sql ini ;
+fokus ke halaman form register dipublic yaitu tepatnya dihalaman FormRegistration.js terus halaman pembuatan formnya yang berada difile src/app/panitia/form/form/page.js
+saya ingin menambah validasi lagi yaitu saya ingin untuk maks anggota tiap lomba dan tiap kategorinya bisa diatur dan untuk jenis antara individu atau bukannya juga ingin diatur, jika jenis individunya true maka maks anggota akan difikskan menjadi 1, tapi jika individunya false maka bisa disetting maks anggotanya berapa secara manual, terus saya juga ingin mensetting maks team yang sudah daftar itu berapa dan jumlah maks team ini tiap kategorinya bisa berbeda, dan ketika sudah mencapai maks team yang daftar maka form dikategori itu tidak bisa dibuka atau tidak ditampilkan sebagai gantinya ada informasi seperti bahwa "Maaf pendaftaran lomba untuk kategori ... sudah ditutup karna sudah mencapai kuota maksimal" dan untuk halaman admin tepatnya di panitia/pj_lomba/form_register/page.js saya ingin menampilkan jumlah team yang sudah terdaftar di masing-masing kategori dan menampilkan juga sisa kuota yang ada terus ditabel daftar pendaftar juga ada kolom baru yaitu untuk apakah individu atau team, terus ditabel daftar pengumpulan juga saya ingin ada kolom baru yaitu kolom Status Diterima yang seperti pada tabel Hasil Pengumpulan Lomba, terus tabel Hasil Pengumpulan Lomba itu akan muncul jika diklik teamnya (Seperti pada tabel daftar pendaftar) tapi kolom Status Diterima itu ketika diklik berupa dropdown bukan langsung mengganti, terus ditabel hasil pengumpulan lomba yang kolom Status Diterima itu dihapus saja dan gantikan dengan kolom keterangan , terus dihalaman public yang form submit ini saya ingin inputan atau swich antara metode pengumpulan dan upload file/link dan input keterangannya disable seperti pada tombol kumpulkan itu karna saya ingin semua aktif itu ketika sudah diverifikasi kode formnya. 
+saya sudah menambah kolom baru didatabase yaitu dengan sql ini ;
 ```sql
-CREATE TABLE kelompok (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    urutan INT4 DEFAULT 0,
-    nama VARCHAR(100) NOT NULL,
-    Kabim VARCHAR(100) NOT NULL,
-    link_instagram VARCHAR(255),
-    gambar VARCHAR(255),
-    keterangan TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-);
-CREATE TABLE kelompok_members (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    kelompok_id UUID NOT NULL REFERENCES kelompok(id) ON DELETE CASCADE,
-    peserta_id UUID NOT NULL REFERENCES peserta(id) ON DELETE CASCADE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-);
-ALTER TABLE public.kelompok ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "public read kelompok" ON public.kelompok FOR SELECT TO public USING (true);
-CREATE POLICY "auth all kelompok" ON public.kelompok FOR ALL TO authenticated USING (true) WITH CHECK (true);
-ALTER TABLE public.kelompok_members ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "public read kelompok_members" ON public.kelompok_members FOR SELECT TO public USING (true);
-CREATE POLICY "auth all kelompok_members" ON public.kelompok_members FOR ALL TO authenticated USING (true) WITH CHECK (true);
+alter TABLE form_register_pricing
+ADD COLUMN maks_anggota INT4 NOT NULL DEFAULT 1,
+ADD COLUMN maks_team INT4 NOT NULL DEFAULT 1,
+ADD COLUMN individu BOOLEAN NOT NULL DEFAULT TRUE;
+
+alter TABLE form_register_pricing
+DROP COLUMN maks_anggota,
+DROP COLUMN maks_team,
+DROP COLUMN individu;
 ```
-dan saya sudah menyiapkan folder dan file baru diproject ini yaitu di src/app/panitia/pj_kelompok/kelompok/page.js, yang dihalaman itu saya ingin seperti biasa ada header dan footer seperti halaman pj_lomba, dan logikanya juga saya ingin seperti pj lomba yang datanya dibuat sesuai dengan admin rolenya yang secara tidak langsung saja juga ingin membuat role baru untuk pj_kelompok ini yang diatur atau dimaintenance difile adminRoleData.js. terus dihalaman pj_kelompok ini juga bisa menambah kelompok hanya jika role admin yang loginnya admin_pkkmb selain itu tidak bisa menambah kelompok (kecuali super_admin karna super_admin itu full akses), terus saya ingin saat pembuatan kelompok ini data kelompok_membersnya dari tabel peserta yang difilter dari site_type nya pkkmb dan jenis_form nya wajib, dan yang diambilnya itu cuman nama,nim,dan kampus saja, tapi ditabel dihalamannya itu saya ingin tetap detail peserta seperti nama
+yang otomatis ada api atau function baru lagi untuk admin dan untuk publicnya.
+bacalah seluruh kode yang relevan, jangan sampai cuman asumsi doang.

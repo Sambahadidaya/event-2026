@@ -882,12 +882,14 @@ export const upsertFormRegisterPricing = async (formId, pricingList) => {
             .from('form_register_pricing')
             .delete()
             .eq('form_id', formId);
-
         if (pricingList.length > 0) {
             const rowsToInsert = pricingList.map(item => ({
                 form_id: formId,
                 kategori: item.kategori,
-                nominal: parseInt(item.nominal, 10) || 0
+                nominal: parseInt(item.nominal, 10) || 0,
+                maks_anggota: item.maks_anggota !== undefined && item.maks_anggota !== null ? parseInt(item.maks_anggota, 10) : 1,
+                maks_team: item.maks_team !== undefined && item.maks_team !== null ? parseInt(item.maks_team, 10) : 1,
+                individu: item.individu !== undefined && item.individu !== null ? !!item.individu : true
             }));
 
             const { error: insertError } = await supabaseAdmin

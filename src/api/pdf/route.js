@@ -6,6 +6,8 @@ import { generateReportPDF, generateLedgerPDF, generateFinancialReportPDF, gener
 import { generateInvoicePDF } from '@/lib/pdf/invoice';
 import { generateCertificatePDF } from '@/lib/pdf/certificate';
 import { generateTeamReportPDF } from '@/lib/pdf/teamReport';
+import { generatePenilaianPDF } from '@/lib/pdf/penilaian';
+import { generateAbsensiPDF } from '@/lib/pdf/absensi';
 
 /**
  * Server action to generate PDF securely for logged in admin users
@@ -32,6 +34,8 @@ export async function generatePdfAction(payload = {}) {
             tabType = 'laba_rugi',
             metrics = {},
             lombaName = 'Semua Lomba',
+            juriName = 'Semua Juri',
+            criteria = [],
             activeTab = 'pendaftar',
             pengumpulanData = []
         } = payload;
@@ -144,6 +148,45 @@ export async function generatePdfAction(payload = {}) {
                 documentId: docData.id || '',
                 documentCode: docData.document_code || 'RPT-2026-000000',
                 printedBy: docData.printed_by || 'PJ Lomba'
+            });
+        } else if (type === 'penilaian_report') {
+            const docRes = await createDocument({
+                site,
+                document_type: 'report',
+                reference_id: null,
+                reference_table: null
+            });
+
+            const docData = docRes.data || {};
+            pdfBuffer = await generatePenilaianPDF({
+                title,
+                site,
+                lombaName,
+                juriName,
+                criteria,
+                nilaiData: data,
+                documentId: docData.id || '',
+                documentCode: docData.document_code || 'RPT-2026-000000',
+                printedBy: docData.printed_by || 'PJ Lomba'
+            });
+        } else if (type === 'absensi_report') {
+            const docRes = await createDocument({
+                site,
+                document_type: 'report',
+                reference_id: null,
+                reference_table: null
+            });
+
+            const docData = docRes.data || {};
+            pdfBuffer = await generateAbsensiPDF({
+                title,
+                site,
+                columns,
+                data,
+                includeSummary: payload.includeSummary || false,
+                documentId: docData.id || '',
+                documentCode: docData.document_code || 'RPT-2026-000000',
+                printedBy: docData.printed_by || 'Sekretaris Panitia'
             });
         } else {
             // Default report PDF
