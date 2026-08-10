@@ -1174,4 +1174,55 @@ CREATE POLICY "auth all nilai_lomba" ON nilai_lomba FOR ALL TO authenticated USI
 ALTER TABLE detail_nilai_lomba ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "public read detail_nilai_lomba" ON detail_nilai_lomba FOR SELECT TO public USING (true);
 CREATE POLICY "auth all detail_nilai_lomba" ON detail_nilai_lomba FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+CREATE TABLE sales_pose(
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  sumber VARCHAR(100) NOT NULL,
+  nama_nim VARCHAR(100),
+  nominal INT4,
+  form_register_id UUID REFERENCES form_register(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE sales_pose ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth all sales_pose" ON sales_pose FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+alter table transaction_finance
+ADD COLUMN potongan_sales int4 default 0,
+ADD COLUMN nama_nim_sales_id UUID REFERENCES sales_pose(id) ON DELETE CASCADE;
+
+alter table form_register_pricing
+ADD COLUMN komisi_sales_lvl1 INT4 default 0,
+ADD COLUMN komisi_sales_lvl2 INT4 default 0,
+ADD COLUMN komisi_sales_lvl3 INT4 default 0;
+
+
+INSERT INTO master_account (kode_id, kode_akun, nama_akun, akun_type, site)
+VALUES
+  ('MA013', '2002', 'Utang Komisi Sales','Liability','pose'),
+  ('MA014', '5005', 'Beban Komisi Sales','Expense','pose')
+  ON CONFLICT (kode_akun) DO NOTHING;
+
+ALTER TABLE sales_pose ADD COLUMN target_nim VARCHAR(100);
+
+alter table team_members add column id_ml varchar(20);
+
+CREATE TABLE public.form_register_kampus_quota (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    pricing_id UUID NOT NULL REFERENCES public.form_register_pricing(id) ON DELETE CASCADE,
+    nama_kampus VARCHAR(255) NOT NULL,
+    maks_team INT4 NOT NULL DEFAULT 1,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT form_register_kampus_quota_unique UNIQUE (pricing_id, nama_kampus)
+);
+ALTER TABLE public.form_register_kampus_quota ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read kampus_quota" ON public.form_register_kampus_quota FOR SELECT TO public USING (true);
+CREATE POLICY "auth all kampus_quota" ON public.form_register_kampus_quota FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.form_register_pricing 
+ADD COLUMN IF NOT EXISTS umum_type VARCHAR(30) DEFAULT 'keduanya';
+
+alter table team
+ADD COLUMN form_register_id UUID NOT NULL REFERENCES form_register(id) ON DELETE CASCADE;
 ```

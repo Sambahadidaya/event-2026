@@ -8,6 +8,7 @@ import { generateCertificatePDF } from '@/lib/pdf/certificate';
 import { generateTeamReportPDF } from '@/lib/pdf/teamReport';
 import { generatePenilaianPDF } from '@/lib/pdf/penilaian';
 import { generateAbsensiPDF } from '@/lib/pdf/absensi';
+import { generateSalesPDF } from '@/lib/pdf/sales';
 
 /**
  * Server action to generate PDF securely for logged in admin users
@@ -37,7 +38,11 @@ export async function generatePdfAction(payload = {}) {
             juriName = 'Semua Juri',
             criteria = [],
             activeTab = 'pendaftar',
-            pengumpulanData = []
+            pengumpulanData = [],
+            namaLombaFilter = 'all',
+            summaryData = [],
+            detailData = [],
+            printedBy = 'Admin'
         } = payload;
 
         let pdfBuffer = null;
@@ -187,6 +192,14 @@ export async function generatePdfAction(payload = {}) {
                 documentId: docData.id || '',
                 documentCode: docData.document_code || 'RPT-2026-000000',
                 printedBy: docData.printed_by || 'Sekretaris Panitia'
+            });
+        } else if (type === 'sales_report') {
+            pdfBuffer = await generateSalesPDF({
+                site,
+                summaryData,
+                detailData,
+                printedBy,
+                namaLombaFilter
             });
         } else {
             // Default report PDF

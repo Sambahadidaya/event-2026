@@ -761,6 +761,60 @@ create table total_absen_panitia(
 ALTER TABLE total_absen_panitia ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "auth all total_absen_panitia" ON total_absen_panitia FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
+CREATE TABLE sales_pose(
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  sumber VARCHAR(100) NOT NULL,
+  nama_nim VARCHAR(100),
+  nominal INT4,
+  form_register_id UUID REFERENCES form_register(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE sales_pose ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth all sales_pose" ON sales_pose FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+alter table transaction_finance
+ADD COLUMN potongan_sales int4 default 0,
+ADD COLUMN nama_nim_sales_id UUID REFERENCES sales_pose(id) ON DELETE CASCADE;
+
+alter table form_register_pricing
+ADD COLUMN komisi_sales_lvl1 INT4 default 0,
+ADD COLUMN komisi_sales_lvl2 INT4 default 0,
+ADD COLUMN komisi_sales_lvl3 INT4 default 0;
+
+
+INSERT INTO master_account (kode_id, kode_akun, nama_akun, akun_type, site)
+VALUES
+  ('MA013', '2002', 'Utang Komisi Sales','Liability','pose'),
+  ('MA014', '5005', 'Beban Komisi Sales','Expense','pose')
+  ON CONFLICT (kode_akun) DO NOTHING;
+
+ALTER TABLE sales_pose ADD COLUMN target_nim VARCHAR(100);
+
+alter table team_members add column id_ml varchar(20);
+
+CREATE TABLE public.form_register_kampus_quota (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    pricing_id UUID NOT NULL REFERENCES public.form_register_pricing(id) ON DELETE CASCADE,
+    nama_kampus VARCHAR(255) NOT NULL,
+    maks_team INT4 NOT NULL DEFAULT 1,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT form_register_kampus_quota_unique UNIQUE (pricing_id, nama_kampus)
+);
+ALTER TABLE public.form_register_kampus_quota ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read kampus_quota" ON public.form_register_kampus_quota FOR SELECT TO public USING (true);
+CREATE POLICY "auth all kampus_quota" ON public.form_register_kampus_quota FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.form_register_pricing 
+ADD COLUMN IF NOT EXISTS umum_type VARCHAR(30) DEFAULT 'keduanya';
+
+ALTER TABLE team
+ADD COLUMN jenis_kategori VARCHAR(15);
+ALTER TABLE form_register
+ADD COLUMN jenis_kategori VARCHAR(15),
+ADD COLUMN is_public BOOLEAN default true;
+
 ```
 
 ---
@@ -772,9 +826,10 @@ CREATE POLICY "auth all total_absen_panitia" ON total_absen_panitia FOR ALL TO a
 ├── src/
 │   ├── proxy.js
 │   ├── api/
-│   │   ├── finance/
-│   │   │   └── pdf/
-│   │   │       └── route.js
+│   │   ├── excel/
+│   │   │   └── sales.js/
+│   │   ├── pdf/
+│   │   │   └── route.js
 │   │   ├── supabase/
 │   │   │   ├── admin/
 │   │   │   │   ├── absensi.js
@@ -788,6 +843,7 @@ CREATE POLICY "auth all total_absen_panitia" ON total_absen_panitia FOR ALL TO a
 │   │   │   │   ├── pdf.js
 │   │   │   │   ├── penilaian.js
 │   │   │   │   ├── peserta.js
+│   │   │   │   ├── sales.jsjs
 │   │   │   │   ├── submission.js
 │   │   │   │   └── team.js
 │   │   │   ├── public/
@@ -798,11 +854,13 @@ CREATE POLICY "auth all total_absen_panitia" ON total_absen_panitia FOR ALL TO a
 │   │   │   │   ├── pdf.js
 │   │   │   │   ├── penilaian.js
 │   │   │   │   ├── peserta.js
+│   │   │   │   ├── sales.jsjs
 │   │   │   │   ├── submission.js
 │   │   │   │   └── team.js
 │   │   │   └── storage.js
 │   │   └── openai/
 │   │       ├── chat.js
+│   │       ├── chatAdmin.js
 │   │       └── materi.js
 │   ├── app/
 │   │   ├── layout.js
@@ -871,7 +929,9 @@ CREATE POLICY "auth all total_absen_panitia" ON total_absen_panitia FOR ALL TO a
 │   │   │   │   │   └── page.js 
 │   │   │   │   ├── jadwal_pertandingan/
 │   │   │   │   │   └── page.js 
-│   │   │   │   └── penilaian/
+│   │   │   │   ├── penilaian/
+│   │   │   │   │   └── page.js 
+│   │   │   │   └── peserta_wajib/
 │   │   │   │       └── page.js
 │   │   │   ├── pkkmb/
 │   │   │   │   ├── berita/
@@ -888,24 +948,29 @@ CREATE POLICY "auth all total_absen_panitia" ON total_absen_panitia FOR ALL TO a
 │   │   │   │   │   └── page.js
 │   │   │   │   └── tugas/
 │   │   │   │       └── page.js
-│   │   │   └── pose/
-│   │   │       ├── berita/
+│   │   │   ├── pose/
+│   │   │   │   ├── berita/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── form_register/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── form_wajib/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── jadwal_acara/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── jadwal_pertandingan/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── peserta/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── peserta_wajib/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── register/
+│   │   │   │   │   └── page.js
+│   │   │   │   └── team/
+│   │   │   │       └── page.js
+│   │   │   └── sales/
+│   │   │       ├── dashboard/
 │   │   │       │   └── page.js
-│   │   │       ├── form_register/
-│   │   │       │   └── page.js
-│   │   │       ├── form_wajib/
-│   │   │       │   └── page.js
-│   │   │       ├── jadwal_acara/
-│   │   │       │   └── page.js
-│   │   │       ├── jadwal_pertandingan/
-│   │   │       │   └── page.js
-│   │   │       ├── peserta/
-│   │   │       │   └── page.js
-│   │   │       ├── peserta_wajib/
-│   │   │       │   └── page.js
-│   │   │       ├── register/
-│   │   │       │   └── page.js
-│   │   │       └── team/
+│   │   │       └── riwayat/
 │   │   │           └── page.js
 │   │   ├── pkkmb/
 │   │   │   ├── layout.js
@@ -950,8 +1015,9 @@ CREATE POLICY "auth all total_absen_panitia" ON total_absen_panitia FOR ALL TO a
 │   │       │   └── [id]
 │   │       │       └── page.js
 │   │       ├── submission/
-│   │       │   └── [id]
-│   │       │       └── page.js
+│   │       │   ├── [id]
+│   │       │   │   └── page.js
+│   │       │   └── page.js
 │   │       └── team/
 │   │           └── page.js
 │   ├── assets/
@@ -979,6 +1045,7 @@ CREATE POLICY "auth all total_absen_panitia" ON total_absen_panitia FOR ALL TO a
 │   │   ├── ClientTracker.js
 │   │   ├── DynamicFavicon.js
 │   │   ├── PublicHeader.js
+│   │   ├── SamsAsisten.js
 │   │   ├── SamsChatbot.js
 │   │   ├── SamsMateriBot.js
 │   │   ├── ThemeToggle.js
@@ -1043,6 +1110,8 @@ CREATE POLICY "auth all total_absen_panitia" ON total_absen_panitia FOR ALL TO a
 │   │       ├── DashboardHeaderFilters.js
 │   │       ├── DashboardDonutChart.js
 │   │       ├── LoginContent.js
+│   │       ├── SalesChart.js
+│   │       ├── SalesRiwayatTable.js
 │   │       ├── DashboardCalendarLegend.js
 │   │       └── ConfirmModal.js
 │   ├── docs/
@@ -1059,6 +1128,7 @@ CREATE POLICY "auth all total_absen_panitia" ON total_absen_panitia FOR ALL TO a
 │       │   ├── invoice.js
 │       │   ├── penilaian.js
 │       │   ├── report.js
+│       │   ├── sales.js
 │       │   ├── teamReport.js
 │       │   └── template.jsjs
 │       ├── qr/
@@ -1067,6 +1137,7 @@ CREATE POLICY "auth all total_absen_panitia" ON total_absen_panitia FOR ALL TO a
 │       ├── dashboardUtils.js
 │       ├── dateUtils.js
 │       ├── faqData.js
+│       ├── faqDataAdmin.js
 │       ├── kodeFormUtils.js
 │       ├── lombaData.js
 │       ├── openai.js

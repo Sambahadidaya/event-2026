@@ -27,6 +27,11 @@ const roleMappings = {
 };
 
 
+const roleAbsensiMappings = {
+    'sekretaris_pkkmb': 'Arini Salsabila',
+    'sekretaris_pose': 'Devi Ramadanti',
+};
+
 /**
  * Generate PDF Buffer for attendance report using Puppeteer
  * @param {Object} params
@@ -200,12 +205,12 @@ export async function generateAbsensiPDF({
                         <div style="font-weight: 700;">Ketua Pelaksana</div>
                         <div class="stamp-space"></div>
                         <div style="border-top: 1px solid #94a3b8; font-weight: 700;">${site === 'pkkmb' ? roleMappings.ketua_pelaksana_pkkmb : roleMappings.ketua_pelaksana_pose}</div>
-                    </div>
-                    <div class="stamp-box">
+                        </div>
+                        <div class="stamp-box">
                         <div>Penanggung Jawab,</div>
                         <div style="font-weight: 700;">Sekretaris Panitia</div>
                         <div class="stamp-space"></div>
-                        <div style="border-top: 1px solid #94a3b8; font-weight: 700;">${printedBy}</div>
+                        <div style="border-top: 1px solid #94a3b8; font-weight: 700;">${site === 'pkkmb' ? roleAbsensiMappings.sekretaris_pkkmb : roleAbsensiMappings.sekretaris_pose}</div>
                     </div>
                 </div>
             </body>

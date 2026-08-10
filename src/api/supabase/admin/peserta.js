@@ -314,19 +314,127 @@ export const getFormWajibAll = async () => {
     }
 };
 
-export const getFormRegisterAll = async () => {
+export const getFormRegisterAll = async (siteType) => {
     try {
         const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
-        const { data, error } = await supabaseAdmin
+        let query = supabaseAdmin
             .from('form_register')
-            .select('*');
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (siteType && siteType !== 'all') {
+            query = query.eq('site', siteType);
+        }
+
+        const { data, error } = await query;
 
         if (error) throw error;
         return data;
     } catch (error) {
         console.error("Internal Log - Error fetching form register all:", error);
         return [];
+    }
+};
+
+export const getPesertaWajibLombaData = async () => {
+    try {
+        const { user, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        // Check if role is allowed
+        const { data: adminData } = await supabaseAdmin
+            .from('admins')
+            .select('role')
+            .eq('user_id', user.id)
+            .single();
+
+        if (!adminData || (adminData.role !== 'admin_pose' && adminData.role !== 'super_admin')) {
+            throw new Error('Forbidden. Hanya admin_pose atau super_admin yang dapat mengakses data ini.');
+        }
+
+        // 1. Get all peserta wajib (Mahasiswa LP3I, site_type pose, jenis_form wajib)
+        const { data: wajibPeserta, error: wajibError } = await supabaseAdmin
+            .from('peserta')
+            .select('nim, nama, kampus, prodi, status_pembayaran')
+            .eq('jenis_form', 'wajib')
+            .eq('site_type', 'pose')
+            .eq('kategori', 'Mahasiswa LP3I');
+
+        if (wajibError) throw wajibError;
+        
+        if (!wajibPeserta || wajibPeserta.length === 0) {
+            return { success: true, data: [] };
+        }
+
+        // 2. Get all team_members with their teams for lomba (pose)
+        const { data: teamMembers, error: teamMemberError } = await supabaseAdmin
+            .from('team_members')
+            .select('kode, team!inner(nama_lomba, verivikasi, type)')
+            .eq('team.type', 'pose');
+
+        if (teamMemberError) throw teamMemberError;
+
+        // Create a mapping from nim (kode) to active lombas
+        const nimToLomba = {};
+        
+        if (teamMembers) {
+            // First we need to filter for lomba without butuh_bukti=true
+            const lombaNames = [...new Set(teamMembers.map(tm => tm.team.nama_lomba).filter(Boolean))];
+            
+            let lombaMap = new Set();
+            if (lombaNames.length > 0) {
+                const { data: formData, error: formError } = await supabaseAdmin
+                    .from('form_register')
+                    .select('nama_lomba')
+                    .in('nama_lomba', lombaNames)
+                    .eq('butuh_bukti', false)
+                    .eq('site', 'pose');
+                    
+                if (!formError && formData) {
+                    lombaMap = new Set(formData.map(f => f.nama_lomba));
+                }
+            }
+
+            for (const member of teamMembers) {
+                const kode = member.kode;
+                if (!kode) continue;
+                
+                const team = member.team;
+                if (!team || team.verivikasi === false) continue; // Skip rejected teams
+                
+                if (lombaMap.has(team.nama_lomba)) {
+                    if (!nimToLomba[kode]) {
+                        nimToLomba[kode] = new Set();
+                    }
+                    nimToLomba[kode].add(team.nama_lomba);
+                }
+            }
+        }
+
+        // 3. Map wajib peserta to their lombas
+        const finalData = wajibPeserta.map(p => {
+            const nim = p.nim;
+            const lombas = nimToLomba[nim] ? Array.from(nimToLomba[nim]) : [];
+            return {
+                nim: p.nim,
+                nama: p.nama,
+                kampus: p.kampus,
+                prodi: p.prodi,
+                status_pembayaran: p.status_pembayaran,
+                lomba_diikuti: lombas,
+                total_lomba: lombas.length
+            };
+        });
+
+        return { 
+            success: true, 
+            data: finalData,
+            total: finalData.length 
+        };
+    } catch (error) {
+        console.error("Internal Log - Error in getPesertaWajibLombaData server action:", error);
+        return { success: false, error: error.message || 'Terjadi kesalahan internal pada server' };
     }
 };

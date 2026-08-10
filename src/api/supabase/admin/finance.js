@@ -482,6 +482,7 @@ export const autoCreateTransactionFromPeserta = async (peserta, userEmail = 'sys
         let nominal = 0;
         let keterangan = `Pembayaran ${site.toUpperCase()} - ${peserta.nama}`;
         let formCategoryName = 'Iuran Wajib';
+        let formRegisterId = null;
 
         const rawKodeForm = peserta.kode_form;
         const searchKode = rawKodeForm ? (rawKodeForm.length > 4 ? rawKodeForm.slice(0, -4) : rawKodeForm) : null;
@@ -490,7 +491,7 @@ export const autoCreateTransactionFromPeserta = async (peserta, userEmail = 'sys
             if (searchKode) {
                 const { data: fw } = await supabaseAdmin
                     .from('form_wajib')
-                    .select('judul, nominal, site')
+                    .select('id, judul, nominal, site')
                     .or(`kode_form.eq.${searchKode},kode_form.eq.${rawKodeForm}`)
                     .limit(1)
                     .single();
@@ -504,15 +505,27 @@ export const autoCreateTransactionFromPeserta = async (peserta, userEmail = 'sys
             if (searchKode) {
                 const { data: fr } = await supabaseAdmin
                     .from('form_register')
-                    .select('nama_lomba, nominal, site')
+                    .select('id, nama_lomba, nominal, site')
                     .or(`kode_form.eq.${searchKode},kode_form.eq.${rawKodeForm}`)
                     .limit(1)
                     .single();
 
                 if (fr) {
-                    nominal = fr.nominal || 0;
+                    // BUG 1 FIX: Ambil nominal dari form_register_pricing berdasarkan form_id + kategori
+                    // agar nominal sesuai dengan kategori pendaftar (bukan nominal default form_register)
+                    const kategoriPeserta = peserta.kategori || 'Mahasiswa LP3I';
+                    const { data: pricing } = await supabaseAdmin
+                        .from('form_register_pricing')
+                        .select('nominal')
+                        .eq('form_id', fr.id)
+                        .eq('kategori', kategoriPeserta)
+                        .single();
+
+                    // Gunakan pricing.nominal jika ada, fallback ke fr.nominal
+                    nominal = (pricing && pricing.nominal != null) ? pricing.nominal : (fr.nominal || 0);
                     keterangan = `Pendaftaran ${fr.nama_lomba || 'Lomba'} - ${peserta.nama}`;
                     formCategoryName = `Lomba ${fr.nama_lomba || ''}`;
+                    formRegisterId = fr.id;
                 }
             }
         }
@@ -527,7 +540,7 @@ export const autoCreateTransactionFromPeserta = async (peserta, userEmail = 'sys
         const paymentMethod = (peserta.metode_pembayaran || 'Tunai').trim();
         const { data: accounts } = await supabaseAdmin
             .from('master_account')
-            .select('id, nama_akun, akun_type');
+            .select('id, nama_akun, akun_type, kode_akun');
 
         let assetAccount = null;
         let revenueAccount = null;
@@ -551,6 +564,21 @@ export const autoCreateTransactionFromPeserta = async (peserta, userEmail = 'sys
 
         const categoryId = (categories && categories.length > 0) ? categories[0].id : null;
 
+        // 4b. Check if there is an associated sales pose referral record for POSE
+        let salesEntry = null;
+        if (site === 'pose' && formRegisterId && peserta.nim) {
+            const { data: se } = await supabaseAdmin
+                .from('sales_pose')
+                .select('id, nominal')
+                .eq('target_nim', peserta.nim)
+                .eq('form_register_id', formRegisterId)
+                .limit(1)
+                .maybeSingle();
+            if (se) {
+                salesEntry = se;
+            }
+        }
+
         // 5. Insert to transaction_finance
         const kode_id = `TF${Math.floor(100 + Math.random() * 900)}`;
         const { data: tf, error: tfError } = await supabaseAdmin
@@ -569,40 +597,92 @@ export const autoCreateTransactionFromPeserta = async (peserta, userEmail = 'sys
                 keterangan,
                 nominal,
                 bukti_pembayaran: peserta.bukti_bayar || null,
-                created_by: null
+                created_by: null,
+                potongan_sales: salesEntry ? salesEntry.nominal : 0,
+                nama_nim_sales_id: salesEntry ? salesEntry.id : null
             }])
             .select()
             .single();
 
         if (tfError) throw tfError;
 
-        // 6. Create 2 Journal Entries (Double-Entry)
+        // 6. Create Journal Entries (Double-Entry)
         if (assetAccount && revenueAccount && tf) {
             const je1_kode = `JE${Math.floor(100 + Math.random() * 900)}`;
             const je2_kode = `JE${Math.floor(100 + Math.random() * 900)}`;
 
-            await supabaseAdmin.from('journal_entry').insert([
-                {
-                    kode_id: je1_kode,
-                    transaction_id: tf.id,
-                    account_id: assetAccount.id, // DEBIT Asset (Kas/QRIS/Seabank)
-                    debit: nominal,
-                    credit: 0,
-                    description: `Penerimaan ${keterangan} via ${paymentMethod}`,
-                    journal_date: new Date().toISOString().split('T')[0],
-                    site: site
-                },
-                {
-                    kode_id: je2_kode,
-                    transaction_id: tf.id,
-                    account_id: revenueAccount.id, // CREDIT Revenue (Pendapatan Iuran)
-                    debit: 0,
-                    credit: nominal,
-                    description: `Pendapatan ${keterangan}`,
-                    journal_date: new Date().toISOString().split('T')[0],
-                    site: site
-                }
-            ]);
+            const utangAccount = accounts?.find(a => a.kode_akun === '2002');
+            const bebanAccount = accounts?.find(a => a.kode_akun === '5005');
+
+            if (salesEntry && salesEntry.nominal > 0 && utangAccount && bebanAccount) {
+                // 4 Entries: Asset, Revenue, Beban Komisi (5005), Utang Komisi (2002)
+                await supabaseAdmin.from('journal_entry').insert([
+                    {
+                        kode_id: je1_kode,
+                        transaction_id: tf.id,
+                        account_id: assetAccount.id, // DEBIT Asset (Kas/QRIS/Seabank)
+                        debit: nominal,
+                        credit: 0,
+                        description: `Penerimaan ${keterangan} via ${paymentMethod}`,
+                        journal_date: new Date().toISOString().split('T')[0],
+                        site: site
+                    },
+                    {
+                        kode_id: je2_kode,
+                        transaction_id: tf.id,
+                        account_id: revenueAccount.id, // CREDIT Revenue (Pendapatan Lomba)
+                        debit: 0,
+                        credit: nominal,
+                        description: `Pendapatan ${keterangan}`,
+                        journal_date: new Date().toISOString().split('T')[0],
+                        site: site
+                    },
+                    {
+                        kode_id: `JE${Math.floor(100 + Math.random() * 900)}`,
+                        transaction_id: tf.id,
+                        account_id: bebanAccount.id, // DEBIT Beban Komisi Sales
+                        debit: salesEntry.nominal,
+                        credit: 0,
+                        description: `Beban Komisi Sales - ${keterangan}`,
+                        journal_date: new Date().toISOString().split('T')[0],
+                        site: site
+                    },
+                    {
+                        kode_id: `JE${Math.floor(100 + Math.random() * 900)}`,
+                        transaction_id: tf.id,
+                        account_id: utangAccount.id, // CREDIT Utang Komisi Sales
+                        debit: 0,
+                        credit: salesEntry.nominal,
+                        description: `Utang Komisi Sales - ${keterangan}`,
+                        journal_date: new Date().toISOString().split('T')[0],
+                        site: site
+                    }
+                ]);
+            } else {
+                // 2 Entries standard
+                await supabaseAdmin.from('journal_entry').insert([
+                    {
+                        kode_id: je1_kode,
+                        transaction_id: tf.id,
+                        account_id: assetAccount.id, // DEBIT Asset (Kas/QRIS/Seabank)
+                        debit: nominal,
+                        credit: 0,
+                        description: `Penerimaan ${keterangan} via ${paymentMethod}`,
+                        journal_date: new Date().toISOString().split('T')[0],
+                        site: site
+                    },
+                    {
+                        kode_id: je2_kode,
+                        transaction_id: tf.id,
+                        account_id: revenueAccount.id, // CREDIT Revenue (Pendapatan Iuran)
+                        debit: 0,
+                        credit: nominal,
+                        description: `Pendapatan ${keterangan}`,
+                        journal_date: new Date().toISOString().split('T')[0],
+                        site: site
+                    }
+                ]);
+            }
         }
 
         console.log(`[Auto-Finance] Transaction & Journal Entry created successfully for ${peserta.nama}`);
@@ -882,6 +962,7 @@ export const upsertFormRegisterPricing = async (formId, pricingList) => {
             .from('form_register_pricing')
             .delete()
             .eq('form_id', formId);
+        let insertedData = [];
         if (pricingList.length > 0) {
             const rowsToInsert = pricingList.map(item => ({
                 form_id: formId,
@@ -889,21 +970,113 @@ export const upsertFormRegisterPricing = async (formId, pricingList) => {
                 nominal: parseInt(item.nominal, 10) || 0,
                 maks_anggota: item.maks_anggota !== undefined && item.maks_anggota !== null ? parseInt(item.maks_anggota, 10) : 1,
                 maks_team: item.maks_team !== undefined && item.maks_team !== null ? parseInt(item.maks_team, 10) : 1,
-                individu: item.individu !== undefined && item.individu !== null ? !!item.individu : true
+                individu: item.individu !== undefined && item.individu !== null ? !!item.individu : true,
+                komisi_sales_lvl1: item.komisi_sales_lvl1 !== undefined && item.komisi_sales_lvl1 !== null ? parseInt(item.komisi_sales_lvl1, 10) : 0,
+                komisi_sales_lvl2: item.komisi_sales_lvl2 !== undefined && item.komisi_sales_lvl2 !== null ? parseInt(item.komisi_sales_lvl2, 10) : 0,
+                komisi_sales_lvl3: item.komisi_sales_lvl3 !== undefined && item.komisi_sales_lvl3 !== null ? parseInt(item.komisi_sales_lvl3, 10) : 0,
+                umum_type: item.umum_type || null
             }));
 
-            const { error: insertError } = await supabaseAdmin
+            const { data, error: insertError } = await supabaseAdmin
                 .from('form_register_pricing')
-                .insert(rowsToInsert);
+                .insert(rowsToInsert)
+                .select();
 
             if (insertError) throw insertError;
+            insertedData = data;
         }
 
         await insertAuditLog(user.email, 'UPSERT_FORM_REGISTER_PRICING', formId, `Updated pricing for form ${formId}`, adminNama);
-        return { success: true };
+        return { success: true, data: insertedData };
     } catch (error) {
         console.error("Internal Log - Error upserting form register pricing:", error);
         return { success: false, error: error.message || 'Terjadi kesalahan internal pada server' };
     }
 };
 
+export const upsertFormRegisterKampusQuota = async (pricingId, kampusQuotaList) => {
+    try {
+        const { user, adminNama, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        if (!pricingId) throw new Error('pricing_id is required');
+        if (!Array.isArray(kampusQuotaList)) throw new Error('kampusQuotaList must be an array');
+
+        await supabaseAdmin
+            .from('form_register_kampus_quota')
+            .delete()
+            .eq('pricing_id', pricingId);
+
+        if (kampusQuotaList.length > 0) {
+            const rowsToInsert = kampusQuotaList.map(item => ({
+                pricing_id: pricingId,
+                nama_kampus: item.nama_kampus,
+                maks_team: parseInt(item.maks_team, 10) || 1
+            }));
+
+            const { error: insertError } = await supabaseAdmin
+                .from('form_register_kampus_quota')
+                .insert(rowsToInsert);
+
+            if (insertError) throw insertError;
+        }
+
+        await insertAuditLog(user.email, 'UPSERT_KAMPUS_QUOTA', pricingId, `Updated kampus quota for pricing ${pricingId}`, adminNama);
+        return { success: true };
+    } catch (error) {
+        console.error("Internal Log - Error upserting form register kampus quota:", error);
+        return { success: false, error: error.message || 'Terjadi kesalahan internal pada server' };
+    }
+};
+
+export const getFormRegisterKampusQuota = async (pricingId) => {
+    try {
+        const { error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        if (!pricingId) return [];
+
+        const { data, error } = await supabaseAdmin
+            .from('form_register_kampus_quota')
+            .select('*')
+            .eq('pricing_id', pricingId);
+
+        if (error) throw error;
+        return data || [];
+    } catch (error) {
+        console.error("Internal Log - Error fetching form register kampus quota:", error);
+        return [];
+    }
+};
+
+export const getKuotaKampusByForm = async (formId) => {
+    try {
+        const { error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        if (!formId) return [];
+
+        // Fetch pricing to get pricing_ids
+        const { data: pricingData, error: pricingError } = await supabaseAdmin
+            .from('form_register_pricing')
+            .select('id')
+            .eq('form_id', formId);
+
+        if (pricingError) throw pricingError;
+
+        const pricingIds = (pricingData || []).map(p => p.id);
+        if (pricingIds.length === 0) return [];
+
+        // Fetch kampus quotas
+        const { data, error } = await supabaseAdmin
+            .from('form_register_kampus_quota')
+            .select('*, form_register_pricing!inner(form_id, kategori)')
+            .in('pricing_id', pricingIds);
+
+        if (error) throw error;
+        return data || [];
+    } catch (error) {
+        console.error("Internal Log - Error fetching kuota kampus by form:", error);
+        return [];
+    }
+};

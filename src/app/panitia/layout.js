@@ -8,11 +8,12 @@ import { User, LayoutDashboard, FileText, ChevronDown, ChevronRight, LogOut, Shi
 import { logoutAdmin, getCurrentAdmin } from '@/api/supabase/admin/auth';
 import { updateAdminStatus } from '@/api/supabase/admin/admin';
 import { hasAccess, rolePermissions } from '@/lib/adminRoleData';
+import SamsAsisten from '@/components/SamsAsisten';
 
 export default function PanitiaLayout({ children }) {
     const [isDesktop, setIsDesktop] = useState(true);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-    const [menuOpen, setMenuOpen] = useState({ dashboard: true, pkkmb: false, pose: false, form: false, absensi_panitia: false, pj_lomba: false, keuangan: false, admin: false });
+    const [menuOpen, setMenuOpen] = useState({ dashboard: true, pkkmb: false, pose: false, form: false, absensi_panitia: false, pj_lomba: false, keuangan: false, admin: false, sales: false });
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [showDesktopWarning, setShowDesktopWarning] = useState(false);
     const [hasSeenDesktopWarning, setHasSeenDesktopWarning] = useState(false);
@@ -383,9 +384,39 @@ export default function PanitiaLayout({ children }) {
                                 <NavLink href="/panitia/pj_lomba/jadwal_pertandingan" icon={Calendar} label="Jadwal Pertandingan" colorTheme="violet" />
                                 <NavLink href="/panitia/pj_lomba/penilaian" icon={Trophy} label="Penilaian Lomba" colorTheme="violet" />
                                 <NavLink href="/panitia/pj_lomba/form_submit" icon={FileText} label="Manajemen Submit" colorTheme="violet" />
+                                <NavLink href="/panitia/pj_lomba/peserta_wajib" icon={UserCheck} label="Peserta Wajib & Lomba" colorTheme="violet" />
+                                {/* {adminData && hasAccess(adminData.role, '/panitia/pj_lomba/peserta_wajib') && (
+                                    <NavLink href="/panitia/pj_lomba/peserta_wajib" icon={UserCheck} label="Peserta Wajib & Lomba" colorTheme="violet" />
+                                )}*/}
                             </ul>
                         </div>
                     </div>
+
+                    {/* Sales Menu */}
+                    {(adminData && (hasAccess(adminData.role, '/panitia/sales/dashboard') || hasAccess(adminData.role, '/panitia/sales/riwayat'))) && (
+                        <div className="mb-6">
+                            {!collapsed && (
+                                <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Sales & Referral</p>
+                            )}
+                            <button
+                                onClick={() => toggleMenu('sales')}
+                                title="Sales & Referral"
+                                className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
+                            >
+                                <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
+                                    <TrendingUp size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
+                                    {!collapsed && 'Sales & Referral'}
+                                </span>
+                                {!collapsed && (menuOpen.sales ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
+                            </button>
+                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.sales ? 'max-h-40 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
+                                    <NavLink href="/panitia/sales/dashboard" icon={LayoutDashboard} label="Dashboard Sales" colorTheme="blue" />
+                                    <NavLink href="/panitia/sales/riwayat" icon={ClipboardList} label="Riwayat Sales" colorTheme="blue" />
+                                </ul>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="mb-6">
                         {!collapsed && (
@@ -494,6 +525,7 @@ export default function PanitiaLayout({ children }) {
                     </div>
                 </div>
             </main>
+            <SamsAsisten adminRole={adminData?.role} />
 
             {showDesktopWarning && pathname !== '/panitia/login' && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">

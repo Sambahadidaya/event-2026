@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { FileText, Search, Plus, Link as LinkIcon, Image as ImageIcon, Trash2, Copy } from 'lucide-react';
 import { uploadFile } from '@/api/supabase/storage';
-import { getFormRegister } from '@/api/supabase/public/peserta';
+import { getFormRegisterAll } from '@/api/supabase/admin/peserta';
 import { upsertFormRegister, deleteFormRegister } from '@/api/supabase/admin/peserta';
 import { useRouter } from 'next/navigation';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
@@ -41,7 +41,7 @@ export default function AdminFormRegister({ siteType, hideCreateButton = false, 
         // Layout already protects the page, so we don't need getSession check here anyway, 
         // or we just assume it's valid if they reach here. Let's just remove the getSession.
 
-        const formsData = await getFormRegister(siteType);
+        const formsData = await getFormRegisterAll(siteType);
 
         if (formsData) {
             setData(formsData);

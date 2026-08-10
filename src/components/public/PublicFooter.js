@@ -98,7 +98,7 @@ export default function PublicFooter({ site, links }) {
                     </p>
                     <a href='https://samba.my.id'
                         className="text-xs text-white/30 font-medium tracking-wider hover:text-white transition-colors duration-300">
-                        Developed by <span className="text-white/50 hover:text-white transition-colors duration-300">Samba</span>
+                        Solo Developed by <span className="text-white/50 hover:text-white transition-colors duration-300">Samba</span>
                     </a>
                 </div>
             </div>

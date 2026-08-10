@@ -45,7 +45,7 @@ export default function PublicDashboardRegister() {
     return (
         <div className="min-h-screen pt-24 pb-12 sm:pt-32 sm:pb-20 bg-gray-50 dark:bg-gray-950">
             <div className="max-w-4xl mx-auto px-4 sm:px-6">
-                
+
                 <div className="flex items-center justify-between mb-8">
                     <Link href="/pose/register" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors font-medium">
                         <ArrowLeft size={16} /> Daftar Lomba
@@ -94,7 +94,7 @@ export default function PublicDashboardRegister() {
                                                     <Trophy size={24} />
                                                 </div>
                                             )}
-                                            
+
                                             <div>
                                                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{t.title}</h3>
                                                 <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
@@ -103,6 +103,8 @@ export default function PublicDashboardRegister() {
                                                     </span>
                                                     <span>•</span>
                                                     <span>{t.nama_lomba}</span>
+                                                    <span>•</span>
+                                                    <span>{t.kode_form}</span>
                                                     <span>•</span>
                                                     <span>{t.team_members[0]?.count || 0} Anggota</span>
                                                 </div>

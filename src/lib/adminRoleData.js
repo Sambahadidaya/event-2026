@@ -8,20 +8,15 @@ const LOMBA_ROLE_MAP = {};
 // Mapping nama_lomba -> role suffix
 const ROLE_SUFFIXES = {
   'Badminton': 'Badminton',
-  'Pidato Bahasa Inggris': 'Pidato',
-  'Puisi': 'Puisi',
   'Tarik Tambang': 'TarikTambang',
   'Tenis Meja': 'TenisMeja',
-  'Catur': 'Catur',
   'Mobile Legend': 'ML',
-  'Magic Chess GoGo': 'MagicChess',
-  'PUBG Mobile': 'PUBG',
-  'Bisnis Model Kanvas': 'BMK',
+  'Business Model Canvas': 'BMC',
   'Desain Poster': 'DesainPoster',
-  'Desain Kemasan': 'DesainKemasan',
-  'Film Pendek': 'FilmPendek',
-  'Konten Promosi Digital': 'KPD',
-  'Laporan Keuangan': 'LapKeu',
+  'Software Developer': 'SoftwareDeveloper',
+  'Release Writing': 'ReleaseWriting',
+  'Digital UMKM Promotion': 'DUP',
+  'Dance': 'Dance'
 };
 
 // Build map: role_key -> nama_lomba
@@ -94,6 +89,7 @@ export const rolePermissions = {
     '/panitia/pj_lomba/form_register',
     '/panitia/pj_lomba/jadwal_pertandingan',
     '/panitia/pj_lomba/penilaian',
+    '/panitia/pj_lomba/peserta_wajib',
     '/panitia/keuangan/dashboard',
     '/panitia/keuangan/verifikasi',
     '/panitia/keuangan/transaksi',
@@ -110,13 +106,10 @@ export const rolePermissions = {
     '/panitia/absensi_panitia/dashboard',
     '/panitia/absensi_panitia/form',
     '/panitia/absensi_panitia/absensi',
+    '/panitia/sales/dashboard',
+    '/panitia/sales/riwayat',
   ],
   admin_pkkmb_sekretaris: [
-    '/panitia/absensi_panitia/dashboard',
-    '/panitia/absensi_panitia/form',
-    '/panitia/absensi_panitia/absensi',
-  ],
-  admin_pose_sekretaris: [
     '/panitia/absensi_panitia/dashboard',
     '/panitia/absensi_panitia/form',
     '/panitia/absensi_panitia/absensi',
@@ -161,7 +154,7 @@ export const rolePermissions = {
     '/panitia/keuangan/neraca-lajur',
     '/panitia/keuangan/laporan',
   ],
-  admin_pose_keuangan_lomba_ML: [
+  admin_pose_keuangan_lomba_Badminton: [
     '/panitia/pose/keuangan',
     '/panitia/keuangan/dashboard',
     '/panitia/keuangan/verifikasi',
@@ -177,6 +170,47 @@ export const rolePermissions = {
     '/panitia/keuangan/laporan',
     '/panitia/pj_lomba/dashboard',
     '/panitia/pj_lomba/form_register',
+    '/panitia/pj_lomba/jadwal_pertandingan',
+    '/panitia/pj_lomba/penilaian',
+  ],
+
+  admin_pose_keuangan_lomba_TarikTambang: [
+    '/panitia/pose/keuangan',
+    '/panitia/keuangan/dashboard',
+    '/panitia/keuangan/verifikasi',
+    '/panitia/keuangan/transaksi',
+    '/panitia/keuangan/master-transaksi',
+    '/panitia/keuangan/master-akuntansi',
+    '/panitia/keuangan/jurnal-entry',
+    '/panitia/keuangan/buku-besar',
+    '/panitia/keuangan/kas-masuk',
+    '/panitia/keuangan/kas-keluar',
+    '/panitia/keuangan/neraca-saldo',
+    '/panitia/keuangan/neraca-lajur',
+    '/panitia/keuangan/laporan',
+    '/panitia/pj_lomba/dashboard',
+    '/panitia/pj_lomba/form_register',
+    '/panitia/pj_lomba/jadwal_pertandingan',
+    '/panitia/pj_lomba/penilaian',
+  ],
+
+  admin_pose_sekretaris_lomba_seni: [
+    '/panitia/absensi_panitia/dashboard',
+    '/panitia/absensi_panitia/form',
+    '/panitia/absensi_panitia/absensi',
+    '/panitia/pj_lomba/dashboard',
+    '/panitia/pj_lomba/form_register',
+    '/panitia/pj_lomba/jadwal_pertandingan',
+    '/panitia/pj_lomba/penilaian',
+  ],
+  admin_pose_sekretaris_lomba_TarikTambang: [
+    '/panitia/absensi_panitia/dashboard',
+    '/panitia/absensi_panitia/form',
+    '/panitia/absensi_panitia/absensi',
+    '/panitia/pj_lomba/dashboard',
+    '/panitia/pj_lomba/form_register',
+    '/panitia/pj_lomba/jadwal_pertandingan',
+    '/panitia/pj_lomba/penilaian',
   ],
   admin_pkkmb_belumdiatur: [
     '/panitia/pkkmb/berita',
@@ -189,7 +223,65 @@ export const rolePermissions = {
 };
 
 // Map combined role to competition name for filtering
-LOMBA_ROLE_MAP['admin_pose_keuangan_lomba_ML'] = 'Mobile Legend';
+LOMBA_ROLE_MAP['admin_pose_keuangan_lomba_Badminton'] = 'Badminton';
+LOMBA_ROLE_MAP['admin_pose_keuangan_lomba_TarikTambang'] = 'TarikTambang';
+LOMBA_ROLE_MAP['admin_pose_sekretaris_lomba_TarikTambang'] = 'TarikTambang';
+LOMBA_ROLE_MAP['admin_pose_sekretaris_lomba_seni'] = 'Dance';
+
+
+export const getRoleLabel = (roleKey) => {
+  if (!roleKey) return 'Admin';
+  if (roleKey === 'super_admin') return 'Super Admin';
+  if (roleKey === 'admin_pose_keuangan_lomba_Badminton') return 'Keuangan & PJ Badminton';
+  if (roleKey === 'admin_pose_keuangan_lomba_TarikTambang') return 'Keuangan & PJ Tarik Tambang';
+  if (roleKey === 'admin_pose_sekretaris_lomba_TarikTambang') return 'Sekretaris & PJ Tarik Tambang';
+  if (roleKey === 'admin_pose_sekretaris_lomba_seni') return 'Sekretaris & PJ Lomba Seni';
+  if (LOMBA_ROLE_MAP[roleKey]) return `PJ ${LOMBA_ROLE_MAP[roleKey]}`;
+  return roleKey
+    .split('_')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+};
+
+const ROUTE_CATEGORY_MAP = [
+  { prefix: '/panitia/pkkmb', label: 'PKKMB' },
+  { prefix: '/panitia/pose', label: 'POSE' },
+  { prefix: '/panitia/pj_lomba', label: 'PJ Lomba' },
+  { prefix: '/panitia/keuangan', label: 'Keuangan' },
+  { prefix: '/panitia/absensi_panitia', label: 'Absensi Panitia' },
+  { prefix: '/panitia/sales', label: 'Sales' },
+  { prefix: '/panitia/admin', label: 'Admin Status' },
+];
+
+const getFriendlyModulesForRole = (role) => {
+  if (!role || !rolePermissions[role]) return [];
+  const modules = new Set();
+  rolePermissions[role].forEach(route => {
+    const match = ROUTE_CATEGORY_MAP.find(item => route.startsWith(item.prefix));
+    if (match) modules.add(match.label);
+  });
+  return [...modules];
+};
+
+export const getRoleHelpContext = (role) => {
+  const roleLabel = getRoleLabel(role);
+  const modules = getFriendlyModulesForRole(role);
+  const accessList = modules.length ? modules.join(', ') : 'halaman admin terkait peran Anda';
+
+  if (role === 'super_admin') {
+    return {
+      roleLabel,
+      description: 'Anda adalah Super Admin. Anda dapat mengakses semua halaman admin termasuk PKKMB, POSE, keuangan, absensi, sales, dan PJ Lomba.',
+      modules: ['Semua modul admin'],
+    };
+  }
+
+  return {
+    roleLabel,
+    description: `Role ${roleLabel} dapat menggunakan menu: ${accessList}. Silakan tanyakan tentang fitur perannya, seperti cara mengelola data, verifikasi, atau navigasi halaman admin.`,
+    modules,
+  };
+};
 
 export const hasAccess = (role, path) => {
   if (!role || !rolePermissions[role]) return false;
@@ -211,9 +303,12 @@ export const getLombaFilter = (role) => {
  */
 const formatRoleLabel = (roleKey) => {
   if (roleKey === 'super_admin') return 'Super Admin';
-  if (roleKey === 'admin_pose_keuangan_lomba_ML') return 'Keuangan & PJ Mobile Legend';
+  if (roleKey === 'admin_pose_keuangan_lomba_Badminton') return 'Keuangan & PJ Badminton';
+  if (roleKey === 'admin_pose_keuangan_lomba_TarikTambang') return 'Keuangan & PJ TarikTambang';
+  if (roleKey === 'admin_pose_sekretaris_lomba_TarikTambang') return 'Sekretaris & PJ Tarik Tambang';
   if (roleKey === 'admin_pkkmb_sekretaris') return 'Sekretaris PKKMB';
-  if (roleKey === 'admin_pose_sekretaris') return 'Sekretaris POSE';
+  if (roleKey === 'admin_pose_sekretaris_lomba_seni') return 'Sekretaris & PJ Lomba Seni';
+
   if (LOMBA_ROLE_MAP[roleKey]) return `PJ ${LOMBA_ROLE_MAP[roleKey]}`;
   return roleKey
     .split('_')

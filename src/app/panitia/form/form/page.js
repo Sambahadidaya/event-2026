@@ -8,11 +8,11 @@ import AdminFormPengumpulan from '@/components/panitia/AdminFormPengumpulan';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
 import DashboardSelect from '@/components/panitia/DashboardSelect';
 import { getCurrentAdmin } from '@/api/supabase/admin/auth';
-import { JENIS_LOMBA, NAMA_LOMBA, KODE_JENIS_LOMBA, KODE_NAMA_LOMBA } from '@/lib/lombaData';
+import { JENIS_LOMBA, NAMA_LOMBA, KODE_JENIS_LOMBA, KODE_NAMA_LOMBA, KAMPUS_DATA } from '@/lib/lombaData';
 import { generateKodeFormWajib, generateKodeFormRegister } from '@/lib/kodeFormUtils';
 import { upsertFormWajib, upsertFormRegister } from '@/api/supabase/admin/peserta';
 import { upsertFormPengumpulan } from '@/api/supabase/admin/submission';
-import { upsertFormRegisterPricing } from '@/api/supabase/admin/finance';
+import { upsertFormRegisterPricing, upsertFormRegisterKampusQuota } from '@/api/supabase/admin/finance';
 import { uploadFile } from '@/api/supabase/storage';
 import { nanoid } from 'nanoid';
 
@@ -34,13 +34,25 @@ export default function UnifiedFormDashboard() {
 
     const [jenisLomba, setJenisLomba] = useState('');
     const [namaLomba, setNamaLomba] = useState('');
-    const [kategoriPendaftar, setKategoriPendaftar] = useState(['Mahasiswa LP3I', 'Siswa', 'Dosen', 'Umum']);
+    const [kategoriPendaftar, setKategoriPendaftar] = useState(['Mahasiswa LP3I', 'Siswa', 'Dosen', 'Umum', 'Alumni LP3I']);
     const [pricingKategoriMap, setPricingKategoriMap] = useState({});
     const [individusKategoriMap, setIndividusKategoriMap] = useState({});
     const [maksAnggotaKategoriMap, setMaksAnggotaKategoriMap] = useState({});
     const [maksTeamKategoriMap, setMaksTeamKategoriMap] = useState({});
+    const [kampusQuotaEnabled, setKampusQuotaEnabled] = useState(false);
+    const [kampusQuotaMap, setKampusQuotaMap] = useState({});
+    const [selectedKampusList, setSelectedKampusList] = useState([]);
+    const [umumTypeMap, setUmumTypeMap] = useState({});
+    const [komisiLvl1KategoriMap, setKomisiLvl1KategoriMap] = useState({});
+    const [komisiLvl2KategoriMap, setKomisiLvl2KategoriMap] = useState({});
+    const [komisiLvl3KategoriMap, setKomisiLvl3KategoriMap] = useState({});
 
     const [createLoading, setCreateLoading] = useState(false);
+
+    // Jenis Kategori & is_public States
+    const [pakaiGrupKategori, setPakaiGrupKategori] = useState(false);
+    const [jenisKategoriList, setJenisKategoriList] = useState([]);
+    const [isPublic, setIsPublic] = useState(true);
 
     useEffect(() => {
         const checkRole = async () => {
@@ -71,11 +83,21 @@ export default function UnifiedFormDashboard() {
         setButuhBukti(true);
         setJenisLomba('');
         setNamaLomba('');
-        setKategoriPendaftar(['Mahasiswa LP3I', 'Siswa', 'Dosen', 'Umum']);
+        setKategoriPendaftar(['Mahasiswa LP3I', 'Siswa', 'Dosen', 'Umum', 'Alumni LP3I']);
         setPricingKategoriMap({});
         setIndividusKategoriMap({});
         setMaksAnggotaKategoriMap({});
         setMaksTeamKategoriMap({});
+        setKampusQuotaEnabled(false);
+        setKampusQuotaMap({});
+        setSelectedKampusList([]);
+        setUmumTypeMap({});
+        setKomisiLvl1KategoriMap({});
+        setKomisiLvl2KategoriMap({});
+        setKomisiLvl3KategoriMap({});
+        setPakaiGrupKategori(false);
+        setJenisKategoriList([]);
+        setIsPublic(true);
     };
 
     const handleOpenModal = () => {
@@ -163,13 +185,30 @@ export default function UnifiedFormDashboard() {
                 link_id: linkId,
                 gambar: gambarUrl,
                 site: formSite,
-                kode_form: kodeForm
+                kode_form: kodeForm,
+                jenis_kategori: pakaiGrupKategori ? jenisKategoriList.join(',') : null,
+                is_public: isPublic
             });
 
             if (res.success && res.data?.id) {
                 // Save pricing per category
                 const pricingList = kategoriPendaftar.map(kat => {
                     const isIndividu = individusKategoriMap[kat] !== undefined ? individusKategoriMap[kat] : true;
+                    
+                    let finalMaksTeam = maksTeamKategoriMap[kat] !== undefined && maksTeamKategoriMap[kat] !== '' ? parseInt(maksTeamKategoriMap[kat], 10) : 1;
+                    
+                    // Auto-sum untuk Mahasiswa LP3I jika kampusQuotaEnabled
+                    if (kat === 'Mahasiswa LP3I' && kampusQuotaEnabled) {
+                        let totalSum = 0;
+                        selectedKampusList.forEach(kampusName => {
+                            const val = kampusQuotaMap[kampusName];
+                            if (val && !isNaN(parseInt(val, 10))) {
+                                totalSum += parseInt(val, 10);
+                            }
+                        });
+                        if (totalSum > 0) finalMaksTeam = totalSum;
+                    }
+
                     return {
                         kategori: kat,
                         nominal: pricingKategoriMap[kat] !== undefined && pricingKategoriMap[kat] !== ''
@@ -177,10 +216,29 @@ export default function UnifiedFormDashboard() {
                             : finalNominal,
                         individu: isIndividu,
                         maks_anggota: isIndividu ? 1 : (maksAnggotaKategoriMap[kat] !== undefined && maksAnggotaKategoriMap[kat] !== '' ? parseInt(maksAnggotaKategoriMap[kat], 10) : 1),
-                        maks_team: maksTeamKategoriMap[kat] !== undefined && maksTeamKategoriMap[kat] !== '' ? parseInt(maksTeamKategoriMap[kat], 10) : 1
+                        maks_team: finalMaksTeam,
+                        komisi_sales_lvl1: komisiLvl1KategoriMap[kat] !== undefined && komisiLvl1KategoriMap[kat] !== '' ? parseInt(komisiLvl1KategoriMap[kat], 10) : 0,
+                        komisi_sales_lvl2: komisiLvl2KategoriMap[kat] !== undefined && komisiLvl2KategoriMap[kat] !== '' ? parseInt(komisiLvl2KategoriMap[kat], 10) : 0,
+                        komisi_sales_lvl3: komisiLvl3KategoriMap[kat] !== undefined && komisiLvl3KategoriMap[kat] !== '' ? parseInt(komisiLvl3KategoriMap[kat], 10) : 0,
+                        umum_type: kat === 'Umum' ? (umumTypeMap['Umum'] || 'keduanya') : null
                     };
                 });
-                await upsertFormRegisterPricing(res.data.id, pricingList);
+                const resPricing = await upsertFormRegisterPricing(res.data.id, pricingList);
+
+                if (resPricing.success && kampusQuotaEnabled && formSite === 'pose') {
+                    // Temukan pricingId untuk Mahasiswa LP3I
+                    const pricingLP3I = (resPricing.data || []).find(p => p.kategori === 'Mahasiswa LP3I');
+                    if (pricingLP3I) {
+                        const kampusQuotaList = selectedKampusList.map(kampus => ({
+                            nama_kampus: kampus,
+                            maks_team: kampusQuotaMap[kampus] !== undefined && kampusQuotaMap[kampus] !== '' ? parseInt(kampusQuotaMap[kampus], 10) : 1
+                        })).filter(k => k.maks_team > 0);
+
+                        if (kampusQuotaList.length > 0) {
+                            await upsertFormRegisterKampusQuota(pricingLP3I.id, kampusQuotaList);
+                        }
+                    }
+                }
 
                 // Create pengumpulan otomatis
                 const linkIdPengumpulan = nanoid(64);
@@ -421,7 +479,7 @@ export default function UnifiedFormDashboard() {
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Kategori Pendaftar</label>
                                     <div className="grid grid-cols-2 gap-2">
-                                        {['Mahasiswa LP3I', 'Siswa', 'Dosen', 'Umum'].map(kat => (
+                                        {['Mahasiswa LP3I', 'Siswa', 'Dosen', 'Umum', 'Alumni LP3I'].map(kat => (
                                             <label key={kat} className="flex items-center gap-3 p-2 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                                                 <input
                                                     type="checkbox"
@@ -493,9 +551,140 @@ export default function UnifiedFormDashboard() {
                                                                 <input
                                                                     type="number"
                                                                     min="1"
-                                                                    value={maksTeamKategoriMap[kat] !== undefined ? maksTeamKategoriMap[kat] : ''}
+                                                                    value={kat === 'Mahasiswa LP3I' && kampusQuotaEnabled ? '' : (maksTeamKategoriMap[kat] !== undefined ? maksTeamKategoriMap[kat] : '')}
                                                                     onChange={(e) => setMaksTeamKategoriMap({ ...maksTeamKategoriMap, [kat]: e.target.value })}
-                                                                    placeholder="Maks"
+                                                                    placeholder={kat === 'Mahasiswa LP3I' && kampusQuotaEnabled ? 'Auto Sum' : 'Maks'}
+                                                                    disabled={kat === 'Mahasiswa LP3I' && kampusQuotaEnabled}
+                                                                    className={`w-full px-2.5 py-1.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl text-xs outline-none focus:ring-1 focus:ring-blue-500 ${kat === 'Mahasiswa LP3I' && kampusQuotaEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Tambahan UI Kuota Kampus Khusus Mahasiswa LP3I */}
+                                                        {kat === 'Mahasiswa LP3I' && (
+                                                             <div className="border-t border-gray-200/30 dark:border-gray-800/30 pt-3 mt-2">
+                                                                 <div className="flex items-center justify-between mb-2">
+                                                                     <div>
+                                                                         <span className="block text-xs font-semibold text-gray-700 dark:text-gray-300">Kuota Per Kampus</span>
+                                                                         <span className="block text-[9px] text-gray-500">Maks team otomatis dihitung dari total semua kampus</span>
+                                                                     </div>
+                                                                     <button
+                                                                         type="button"
+                                                                         onClick={() => setKampusQuotaEnabled(!kampusQuotaEnabled)}
+                                                                         className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                                                             kampusQuotaEnabled ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-700'
+                                                                         }`}
+                                                                     >
+                                                                         <span
+                                                                             className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                                                                 kampusQuotaEnabled ? 'translate-x-4' : 'translate-x-0'
+                                                                             }`}
+                                                                         />
+                                                                     </button>
+                                                                 </div>
+                                                                 
+                                                                 {kampusQuotaEnabled && (
+                                                                     <div className="space-y-3 mt-2">
+                                                                         <div>
+                                                                             <label className="block text-[10px] text-gray-500 font-semibold mb-1">Pilih Kampus yang Diaktifkan Limit:</label>
+                                                                             <div className="flex flex-wrap gap-1.5 p-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl max-h-24 overflow-y-auto">
+                                                                                 {KAMPUS_DATA.filter(k => k !== 'Lainnya').map(kampus => {
+                                                                                    const isSelected = selectedKampusList.includes(kampus);
+                                                                                    return (
+                                                                                        <label key={`check-kampus-${kat}-${kampus}`} className={`flex items-center justify-center px-3 py-1.5 border rounded-lg text-[10px] font-semibold cursor-pointer transition-all ${isSelected ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
+                                                                                            <input
+                                                                                                type="checkbox"
+                                                                                                checked={isSelected}
+                                                                                                onChange={(e) => {
+                                                                                                    if (e.target.checked) {
+                                                                                                        setSelectedKampusList([...selectedKampusList, kampus]);
+                                                                                                    } else {
+                                                                                                        setSelectedKampusList(selectedKampusList.filter(k => k !== kampus));
+                                                                                                    }
+                                                                                                }}
+                                                                                                className="hidden"
+                                                                                            />
+                                                                                            {kampus}
+                                                                                        </label>
+                                                                                    );
+                                                                                })}
+                                                                             </div>
+                                                                         </div>
+
+                                                                         {selectedKampusList.length > 0 && (
+                                                                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-2 bg-blue-50/20 dark:bg-blue-900/10 border border-blue-100/50 dark:border-blue-800/30 rounded-xl">
+                                                                                 {selectedKampusList.map(kampusName => (
+                                                                                     <div key={`input-quota-${kat}-${kampusName}`}>
+                                                                                         <label className="block text-[9px] text-gray-500 truncate mb-1" title={kampusName}>
+                                                                                             {kampusName}
+                                                                                         </label>
+                                                                                         <input
+                                                                                             type="number"
+                                                                                             min="1"
+                                                                                             placeholder="Maks"
+                                                                                             value={kampusQuotaMap[kampusName] !== undefined ? kampusQuotaMap[kampusName] : ''}
+                                                                                             onChange={(e) => setKampusQuotaMap({ ...kampusQuotaMap, [kampusName]: e.target.value })}
+                                                                                             className="w-full px-2 py-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg text-[11px] outline-none focus:ring-1 focus:ring-blue-500"
+                                                                                         />
+                                                                                     </div>
+                                                                                 ))}
+                                                                             </div>
+                                                                         )}
+                                                                     </div>
+                                                                 )}
+                                                             </div>
+                                                        )}
+
+                                                        {/* Tambahan Dropdown Tipe Umum */}
+                                                        {kat === 'Umum' && (
+                                                             <div className="border-t border-gray-200/30 dark:border-gray-800/30 pt-3 mt-2">
+                                                                 <label className="block text-[10px] text-gray-500 dark:text-gray-400 mb-1 font-semibold">Tipe Kategori Umum</label>
+                                                                 <select
+                                                                     value={umumTypeMap['Umum'] || 'keduanya'}
+                                                                     onChange={(e) => setUmumTypeMap({ ...umumTypeMap, ['Umum']: e.target.value })}
+                                                                     className="w-full px-2.5 py-1.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl text-xs outline-none focus:ring-1 focus:ring-blue-500"
+                                                                 >
+                                                                     <option value="keduanya">Umum (Mahasiswa & Non-Mahasiswa)</option>
+                                                                     <option value="mahasiswa_saja">Khusus Mahasiswa</option>
+                                                                     <option value="non_mahasiswa_saja">Khusus Non-Mahasiswa</option>
+                                                                 </select>
+                                                             </div>
+                                                        )}
+
+                                                        <div className="grid grid-cols-3 gap-2 border-t border-gray-200/30 dark:border-gray-800/30 pt-2">
+                                                            <div>
+                                                                <label className="block text-[9px] text-gray-500 dark:text-gray-400 mb-1 font-semibold">Komisi Lvl 1 (%)</label>
+                                                                <input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    max="100"
+                                                                    placeholder="0"
+                                                                    value={komisiLvl1KategoriMap[kat] !== undefined ? komisiLvl1KategoriMap[kat] : ''}
+                                                                    onChange={(e) => setKomisiLvl1KategoriMap({ ...komisiLvl1KategoriMap, [kat]: e.target.value })}
+                                                                    className="w-full px-2.5 py-1.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl text-xs outline-none focus:ring-1 focus:ring-blue-500"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-[9px] text-gray-500 dark:text-gray-400 mb-1 font-semibold">Komisi Lvl 2 (%)</label>
+                                                                <input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    max="100"
+                                                                    placeholder="0"
+                                                                    value={komisiLvl2KategoriMap[kat] !== undefined ? komisiLvl2KategoriMap[kat] : ''}
+                                                                    onChange={(e) => setKomisiLvl2KategoriMap({ ...komisiLvl2KategoriMap, [kat]: e.target.value })}
+                                                                    className="w-full px-2.5 py-1.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl text-xs outline-none focus:ring-1 focus:ring-blue-500"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-[9px] text-gray-500 dark:text-gray-400 mb-1 font-semibold">Komisi Lvl 3 (%)</label>
+                                                                <input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    max="100"
+                                                                    placeholder="0"
+                                                                    value={komisiLvl3KategoriMap[kat] !== undefined ? komisiLvl3KategoriMap[kat] : ''}
+                                                                    onChange={(e) => setKomisiLvl3KategoriMap({ ...komisiLvl3KategoriMap, [kat]: e.target.value })}
                                                                     className="w-full px-2.5 py-1.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl text-xs outline-none focus:ring-1 focus:ring-blue-500"
                                                                 />
                                                             </div>
@@ -507,6 +696,56 @@ export default function UnifiedFormDashboard() {
                                     )}
                                 </div>
                             )}
+
+                            {formType === 'register' && (
+                                <div className="space-y-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700">
+                                    <label className="flex items-center gap-3 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={pakaiGrupKategori}
+                                            onChange={(e) => {
+                                                setPakaiGrupKategori(e.target.checked);
+                                                if (!e.target.checked) setJenisKategoriList([]);
+                                            }}
+                                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                        />
+                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Pakai Grup Kategori Putra / Putri?</span>
+                                    </label>
+                                    {pakaiGrupKategori && (
+                                        <div className="flex gap-4 pl-7">
+                                            {['putra', 'putri'].map(opt => (
+                                                <label key={opt} className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-600 dark:text-gray-400">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={jenisKategoriList.includes(opt)}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) {
+                                                                setJenisKategoriList([...jenisKategoriList, opt]);
+                                                            } else {
+                                                                setJenisKategoriList(jenisKategoriList.filter(x => x !== opt));
+                                                            }
+                                                        }}
+                                                        className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                    />
+                                                    <span>{opt.charAt(0).toUpperCase() + opt.slice(1)}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                                    <input
+                                        type="checkbox"
+                                        checked={isPublic}
+                                        onChange={(e) => setIsPublic(e.target.checked)}
+                                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Tampilkan di Halaman Publik (is_public)</span>
+                                </label>
+                            </div>
 
                             <div>
                                 <label className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">

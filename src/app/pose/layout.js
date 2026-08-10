@@ -22,6 +22,10 @@ export default function PoseLayout({ children }) {
 
         { href: '/pose/register', label: 'Daftar' },
 
+        { href: '/pose/submission', label: 'Submit' },
+
+        { href: '/pose/nilai', label: 'Nilai' },
+
         { href: '/pose/contact', label: 'Kontak' }
 
     ];

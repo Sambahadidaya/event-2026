@@ -59,14 +59,21 @@ export const uploadFile = async (formData, bucket, pathPrefix = '') => {
         let buffer = Buffer.from(arrayBuffer);
 
         // Deep File Inspection
-        const fileTypeResult = await fileTypeFromBuffer(buffer);
+        let fileTypeResult = await fileTypeFromBuffer(buffer);
         if (!fileTypeResult || !ALLOWED_MIME_TYPES.includes(fileTypeResult.mime)) {
             return { success: false, error: 'Tipe file tidak valid atau berpotensi berbahaya.' };
         }
 
         // Compress if file is an image
         if (fileTypeResult.mime.startsWith('image/')) {
-            buffer = await compressImage(buffer, fileTypeResult.mime);
+            const compressedBuffer = await compressImage(buffer, fileTypeResult.mime);
+            const newTypeResult = await fileTypeFromBuffer(compressedBuffer);
+            if (newTypeResult && ALLOWED_MIME_TYPES.includes(newTypeResult.mime)) {
+                buffer = compressedBuffer;
+                fileTypeResult = newTypeResult;
+            } else {
+                console.warn("Compressed buffer is invalid or has unsupported type, using original buffer");
+            }
         }
 
         // Generate a random file name to avoid collisions

@@ -184,6 +184,7 @@ export const getFormRegister = async (siteType) => {
         let query = supabaseAdmin
             .from('form_register')
             .select('*')
+            .eq('is_public', true)
             .order('created_at', { ascending: false });
 
         if (siteType && siteType !== 'all') {
@@ -196,6 +197,28 @@ export const getFormRegister = async (siteType) => {
         return data;
     } catch (error) {
         console.error("Internal Log - Error fetching form register:", error);
+        return [];
+    }
+};
+
+export const getFormRegisterFields = async (siteType) => {
+    try {
+        let query = supabaseAdmin
+            .from('form_register')
+            .select('id, link_id, nama_lomba, jenis_lomba, gambar, kategori_pendaftar, jenis_kategori, keterangan, is_public')
+            .eq('is_public', true)
+            .order('created_at', { ascending: false });
+
+        if (siteType && siteType !== 'all') {
+            query = query.eq('site', siteType);
+        }
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error("Internal Log - Error fetching form register fields:", error);
         return [];
     }
 };
@@ -294,7 +317,7 @@ export const getFormRegisterPricing = async (formId) => {
 
         const { data, error } = await supabaseAdmin
             .from('form_register_pricing')
-            .select('kategori, nominal, maks_anggota, maks_team, individu')
+            .select('kategori, nominal, maks_anggota, maks_team, individu, umum_type')
             .eq('form_id', formId);
 
         if (error) throw error;
@@ -373,3 +396,164 @@ export const getTeamCountsByForm = async (baseKodeForm) => {
         return {};
     }
 };
+
+export const checkWajibPesertaLombaCount = async (nim, kampus) => {
+    try {
+        if (!nim || !kampus) return { count: 0, lomba: [] };
+        
+        // Find team_members that match the nim, joined with team to ensure it's a valid team
+        const { data: memberData, error: memberError } = await supabaseAdmin
+            .from('team_members')
+            .select('team_id, team!inner(nama_lomba, verivikasi, jenis_lomba)')
+            .eq('kode', nim);
+
+        if (memberError) throw memberError;
+
+        if (!memberData || memberData.length === 0) return { count: 0, lomba: [] };
+
+        const validTeams = memberData.filter(m => m.team && m.team.verivikasi !== false);
+        if (validTeams.length === 0) return { count: 0, lomba: [] };
+        
+        // We only care about form_register with butuh_bukti = false
+        const lombaNames = [...new Set(validTeams.map(t => t.team.nama_lomba).filter(Boolean))];
+        if (lombaNames.length === 0) return { count: 0, lomba: [] };
+
+        const { data: formData, error: formError } = await supabaseAdmin
+            .from('form_register')
+            .select('nama_lomba, butuh_bukti')
+            .in('nama_lomba', lombaNames)
+            .eq('butuh_bukti', false)
+            .eq('site', 'pose');
+
+        if (formError) throw formError;
+
+        if (!formData || formData.length === 0) return { count: 0, lomba: [] };
+
+        const validLombaNames = new Set(formData.map(f => f.nama_lomba));
+        const matchedLomba = [];
+        
+        validTeams.forEach(t => {
+            if (validLombaNames.has(t.team.nama_lomba)) {
+                matchedLomba.push(t.team.nama_lomba);
+            }
+        });
+        
+        const uniqueLomba = [...new Set(matchedLomba)];
+
+        return { count: uniqueLomba.length, lomba: uniqueLomba };
+    } catch (error) {
+        console.error("Internal Log - Error checking wajib peserta lomba count:", error);
+        return { count: 0, lomba: [] };
+    }
+};
+
+export const getFormRegisterKampusQuotaPublic = async (formId, kampus) => {
+    try {
+        if (!formId || !kampus) return null;
+
+        const { data: pricingData, error: pricingError } = await supabaseAdmin
+            .from('form_register_pricing')
+            .select('id')
+            .eq('form_id', formId)
+            .eq('kategori', 'Mahasiswa LP3I')
+            .single();
+
+        if (pricingError || !pricingData) return null;
+
+        const { data, error } = await supabaseAdmin
+            .from('form_register_kampus_quota')
+            .select('maks_team')
+            .eq('pricing_id', pricingData.id)
+            .eq('nama_kampus', kampus)
+            .single();
+
+        if (error) return null;
+        return data;
+    } catch (error) {
+        console.error("Internal Log - Error fetching form register kampus quota public:", error);
+        return null;
+    }
+};
+
+export const getTeamCountsByFormAndKampus = async (baseKodeForm, kampus) => {
+    try {
+        if (!baseKodeForm || !kampus) return 0;
+        
+        // 1. Dapatkan semua peserta yang mendaftar form ini dengan kategori LP3I dan kampus tsb
+        const { data: pesertaData, error: pesertaError } = await supabaseAdmin
+            .from('peserta')
+            .select('kode_form')
+            .eq('jenis_form', 'register')
+            .eq('kategori', 'Mahasiswa LP3I')
+            .eq('kampus', kampus)
+            .like('kode_form', `${baseKodeForm}%`);
+
+        if (pesertaError) throw pesertaError;
+
+        // 2. Kumpulkan kode_form unik
+        const allKodeForms = new Set();
+        (pesertaData || []).forEach(p => {
+            if (p.kode_form) allKodeForms.add(p.kode_form);
+        });
+
+        if (allKodeForms.size === 0) return 0;
+
+        // 3. Cek status verivikasi dari tabel team untuk kode_form yang ditemukan
+        const kodeFormArray = Array.from(allKodeForms);
+        const { data: teamData, error: teamError } = await supabaseAdmin
+            .from('team')
+            .select('kode_form, verivikasi')
+            .in('kode_form', kodeFormArray);
+            
+        if (teamError) throw teamError;
+
+        // 4. Hitung jumlah tim, abaikan yang rejected
+        let validCount = 0;
+        (teamData || []).forEach(t => {
+            if (t.verivikasi !== false) {
+                validCount++;
+            }
+        });
+
+        return validCount;
+    } catch (error) {
+        console.error("Internal Log - Error counting teams by kampus:", error);
+        return 0;
+    }
+};
+
+export const checkPesertaRegisteredForLomba = async (nim, kampus, namaLomba) => {
+    try {
+        if (!nim || !kampus || !namaLomba) return false;
+
+        // 1. Ambil semua peserta dengan nim dan kampus ini untuk jenis_form = register
+        const { data: pesertaList, error: pesertaError } = await supabaseAdmin
+            .from('peserta')
+            .select('kode_form')
+            .eq('nim', nim)
+            .eq('kampus', kampus)
+            .eq('jenis_form', 'register');
+
+        if (pesertaError) throw pesertaError;
+        if (!pesertaList || pesertaList.length === 0) return false;
+
+        const kodeForms = pesertaList.map(p => p.kode_form).filter(Boolean);
+        if (kodeForms.length === 0) return false;
+
+        // 2. Dapatkan tim yang memiliki kode_form tersebut dan nama_lomba tsb
+        const { data: teamList, error: teamError } = await supabaseAdmin
+            .from('team')
+            .select('verivikasi')
+            .in('kode_form', kodeForms)
+            .eq('nama_lomba', namaLomba);
+
+        if (teamError) throw teamError;
+
+        const alreadyRegistered = (teamList || []).some(t => t.verivikasi !== false);
+        return alreadyRegistered;
+    } catch (error) {
+        console.error("Internal Log - Error checking registered peserta for lomba:", error);
+        return false;
+    }
+};
+

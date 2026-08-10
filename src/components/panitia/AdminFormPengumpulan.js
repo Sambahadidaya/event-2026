@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { FileText, Search, Plus, Link as LinkIcon, Trash2, Copy } from 'lucide-react';
 import { getFormPengumpulan, upsertFormPengumpulan, deleteFormPengumpulan } from '@/api/supabase/admin/submission';
-import { getFormRegister } from '@/api/supabase/public/peserta';
+import { getFormRegisterAll } from '@/api/supabase/admin/peserta';
 import { useRouter } from 'next/navigation';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
 import TablePagination from '@/components/panitia/TablePagination';
@@ -43,7 +43,7 @@ export default function AdminFormPengumpulan({ hideCreateButton = false, refresh
         setFormRegisterId('');
         setShowCreateModal(true);
         // Fetch form registers to link
-        const registers = await getFormRegister('pose'); // only POSE has form pengumpulan usually, or 'all'
+        const registers = await getFormRegisterAll('pose');
         setAvailableRegisters(registers || []);
     };
 

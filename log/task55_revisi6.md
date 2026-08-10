@@ -1,0 +1,1 @@
+dihalaman app/panitia/form/form/page.js atau lebih tepatnya difile AdminPesertaRegister.js kenapa link atau data form yang aku buat diform register untuk lomba yang is_publicnya false tidak muncul? dan begitu juga untuk halaman pj lomba atau lebih tepatnya difile AdminPesertaRegister, yang form link nya tidak muncul juga, dan ini khusus ketika is_publicnya false

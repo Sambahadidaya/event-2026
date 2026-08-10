@@ -46,10 +46,57 @@ export const getFormPengumpulanByLink = async (linkId) => {
     }
 };
 
+export const getFormPengumpulanFields = async (eventCode) => {
+    try {
+        // 2. UBAH 'supabase' MENJADI 'supabaseAdmin'
+        const { data, error } = await supabaseAdmin
+            .from('form_pengumpulan')
+            .select(`
+                id,
+                link_id,
+                status,
+                form_id,
+                created_at,
+                form_register!inner (
+                    id,
+                    nama_lomba,
+                    jenis_lomba,
+                    kategori_pendaftar,
+                    keterangan,
+                    gambar,
+                    site
+                )
+            `)
+            .eq('form_register.is_public', true)
+            .eq('form_register.site', eventCode)
+            .eq('status', true);
+
+        if (error) {
+            console.error("Internal Log - Error fetching form pengumpulan fields:", error);
+            return null;
+        }
+
+        const formattedData = data.map((item) => ({
+            id: item.id,
+            link_id: item.link_id,
+            status: item.status,
+            form_id: item.form_id,
+            created_at: item.created_at,
+            ...item.form_register
+        }));
+
+        return formattedData;
+
+    } catch (error) {
+        console.error("Internal Log - Catch Error:", error);
+        return null;
+    }
+};
+
 export const verifyKodeFormTeam = async (kode_form) => {
     try {
         if (!kode_form) return { success: false, error: 'Kode form diperlukan.' };
-        
+
         const cleanKode = sanitizeInput(kode_form);
 
         const { data, error } = await supabaseAdmin

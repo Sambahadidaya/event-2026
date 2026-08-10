@@ -1,31 +1,26 @@
-export const JENIS_LOMBA = ['Kreativitas', 'Olahraga', 'Games'];
+export const JENIS_LOMBA = ['Kreativitas', 'Olahraga', 'E-Sport'];
 
 export const NAMA_LOMBA = {
     'Olahraga': [
         'Badminton',
-        'Pidato Bahasa Inggris',
-        'Puisi',
         'Tarik Tambang',
         'Tenis Meja'
     ],
-    'Games': [
-        'Catur',
+    'E-Sport': [
         'Mobile Legend',
-        'Magic Chess GoGo',
-        'PUBG Mobile',
     ],
     'Kreativitas': [
-        'Bisnis Model Kanvas',
+        'Business Model Canvas',
         'Desain Poster',
-        'Desain Kemasan',
-        'Film Pendek',
-        'Konten Promosi Digital',
-        'Laporan Keuangan'
+        'Software Developer',
+        'Release Writing',
+        'Digital UMKM Promotion',
+        'Seni Tari (Dance)',
     ]
 };
 
 export const PRODI_DATA = {
-    'Kampus Tasikmalaya' : [
+    'Kampus Tasikmalaya': [
         'Akuntansi',
         'Administrasi Bisnis',
         'Bisnis Digital',
@@ -38,7 +33,7 @@ export const PRODI_DATA = {
         'Manajemen Perusahaan',
         'Teknik Komputer'
     ],
-    'Kampus Cirebon' : [
+    'Kampus Cirebon': [
         'Akuntansi',
         'Administrasi Bisnis',
         'Bisnis Digital',
@@ -51,7 +46,7 @@ export const PRODI_DATA = {
         'Manajemen Perusahaan',
         'Teknik Komputer'
     ],
-    'Kampus Pekanbaru' : [
+    'Kampus Pekanbaru': [
         'Akuntansi',
         'Administrasi Bisnis',
         'Bisnis Digital',
@@ -64,7 +59,7 @@ export const PRODI_DATA = {
         'Manajemen Perusahaan',
         'Teknik Komputer'
     ],
-    'Kampus Padang' : [
+    'Kampus Padang': [
         'Akuntansi',
         'Administrasi Bisnis',
         'Bisnis Digital',
@@ -77,19 +72,6 @@ export const PRODI_DATA = {
         'Manajemen Perusahaan',
         'Teknik Komputer'
     ],
-    'Kampus Langsa' : [
-        'Akuntansi',
-        'Administrasi Bisnis',
-        'Bisnis Digital',
-        'Hubungan Masyarakat',
-        'Komputerisasi Akuntansi',
-        'Manajemen Informatika',
-        'Manajemen Keuangan Perbankan',
-        'Manajemen Keuangan',
-        'Manajemen Pemasaran',
-        'Manajemen Perusahaan',
-        'Teknik Komputer'
-    ]
 };
 
 export const Angkatan_DATA = [
@@ -113,10 +95,27 @@ export const KAMPUS_DATA = [
     'Kampus Cirebon',
     'Kampus Pekanbaru',
     'Kampus Padang',
-    'Kampus Langsa',
     'Lainnya'
 ];
 
+export const KATEGORI = [
+    'Mahasiswa LP3I',
+    'Alumni LP3I',
+    'Dosen',
+    'Siswa',
+    'Umum'
+];
+
+export const SUMBER_LOMBA = [
+    'Dari Website Kampus',
+    'Dari Instagram',
+    'Dari TikTok',
+    'Dari Teman',
+    'Dari Dosen/Manajemen LP3I',
+    'Dari Panitia',
+    'Dari Mahasiswa LP3I',
+    'Lainnya'
+];
 
 export const METODE_BAYAR_PKKMB = [
     'Virtual Account',
@@ -166,23 +165,19 @@ export function parseNIM(nim, kampus) {
 export const KODE_JENIS_LOMBA = {
     'Olahraga': 'Ol',
     'Kreativitas': 'Kr',
-    'Games': 'Ga'
+    'E-Sport': 'Es'
 };
 
 export const KODE_NAMA_LOMBA = {
     'Badminton': 'Bd',
-    'Pidato Bahasa Inggris': 'Pi',
-    'Puisi': 'Pu',
-    'Tarik Tambang': 'Tt',
-    'Tenis Meja': 'Tm',
-    'Catur': 'Ca',
+    'Tarik Tambang': 'Tr',
+    'Tenis Meja': 'Tn',
     'Mobile Legend': 'Ml',
-    'Magic Chess GoGo': 'Mc',
-    'PUBG Mobile': 'Pb',
-    'Bisnis Model Kanvas': 'Bk',
-    'Desain Poster': 'Dp',
-    'Desain Kemasan': 'Dk',
-    'Film Pendek': 'Fp',
-    'Konten Promosi Digital': 'Kd',
-    'Laporan Keuangan': 'Lk'
+    'Business Model Canvas': 'Bmc',
+    'Desain Poster': 'Ds',
+    'Software Developer': 'Sd',
+    'Release Writing': 'Rw',
+    'Digital UMKM Promotion': 'Dup',
+    'Dance': 'Dc'
+
 };

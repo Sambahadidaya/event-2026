@@ -24,6 +24,23 @@ export const getTeams = async (siteType) => {
         return [];
     }
 };
+export const getTeamsPublic = async (siteType) => {
+    try {
+        if (!isValidSiteType(siteType)) throw new Error('Invalid site type');
+
+        const { data, error } = await supabaseAdmin
+            .from('team')
+            .select('id, title, content, type, gambar, jenis_lomba, nama_lomba, verivikasi, created_at, team_members(id, team_id, nama, jabatan, created_at)')
+            .eq('type', siteType)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error("Internal Log - Error fetching teams:", error);
+        return [];
+    }
+};
 
 export const getVerifiedPoseTeams = async () => {
     try {
@@ -93,7 +110,7 @@ export const insertTeamMembers = async (membersArray) => {
         if (!membersArray || !Array.isArray(membersArray)) throw new Error('Members array is required');
 
         // Sanitize each member
-        const allowedKeys = ['team_id', 'nama', 'jabatan', 'kode'];
+        const allowedKeys = ['team_id', 'nama', 'jabatan', 'kode', 'id_ml'];
         const sanitized = membersArray.map(m => {
             const obj = {};
             for (const key of allowedKeys) {

@@ -6,7 +6,7 @@ import { getTeams } from '@/api/supabase/public/team';
 import { upsertTeam, deleteTeamPermanent } from '@/api/supabase/admin/team';
 import { getPeserta } from '@/api/supabase/admin/peserta';
 import { getCurrentAdmin } from '@/api/supabase/admin/auth';
-import { getFormRegister } from '@/api/supabase/public/peserta';
+import { getFormRegisterAll } from '@/api/supabase/admin/peserta';
 import { getFormPengumpulan, getPengumpulanLomba } from '@/api/supabase/admin/submission';
 import { generatePdfAction } from '@/api/pdf/route';
 import { exportToExcel } from '@/lib/excel/xlsx';
@@ -49,30 +49,80 @@ export default function AdminPesertaRegister() {
     const [pdfLoading, setPdfLoading] = useState(false);
 
     const [activeFormPricing, setActiveFormPricing] = useState([]);
+    const [selectedFormIndex, setSelectedFormIndex] = useState(0);
+
+    // Tahap 4 States
+    const [kampusQuotaData, setKampusQuotaData] = useState([]);
+    const [allLombaStatusData, setAllLombaStatusData] = useState([]);
 
     const currentLombaName = useMemo(() => {
         return lockedLomba || (namaLomba !== 'all' ? namaLomba : null);
     }, [lockedLomba, namaLomba]);
 
-    const activeForm = useMemo(() => {
-        if (!currentLombaName) return null;
-        return registerForms.find(f => f.nama_lomba?.toLowerCase().trim() === currentLombaName.toLowerCase().trim());
+    // 1. Dapatkan seluruh form yang nama lombanya cocok
+    const matchingRegisterForms = useMemo(() => {
+        if (!currentLombaName) return [];
+        return registerForms.filter(
+            f => f.nama_lomba?.toLowerCase().trim() === currentLombaName.toLowerCase().trim()
+        );
     }, [registerForms, currentLombaName]);
+
+    // 2. Ambil form berdasarkan index yang dipilih user
+    const activeForm = useMemo(() => {
+        if (matchingRegisterForms.length === 0) return null;
+        return matchingRegisterForms[selectedFormIndex] || matchingRegisterForms[0];
+    }, [matchingRegisterForms, selectedFormIndex]);
+
+    // 3. Reset index ke 0 setiap kali nama lomba berubah
+    useEffect(() => {
+        setSelectedFormIndex(0);
+    }, [currentLombaName]);
 
     useEffect(() => {
         if (activeForm?.id) {
-            import('@/api/supabase/admin/finance').then(({ getFormRegisterPricingAdmin }) => {
+            import('@/api/supabase/admin/finance').then(({ getFormRegisterPricingAdmin, getKuotaKampusByForm }) => {
                 getFormRegisterPricingAdmin(activeForm.id).then(pricing => {
                     setActiveFormPricing(pricing || []);
+                });
+                getKuotaKampusByForm(activeForm.id).then(kuota => {
+                    setKampusQuotaData(kuota || []);
                 });
             });
         } else {
             setActiveFormPricing([]);
+            setKampusQuotaData([]);
         }
     }, [activeForm?.id]);
 
+    useEffect(() => {
+        if (registerForms && registerForms.length > 0) {
+            import('@/api/supabase/admin/finance').then(async ({ getFormRegisterPricingAdmin }) => {
+                const statusList = [];
+                for (const form of registerForms) {
+                    const pricing = await getFormRegisterPricingAdmin(form.id);
+                    const formTeams = data.filter(t => t.nama_lomba?.toLowerCase().trim() === form.nama_lomba?.toLowerCase().trim() && t.verivikasi !== false);
+                    let isFull = true;
+                    if (pricing && pricing.length > 0) {
+                        const lp3iPricing = pricing.find(p => p.kategori === 'Mahasiswa LP3I');
+                        if (lp3iPricing) {
+                            const registered = formTeams.filter(t => t.peserta?.[0]?.kategori === 'Mahasiswa LP3I').length;
+                            isFull = registered >= (lp3iPricing.maks_team || 0);
+                        } else {
+                            isFull = false;
+                        }
+                    } else {
+                        isFull = false;
+                    }
+                    statusList.push({ form, isFull });
+                }
+                setAllLombaStatusData(statusList);
+            });
+        }
+    }, [registerForms, data]);
+
     const countsPerCategory = useMemo(() => {
         const counts = {
+            'Alumni LP3I': 0,
             'Mahasiswa LP3I': 0,
             'Siswa': 0,
             'Dosen': 0,
@@ -95,7 +145,7 @@ export default function AdminPesertaRegister() {
         const { updateStatusPengumpulan } = await import('@/api/supabase/admin/submission');
         const res = await updateStatusPengumpulan(subItem.id, newStatusBoolean);
         if (res.success) {
-            const updatedSubmissions = pengumpulanList.map(s => 
+            const updatedSubmissions = pengumpulanList.map(s =>
                 s.id === subItem.id ? { ...s, status_pengumpulan: newStatusBoolean } : s
             );
             setPengumpulanList(updatedSubmissions);
@@ -167,7 +217,7 @@ export default function AdminPesertaRegister() {
             getTeams('pose'),
             getPeserta('pose'),
             getPengumpulanLomba(),
-            getFormRegister('pose'),
+            getFormRegisterAll('pose'),
             getFormPengumpulan()
         ]);
 
@@ -305,7 +355,7 @@ export default function AdminPesertaRegister() {
     const handleDeletePermanent = async () => {
         if (!verifikasiItem) return;
         if (!window.confirm('Apakah Anda yakin ingin menghapus data pendaftar ini secara PERMANEN? Data tim dan seluruh pesertanya akan dihapus!')) return;
-        
+
         setVerifikasiLoading(true);
         const res = await deleteTeamPermanent(verifikasiItem.id, verifikasiItem.kode_form);
         if (!res.success) {
@@ -322,17 +372,24 @@ export default function AdminPesertaRegister() {
 
     const renderDetailFields = (item) => {
         if (!item) return [];
+
+        // Fallback pencarian bukti bayar dari objek team atau array peserta
+        const buktiBayarUrl = item.bukti_bayar || item.peserta?.find(p => p.bukti_bayar)?.bukti_bayar;
+
+        // Fallback pencarian kode team dari berbagai kemungkinan field
+        const kodeTeam = item.kode_form || item.kode || item.peserta?.find(p => p.kode_form)?.kode_form || '-';
+
         return [
             { label: 'Nama Tim', value: item.title },
             { label: 'Jenis Lomba', value: item.jenis_lomba || '-' },
             { label: 'Nama Lomba', value: item.nama_lomba || '-' },
             { label: 'Tanggal Daftar', value: formatDateTime(item.created_at) },
             { label: 'Status Verifikasi', value: item.verivikasi === true ? 'Valid' : item.verivikasi === false ? 'Ditolak' : 'Pending' },
-            { label: 'Kode Team', value: item.kode_form || '-' },
+            { label: 'Kode Team', value: kodeTeam },
             {
                 label: 'Bukti Pembayaran',
-                value: item.bukti_bayar ? (
-                    <a href={item.bukti_bayar} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
+                value: buktiBayarUrl ? (
+                    <a href={buktiBayarUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
                         <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold">Lihat Gambar</span>
                     </a>
                 ) : '-',
@@ -340,16 +397,20 @@ export default function AdminPesertaRegister() {
             },
             {
                 label: 'Daftar Anggota (Team Members)',
-                value: (
-                    <div className="mt-2 space-y-3">
-                        {item.team_members?.map((m, idx) => (
-                            <div key={idx} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm border border-gray-100 dark:border-gray-700">
-                                <p className="font-semibold">{m.nama} <span className="text-gray-500 font-normal">({m.jabatan || 'Anggota'})</span></p>
-                                <p className="text-gray-600 dark:text-gray-400">NIM/Kode: {m.kode || '-'}</p>
-                            </div>
-                        ))}
-                    </div>
-                ),
+                value: (() => {
+                    const isML = item.nama_lomba?.toLowerCase().includes('mobile legend') || item.nama_lomba?.toLowerCase().includes('mobile legends');
+                    return (
+                        <div className="mt-2 space-y-3">
+                            {item.team_members?.map((m, idx) => (
+                                <div key={idx} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm border border-gray-100 dark:border-gray-700">
+                                    <p className="font-semibold">{m.nama} <span className="text-gray-500 font-normal">({m.jabatan || 'Anggota'})</span></p>
+                                    <p className="text-gray-600 dark:text-gray-400">NIM/Kode: {m.kode || '-'}</p>
+                                    {isML && m.id_ml && <p className="text-gray-600 dark:text-gray-400">ID ML: <span className="font-semibold font-mono text-blue-600 dark:text-blue-400">{m.id_ml}</span></p>}
+                                </div>
+                            ))}
+                        </div>
+                    );
+                })(),
                 isCustom: true
             },
             {
@@ -389,10 +450,20 @@ export default function AdminPesertaRegister() {
         const totalTeam = filteredData.length;
         const totalPeserta = filteredData.reduce((sum, item) => sum + (item.peserta?.length || 0), 0);
 
+        let sisaKuotaLP3I = null;
+        if (activeFormPricing.length > 0) {
+            const lp3iPricing = activeFormPricing.find(p => p.kategori === 'Mahasiswa LP3I');
+            if (lp3iPricing) {
+                const registeredLP3I = data.filter(t => t.nama_lomba?.toLowerCase().trim() === currentLombaName?.toLowerCase().trim() && t.verivikasi !== false && t.peserta?.[0]?.kategori === 'Mahasiswa LP3I').length;
+                sisaKuotaLP3I = Math.max(0, (lp3iPricing.maks_team || 0) - registeredLP3I);
+            }
+        }
+        const subtextSisa = sisaKuotaLP3I !== null ? `Sisa Kuota LP3I: ${sisaKuotaLP3I}` : undefined;
+
         if (activeTab === 'pendaftar') {
             const totalVerif = filteredData.filter(item => item.verivikasi === true).length;
             return [
-                { label: 'Total Team', value: totalTeam, icon: Users, iconBg: 'bg-blue-50 dark:bg-blue-900/20', iconClass: 'text-blue-500' },
+                { label: 'Total Team', value: totalTeam, icon: Users, iconBg: 'bg-blue-50 dark:bg-blue-900/20', iconClass: 'text-blue-500', subtext: subtextSisa, subtextClass: 'text-purple-600 font-semibold text-xs' },
                 { label: 'Total Peserta', value: totalPeserta, icon: Users, iconBg: 'bg-indigo-50 dark:bg-indigo-900/20', iconClass: 'text-indigo-500' },
                 { label: 'Total Sudah Verifikasi', value: totalVerif, icon: CheckCircle2, iconBg: 'bg-green-50 dark:bg-green-900/20', iconClass: 'text-green-500', subtext: `${totalTeam - totalVerif} Pending/Ditolak`, subtextClass: 'text-amber-500' }
             ];
@@ -401,36 +472,37 @@ export default function AdminPesertaRegister() {
                 (pengumpulanList || []).some(sub => sub.team_id === item.id)
             ).length;
             return [
-                { label: 'Total Team', value: totalTeam, icon: Users, iconBg: 'bg-blue-50 dark:bg-blue-900/20', iconClass: 'text-blue-500' },
+                { label: 'Total Team', value: totalTeam, icon: Users, iconBg: 'bg-blue-50 dark:bg-blue-900/20', iconClass: 'text-blue-500', subtext: subtextSisa, subtextClass: 'text-purple-600 font-semibold text-xs' },
                 { label: 'Total Peserta', value: totalPeserta, icon: Users, iconBg: 'bg-indigo-50 dark:bg-indigo-900/20', iconClass: 'text-indigo-500' },
                 { label: 'Total Sudah Pengumpulan', value: totalSubmitted, icon: CheckCircle2, iconBg: 'bg-green-50 dark:bg-green-900/20', iconClass: 'text-green-500', subtext: `${totalTeam - totalSubmitted} Belum Mengumpulkan`, subtextClass: 'text-amber-500' }
             ];
         }
-    }, [filteredData, activeTab, pengumpulanList]);
+    }, [filteredData, activeTab, pengumpulanList, activeFormPricing, data, currentLombaName]);
 
     const activeFormLink = useMemo(() => {
-        let currentLombaName = lockedLomba || (namaLomba !== 'all' ? namaLomba : null);
+        // 1. Ambil nama lomba aktif (lengkap dengan fallback lama kamu)
+        let effectiveLombaName = lockedLomba || (namaLomba !== 'all' ? namaLomba : null);
 
-        // Fallback: If not explicitly set via dropdown or lock, but all data belongs to ONE lomba, use that.
-        if (!currentLombaName && data && data.length > 0) {
+        if (!effectiveLombaName && data && data.length > 0) {
             const uniqueLombas = [...new Set(data.map(d => d.nama_lomba).filter(Boolean))];
             if (uniqueLombas.length === 1) {
-                currentLombaName = uniqueLombas[0];
+                effectiveLombaName = uniqueLombas[0];
             }
         }
 
-        if (!currentLombaName) return '';
+        if (!effectiveLombaName || !activeForm) return '';
 
-        const normalizedName = currentLombaName.toLowerCase().trim();
-
+        // 2. Buat Link berdasarkan Form yang sedang terpilih (activeForm)
         if (activeTab === 'pendaftar') {
-            const found = (registerForms || []).find(f => f.nama_lomba?.toLowerCase().trim() === normalizedName);
-            return found ? `${window.location.origin}/pose/register/${found.link_id}` : '';
+            return activeForm.link_id ? `${window.location.origin}/pose/register/${activeForm.link_id}` : '';
         } else {
-            const found = (submissionForms || []).find(f => f.form_register?.nama_lomba?.toLowerCase().trim() === normalizedName);
+            // Cari form pengumpulan yang sesuai dengan ID form register terpilih
+            const found = (submissionForms || []).find(
+                f => f.form_register_id === activeForm.id || f.form_register?.nama_lomba?.toLowerCase().trim() === effectiveLombaName.toLowerCase().trim()
+            );
             return found ? `${window.location.origin}/pose/submission/${found.link_id}` : '';
         }
-    }, [activeTab, lockedLomba, namaLomba, registerForms, submissionForms, data]);
+    }, [activeTab, activeForm, submissionForms, lockedLomba, namaLomba, data]);
 
     const handlePrintPDF = async () => {
         if (filteredData.length === 0) {
@@ -445,7 +517,9 @@ export default function AdminPesertaRegister() {
                 const hasSubmitted = (pengumpulanList || []).some(sub => sub.team_id === item.id);
                 return {
                     ...item,
-                    hasSubmitted
+                    kode_form: item.kode_form || item.kode || item.peserta?.[0]?.kode_form,
+                    hasSubmitted,
+                    jenis_kategori: item.jenis_kategori || '-'
                 };
             });
 
@@ -501,17 +575,19 @@ export default function AdminPesertaRegister() {
             // Sheet 1: Daftar Team
             const teamColumns = [
                 { key: 'title', label: 'Nama Team' },
+                { key: 'jenis_kategori', label: 'Kategori (Putra/Putri)' },
                 { key: 'jml_anggota', label: 'Jumlah Anggota' },
                 { key: 'status_verifikasi', label: 'Status Verifikasi' },
-                { key: 'kode_team', label: 'Kode Team' },
+                { key: 'kode_form', label: 'Kode Team' },
                 { key: 'tanggal', label: 'Tanggal Daftar' }
             ];
 
             const teamSheetData = filteredData.map(item => ({
                 title: item.title,
+                jenis_kategori: item.jenis_kategori || '-',
                 jml_anggota: `${item.team_members?.length || 0} Orang`,
                 status_verifikasi: item.verivikasi === true ? 'Valid' : item.verivikasi === false ? 'Ditolak' : 'Pending',
-                kode_team: item.kode_form || '-',
+                kode_form: item.kode_form || item.kode || item.peserta?.[0]?.kode_form || '-',
                 tanggal: item.created_at ? new Date(item.created_at).toLocaleDateString('id-ID') : '-'
             }));
 
@@ -539,7 +615,7 @@ export default function AdminPesertaRegister() {
                         const isFirst = pIdx === 0;
                         const row = {
                             nama_team: isFirst ? (team.title || '-') : '',
-                            kode_team: isFirst ? (team.kode_form || '-') : '',
+                            kode_form: isFirst ? (team.kode_form || team.kode || team.peserta?.[0]?.kode_form || '-') : '',
                             nama: p.nama || '-',
                             kategori: p.kategori || '-',
                             nim: p.nim || '-',
@@ -560,7 +636,7 @@ export default function AdminPesertaRegister() {
                     if (cat === 'Mahasiswa LP3I') {
                         columns = [
                             { key: 'nama_team', label: 'Nama Team' },
-                            { key: 'kode_team', label: 'Kode Team' },
+                            { key: 'kode_form', label: 'Kode Team' },
                             { key: 'nama', label: 'Nama' },
                             { key: 'kategori', label: 'Kategori' },
                             { key: 'nim', label: 'NIM' },
@@ -575,7 +651,7 @@ export default function AdminPesertaRegister() {
                     } else if (cat === 'Siswa') {
                         columns = [
                             { key: 'nama_team', label: 'Nama Team' },
-                            { key: 'kode_team', label: 'Kode Team' },
+                            { key: 'kode_form', label: 'Kode Team' },
                             { key: 'nama', label: 'Nama' },
                             { key: 'kategori', label: 'Kategori' },
                             { key: 'kampus', label: 'Sekolah' },
@@ -589,9 +665,22 @@ export default function AdminPesertaRegister() {
                     } else if (cat === 'Dosen') {
                         columns = [
                             { key: 'nama_team', label: 'Nama Team' },
-                            { key: 'kode_team', label: 'Kode Team' },
+                            { key: 'kode_form', label: 'Kode Team' },
                             { key: 'nama', label: 'Nama' },
                             { key: 'kampus', label: 'Kampus' },
+                            { key: 'email_wa', label: 'Email/WA' },
+                            { key: 'bukti_bayar', label: 'Link Bukti Pembayaran' },
+                            { key: 'status_pembayaran', label: 'Status Pembayaran' },
+                            { key: 'metode_pembayaran', label: 'Metode Pembayaran' }
+                        ];
+                    } else if (cat === 'Alumni LP3I') {
+                        columns = [
+                            { key: 'nama_team', label: 'Nama Team' },
+                            { key: 'kode_form', label: 'Kode Team' },
+                            { key: 'nama', label: 'Nama' },
+                            { key: 'kampus', label: 'Kampus' },
+                            { key: 'prodi', label: 'Jurusan' },
+                            { key: 'nim', label: 'NIM' },
                             { key: 'email_wa', label: 'Email/WA' },
                             { key: 'bukti_bayar', label: 'Link Bukti Pembayaran' },
                             { key: 'status_pembayaran', label: 'Status Pembayaran' },
@@ -600,7 +689,7 @@ export default function AdminPesertaRegister() {
                     } else { // Umum
                         columns = [
                             { key: 'nama_team', label: 'Nama Team' },
-                            { key: 'kode_team', label: 'Kode Team' },
+                            { key: 'kode_form', label: 'Kode Team' },
                             { key: 'nama', label: 'Nama' },
                             { key: 'kampus', label: 'Kampus' },
                             { key: 'prodi', label: 'Prodi' },
@@ -628,7 +717,7 @@ export default function AdminPesertaRegister() {
                 { key: 'title', label: 'Nama Team' },
                 { key: 'nama_lomba', label: 'Lomba' },
                 { key: 'status_pengumpulan', label: 'Status Pengumpulan' },
-                { key: 'kode_team', label: 'Kode Team' },
+                { key: 'kode_form', label: 'Kode Team' },
                 { key: 'tanggal', label: 'Tanggal Submit' }
             ];
 
@@ -638,7 +727,7 @@ export default function AdminPesertaRegister() {
                     title: item.title,
                     nama_lomba: item.nama_lomba || currentLombaName || '-',
                     status_pengumpulan: hasSubmitted ? 'Sudah Mengumpulkan' : 'Belum Mengumpulkan',
-                    kode_team: item.kode_form || '-',
+                    kode_form: item.kode_form || item.kode || item.peserta?.[0]?.kode_form || '-',
                     tanggal: item.created_at ? new Date(item.created_at).toLocaleDateString('id-ID') : '-'
                 };
             });
@@ -653,7 +742,7 @@ export default function AdminPesertaRegister() {
             const detailColumns = [
                 { key: 'title', label: 'Nama Team' },
                 { key: 'lomba', label: 'Lomba' },
-                { key: 'kode_team', label: 'Kode Team' },
+                { key: 'kode_form', label: 'Kode Team' },
                 { key: 'file_link', label: 'File/Link Pengumpulan' },
                 { key: 'tanggal', label: 'Tanggal Submit' }
             ];
@@ -664,7 +753,7 @@ export default function AdminPesertaRegister() {
             const detailSheetData = filteredSubmissions.map(sub => ({
                 title: sub.team?.title || '-',
                 lomba: sub.form_pengumpulan?.form_register?.nama_lomba || '-',
-                kode_team: sub.team?.kode_form || '-',
+                kode_form: sub.team?.kode_form || sub.team?.kode || sub.team?.peserta?.[0]?.kode_form || '-',
                 file_link: sub.file_link || '-',
                 tanggal: sub.created_at ? new Date(sub.created_at).toLocaleDateString('id-ID') : '-'
             }));
@@ -768,6 +857,8 @@ export default function AdminPesertaRegister() {
         </>
     );
 
+    const showIDML = activeDetailTeam?.nama_lomba?.toLowerCase().includes('mobile legend') || activeDetailTeam?.nama_lomba?.toLowerCase().includes('mobile legends');
+
     return (
         <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-500">
             <DashboardHeaderFilters
@@ -797,7 +888,7 @@ export default function AdminPesertaRegister() {
                             const max = p.maks_team || 0;
                             const remaining = Math.max(0, max - registered);
                             const percent = max > 0 ? Math.min(100, (registered / max) * 100) : 0;
-                            
+
                             return (
                                 <div key={p.id} className="p-4 bg-gray-50 dark:bg-gray-800/30 rounded-xl border border-gray-100 dark:border-gray-800 space-y-2">
                                     <div className="flex justify-between items-start">
@@ -820,6 +911,61 @@ export default function AdminPesertaRegister() {
                 </div>
             )}
 
+            {/* Tahap 4: Status Kuota Per Kampus */}
+            {activeForm && kampusQuotaData.length > 0 && (
+                <div className="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm space-y-4">
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Users size={16} className="text-purple-500" />
+                        Status Kuota Per Kampus (Mahasiswa LP3I)
+                    </h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                        {kampusQuotaData.map((k, idx) => {
+                            // hitung dari 'data'
+                            const registered = data.filter(t => 
+                                t.nama_lomba?.toLowerCase().trim() === currentLombaName?.toLowerCase().trim() && 
+                                t.verivikasi !== false &&
+                                t.peserta?.[0]?.kategori === 'Mahasiswa LP3I' &&
+                                t.peserta?.[0]?.kampus === k.nama_kampus
+                            ).length;
+                            const max = k.maks_team || 0;
+                            const remaining = Math.max(0, max - registered);
+                            
+                            return (
+                                <div key={idx} className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-100 dark:border-purple-800/50">
+                                    <div className="text-[10px] font-bold text-purple-600 dark:text-purple-400 mb-1 truncate" title={k.nama_kampus}>
+                                        {k.nama_kampus}
+                                    </div>
+                                    <div className="flex items-end justify-between">
+                                        <span className="text-sm font-black text-gray-900 dark:text-white">{registered} <span className="text-[10px] font-normal text-gray-500">/ {max}</span></span>
+                                        <span className={`text-[9px] px-1.5 py-0.5 rounded-sm font-bold ${remaining === 0 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                                            {remaining === 0 ? 'Penuh' : `Sisa ${remaining}`}
+                                        </span>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {/* Tahap 4: Status Semua Lomba */}
+            <div className="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm space-y-4">
+                <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <CheckCircle2 size={16} className="text-teal-500" />
+                    Status Seluruh Lomba
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                    {allLombaStatusData.map((lombaStatus, idx) => (
+                        <span key={idx} className={`text-xs font-bold px-3 py-1.5 rounded-full border ${lombaStatus.isFull ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800' : 'bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800'}`}>
+                            {lombaStatus.form.nama_lomba} ({lombaStatus.isFull ? 'Penuh' : 'Tersedia'})
+                        </span>
+                    ))}
+                    {allLombaStatusData.length === 0 && (
+                        <span className="text-xs text-gray-500">Memuat data lomba...</span>
+                    )}
+                </div>
+            </div>
+
             {/* Switch & Search Toolbar */}
             <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
                 {/* Switch tab button */}
@@ -831,8 +977,8 @@ export default function AdminPesertaRegister() {
                             setCurrentPage(1);
                         }}
                         className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'pendaftar'
-                                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                            ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                             }`}
                     >
                         Daftar Pendaftar
@@ -844,8 +990,8 @@ export default function AdminPesertaRegister() {
                             setCurrentPage(1);
                         }}
                         className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'pengumpulan'
-                                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                            ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                             }`}
                     >
                         Daftar Pengumpulan
@@ -867,6 +1013,32 @@ export default function AdminPesertaRegister() {
                     />
                 </div>
             </div>
+
+            {/* Tombol Switch jika terdapat lebih dari 1 Form untuk Lomba ini */}
+            {matchingRegisterForms.length > 1 && (
+                <div className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-2xl mb-4">
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-amber-800 dark:text-amber-300">
+                            Terdapat {matchingRegisterForms.length} Form untuk Lomba Ini:
+                        </span>
+                    </div>
+                    <div className="flex bg-white dark:bg-gray-800 p-1 rounded-xl border border-gray-200 dark:border-gray-700">
+                        {matchingRegisterForms.map((form, idx) => (
+                            <button
+                                key={form.id || idx}
+                                type="button"
+                                onClick={() => setSelectedFormIndex(idx)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${selectedFormIndex === idx
+                                    ? 'bg-blue-600 text-white shadow-xs'
+                                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                                    }`}
+                            >
+                                Form #{idx + 1}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Dynamic Form Link */}
             {activeFormLink && (
@@ -957,9 +1129,11 @@ export default function AdminPesertaRegister() {
                                     <th className="px-4 py-3 font-medium">Nama Team</th>
                                     <th className="px-4 py-3 font-medium text-center">Jml Anggota</th>
                                     <th className="px-4 py-3 font-medium text-center">Jenis</th>
+                                    <th className="px-4 py-3 font-medium text-center">Kategori (P/Pi)</th>
                                     <th className="px-4 py-3 font-medium">Nama Lomba</th>
                                     <th className="px-4 py-3 font-medium">Jenis Lomba</th>
                                     <th className="px-4 py-3 font-medium text-center">Peserta</th>
+                                    <th className="px-4 py-3 font-medium text-center">Jenis HTM</th>
                                     <th className="px-4 py-3 font-medium w-44">Tanggal</th>
                                     <th className="px-4 py-3 font-medium w-24 text-center">Lihat Detail</th>
                                     <th className="px-4 py-3 font-medium w-32 text-center">Verifikasi</th>
@@ -1002,12 +1176,18 @@ export default function AdminPesertaRegister() {
                                                     );
                                                 })()}
                                             </td>
+                                            <td className="px-4 py-3 text-center text-xs font-semibold capitalize text-gray-700 dark:text-gray-300">
+                                                {item.jenis_kategori || '-'}
+                                            </td>
                                             <td className="px-4 py-3 text-gray-600 dark:text-gray-400 font-medium">{item.nama_lomba || '-'}</td>
                                             <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs">{item.jenis_lomba || '-'}</td>
                                             <td className="px-4 py-3 text-center">
                                                 <span className="inline-flex items-center justify-center bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full h-6 w-6 text-xs font-bold">
                                                     {item.peserta?.length || 0}
                                                 </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-center text-xs font-medium text-gray-700 dark:text-gray-300">
+                                                {item.bukti_bayar ? 'Dari HTM Lomba' : 'Dari HTM Wajib'}
                                             </td>
                                             <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{formatDateTime(item.created_at)}</td>
                                             <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
@@ -1080,20 +1260,19 @@ export default function AdminPesertaRegister() {
                                     const hasSubmitted = (pengumpulanList || []).some(sub => sub.team_id === item.id);
                                     const subItem = (pengumpulanList || []).find(sub => sub.team_id === item.id);
                                     return (
-                                        <tr 
-                                            key={item.id} 
+                                        <tr
+                                            key={item.id}
                                             onClick={() => setActiveDetailTeam(item)}
-                                            className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer ${
-                                                isSelected ? 'bg-blue-50/50 dark:bg-blue-900/20 border-l-4 border-blue-500' : ''
-                                            }`}
+                                            className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer ${isSelected ? 'bg-blue-50/50 dark:bg-blue-900/20 border-l-4 border-blue-500' : ''
+                                                }`}
                                         >
                                             <td className="px-4 py-3 text-center text-gray-500 font-medium">{startIndex + index + 1}</td>
                                             <td className="px-4 py-3 font-semibold text-gray-800 dark:text-gray-200">{item.title}</td>
                                             <td className="px-4 py-3 text-gray-600 dark:text-gray-400 font-medium">{item.nama_lomba || '-'}</td>
                                             <td className="px-4 py-3 text-center">
                                                 <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${hasSubmitted
-                                                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                                                        : 'bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400'
+                                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                                                    : 'bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400'
                                                     }`}>
                                                     {hasSubmitted ? 'Sudah Mengumpulkan' : 'Belum Mengumpulkan'}
                                                 </span>
@@ -1103,11 +1282,10 @@ export default function AdminPesertaRegister() {
                                                     <select
                                                         value={subItem.status_pengumpulan ? 'diterima' : 'belum_dicek'}
                                                         onChange={(e) => handleSelectStatus(subItem, e.target.value === 'diterima')}
-                                                        className={`text-xs font-semibold rounded-lg px-2.5 py-1.5 border outline-none cursor-pointer transition-all ${
-                                                            subItem.status_pengumpulan
-                                                                ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/20 dark:text-green-400 dark:border-green-800/50'
-                                                                : 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-950/20 dark:text-yellow-400 dark:border-yellow-800/50'
-                                                        }`}
+                                                        className={`text-xs font-semibold rounded-lg px-2.5 py-1.5 border outline-none cursor-pointer transition-all ${subItem.status_pengumpulan
+                                                            ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/20 dark:text-green-400 dark:border-green-800/50'
+                                                            : 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-950/20 dark:text-yellow-400 dark:border-yellow-800/50'
+                                                            }`}
                                                     >
                                                         <option value="belum_dicek" className="bg-white dark:bg-gray-800 text-yellow-700 font-semibold">Belum Dicek</option>
                                                         <option value="diterima" className="bg-white dark:bg-gray-800 text-green-700 font-semibold">Diterima</option>
@@ -1116,7 +1294,7 @@ export default function AdminPesertaRegister() {
                                                     <span className="text-gray-400 text-xs italic">-</span>
                                                 )}
                                             </td>
-                                            <td className="px-4 py-3 text-center font-mono text-xs">{item.kode_form || '-'}</td>
+                                            <td className="px-4 py-3 text-center font-mono text-xs">{item.kode_form || item.kode || item.peserta?.[0]?.kode_form || '-'}</td>
                                         </tr>
                                     );
                                 })}
@@ -1159,6 +1337,7 @@ export default function AdminPesertaRegister() {
                                     <th className="px-4 py-3 font-semibold">Nama</th>
                                     <th className="px-4 py-3 font-semibold">Kategori</th>
                                     <th className="px-4 py-3 font-semibold">NIM/Kode</th>
+                                    {showIDML && <th className="px-4 py-3 font-semibold">ID ML</th>}
                                     <th className="px-4 py-3 font-semibold">Prodi</th>
                                     <th className="px-4 py-3 font-semibold">Semester/Angkatan</th>
                                     <th className="px-4 py-3 font-semibold">Kampus</th>
@@ -1169,31 +1348,36 @@ export default function AdminPesertaRegister() {
                             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                                 {(!activeDetailTeam.peserta || activeDetailTeam.peserta.length === 0) ? (
                                     <tr>
-                                        <td colSpan={9} className="px-4 py-8 text-center text-gray-500 italic">Belum ada data peserta terhubung.</td>
+                                        <td colSpan={showIDML ? 10 : 9} className="px-4 py-8 text-center text-gray-500 italic">Belum ada data peserta terhubung.</td>
                                     </tr>
                                 ) : (
-                                    activeDetailTeam.peserta.map((p, idx) => (
-                                        <tr key={p.id || idx} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/20">
-                                            <td className="px-4 py-3 text-center text-gray-500">{idx + 1}</td>
-                                            <td className="px-4 py-3 font-semibold text-gray-800 dark:text-gray-200">{p.nama}</td>
-                                            <td className="px-4 py-3">{p.kategori || '-'}</td>
-                                            <td className="px-4 py-3 font-mono text-xs">{p.nim || '-'}</td>
-                                            <td className="px-4 py-3">{p.prodi || '-'}</td>
-                                            <td className="px-4 py-3">Sem. {p.semester || '-'} ({p.angkatan || '-'})</td>
-                                            <td className="px-4 py-3">{p.kampus || '-'}</td>
-                                            <td className="px-4 py-3 text-xs">{p.email_wa || '-'}</td>
-                                            <td className="px-4 py-3 text-center">
-                                                <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${p.status_pembayaran?.toLowerCase() === 'pending'
+                                    activeDetailTeam.peserta.map((p, idx) => {
+                                        const memberObj = (activeDetailTeam.team_members || []).find(m => m.kode?.toLowerCase().trim() === p.nim?.toLowerCase().trim());
+                                        const idMl = memberObj?.id_ml;
+                                        return (
+                                            <tr key={p.id || idx} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/20">
+                                                <td className="px-4 py-3 text-center text-gray-500">{idx + 1}</td>
+                                                <td className="px-4 py-3 font-semibold text-gray-800 dark:text-gray-200">{p.nama}</td>
+                                                <td className="px-4 py-3">{p.kategori || '-'}</td>
+                                                <td className="px-4 py-3 font-mono text-xs">{p.nim || '-'}</td>
+                                                {showIDML && <td className="px-4 py-3 font-semibold font-mono text-xs text-blue-600 dark:text-blue-400">{idMl || '-'}</td>}
+                                                <td className="px-4 py-3">{p.prodi || '-'}</td>
+                                                <td className="px-4 py-3">Sem. {p.semester || '-'} ({p.angkatan || '-'})</td>
+                                                <td className="px-4 py-3">{p.kampus || '-'}</td>
+                                                <td className="px-4 py-3 text-xs">{p.email_wa || '-'}</td>
+                                                <td className="px-4 py-3 text-center">
+                                                    <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${p.status_pembayaran?.toLowerCase() === 'pending'
                                                         ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400'
                                                         : p.status_pembayaran?.toLowerCase() === 'ditolak'
                                                             ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
                                                             : 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                                                    }`}>
-                                                    {p.status_pembayaran || '-'}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))
+                                                        }`}>
+                                                        {p.status_pembayaran || '-'}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 )}
                             </tbody>
                         </table>
