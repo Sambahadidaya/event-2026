@@ -1,0 +1,122 @@
+export const lombaPoseList = [
+    {
+        no: '1',
+        id: 'badminton',
+        jenis: 'Olahraga',
+        nama: 'Badminton',
+        lucideIcon: 'Trophy',
+        hadiah: 'Rp 800.000',
+        hadiahNominal: 800000,
+        desc: 'Kompetisi bulu tangkis ganda putra dan ganda putri antar program studi.',
+        linkDaftar: '/pose/register#Badminton',
+        linkKetentuan: '/pose/ketentuan#badminton'
+    },
+    {
+        no: '2',
+        id: 'tarik-tambang',
+        jenis: 'Olahraga',
+        nama: 'Tarik Tambang',
+        lucideIcon: 'Trophy',
+        hadiah: 'Rp 350.000',
+        hadiahNominal: 350000,
+        desc: 'Adu kekuatan tim perwakilan program studi dalam tarikan tambang tradisional.',
+        linkDaftar: '/pose/register#Tarik Tambang',
+        linkKetentuan: '/pose/ketentuan#tarik-tambang'
+    },
+    {
+        no: '3',
+        id: 'tenis-meja',
+        jenis: 'Olahraga',
+        nama: 'Tenis Meja',
+        lucideIcon: 'Trophy',
+        hadiah: 'Rp 350.000',
+        hadiahNominal: 350000,
+        desc: 'Pertandingan tenis meja kategori tunggal dan ganda.',
+        linkDaftar: '/pose/register#Tenis Meja',
+        linkKetentuan: '/pose/ketentuan#tenis-meja'
+    },
+    {
+        no: '4',
+        id: 'mobile-legends',
+        jenis: 'E-Sport',
+        nama: 'Mobile Legend',
+        lucideIcon: 'Trophy',
+        hadiah: 'Rp 800.000',
+        hadiahNominal: 800000,
+        desc: 'Turnamen e-sport Mobile Legends: Bang Bang bergengsi antar tim mahasiswa.',
+        linkDaftar: '/pose/register#Mobile Legend',
+        linkKetentuan: '/pose/ketentuan#mobile-legends'
+    },
+    {
+        no: '5',
+        id: 'business-model-canvas',
+        jenis: 'Kreativitas',
+        nama: 'Business Model Canvas',
+        lucideIcon: 'Trophy',
+        hadiah: 'Rp 350.000',
+        hadiahNominal: 350000,
+        desc: 'Kompetisi rancangan model bisnis kreatif dan inovatif untuk UMKM.',
+        linkDaftar: '/pose/register#Business Model Canvas',
+        linkKetentuan: '/pose/ketentuan#business-model-canvas'
+    },
+    {
+        no: '6',
+        id: 'desain-poster',
+        jenis: 'Kreativitas',
+        nama: 'Desain Poster',
+        lucideIcon: 'Trophy',
+        hadiah: 'Rp 800.000',
+        hadiahNominal: 800000,
+        desc: 'Lomba merancang poster digital kreatif bertemakan inovasi mahasiswa.',
+        linkDaftar: '/pose/register#Desain Poster',
+        linkKetentuan: '/pose/ketentuan#desain-poster'
+    },
+    {
+        no: '7',
+        id: 'software-developer',
+        jenis: 'Kreativitas',
+        nama: 'Software Developer',
+        lucideIcon: 'Trophy',
+        hadiah: 'Rp 800.000',
+        hadiahNominal: 800000,
+        desc: 'Rancang bangun perangkat lunak / aplikasi web/mobile solutif.',
+        linkDaftar: '/pose/register#Software Developer',
+        linkKetentuan: '/pose/ketentuan#software-developer'
+    },
+    {
+        no: '8',
+        id: 'dance',
+        jenis: 'Kreativitas',
+        nama: 'Seni Tari (Dance)',
+        lucideIcon: 'Trophy',
+        hadiah: 'Rp 625.000',
+        hadiahNominal: 625000,
+        desc: 'Kompetisi tari modern (modern dance) / tradisional kreatif.',
+        linkDaftar: '/pose/register#Seni Tari (Dance)',
+        linkKetentuan: '/pose/ketentuan#dance'
+    },
+    {
+        no: '9',
+        id: 'release-writing',
+        jenis: 'Kreativitas',
+        nama: 'Release Writing',
+        lucideIcon: 'Trophy',
+        hadiah: 'Rp 350.000',
+        hadiahNominal: 350000,
+        desc: 'Kompetisi menulis siaran pers (press release) yang informatif dan menarik media.',
+        linkDaftar: '/pose/register#Release Writing',
+        linkKetentuan: '/pose/ketentuan#release-writing'
+    },
+    {
+        no: '10',
+        id: 'digital-umkm-promotion',
+        jenis: 'Kreativitas',
+        nama: 'Digital UMKM Promotion',
+        lucideIcon: 'Trophy',
+        hadiah: 'Rp 350.000',
+        hadiahNominal: 350000,
+        desc: 'Lomba merancang kampanye promosi digital kreatif untuk mendongkrak UMKM lokal.',
+        linkDaftar: '/pose/register#Digital UMKM Promotion',
+        linkKetentuan: '/pose/ketentuan#digital-umkm-promotion'
+    }
+];

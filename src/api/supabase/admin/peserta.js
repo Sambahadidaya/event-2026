@@ -321,7 +321,7 @@ export const getFormRegisterAll = async (siteType) => {
 
         let query = supabaseAdmin
             .from('form_register')
-            .select('*')
+            .select('id, jenis_lomba, nama_lomba, link_id, butuh_bukti, nominal, kategori_pendaftar, kode_form, site, created_at, gambar, keterangan')
             .order('created_at', { ascending: false });
 
         if (siteType && siteType !== 'all') {

@@ -13,31 +13,32 @@ Proyek ini menggunakan Next.js (App Router) berbasis JavaScript murni (bukan Typ
 
 ```json
 {
-  "dependencies": {
-    "@sparticuz/chromium-min": "^149.0.0",
-    "@supabase/ssr": "^0.12.3",
-    "@supabase/supabase-js": "^2.108.2",
-    "canvas": "^3.2.3",
-    "chart.js": "^4.5.1",
-    "file-type": "^22.0.1",
-    "fuse.js": "^7.4.2",
-    "html5-qrcode": "^2.3.8",
-    "jsqr": "^1.4.0",
-    "lucide-react": "^1.21.0",
-    "nanoid": "^5.1.16",
-    "next": "^16.2.11",
-    "next-themes": "^0.4.6",
-    "openai": "^6.45.0",
-    "pdf-lib": "^1.17.1",
-    "puppeteer-core": "^25.4.0",
-    "qrcode": "^1.5.4",
-    "react": "19.2.4",
-    "react-chartjs-2": "^5.3.1",
-    "react-dom": "19.2.4",
-    "react-image-crop": "^11.1.2",
-    "sharp": "^0.35.3",
-    "tree-node-cli": "^3.0.0",
-    "xlsx": "^0.18.5"
+      "dependencies": {
+        "@sparticuz/chromium-min": "^149.0.0",
+        "@supabase/ssr": "^0.12.3",
+        "@supabase/supabase-js": "^2.108.2",
+        "canvas": "^3.2.3",
+        "chart.js": "^4.5.1",
+        "file-type": "^22.0.1",
+        "fuse.js": "^7.4.2",
+        "html5-qrcode": "^2.3.8",
+        "jsqr": "^1.4.0",
+        "lucide-react": "^1.21.0",
+        "nanoid": "^5.1.16",
+        "next": "^16.2.11",
+        "next-themes": "^0.4.6",
+        "openai": "^6.45.0",
+        "pdf-lib": "^1.17.1",
+        "puppeteer-core": "^25.4.0",
+        "qrcode": "^1.5.4",
+        "react": "19.2.4",
+        "react-chartjs-2": "^5.3.1",
+        "react-dom": "19.2.4",
+        "react-image-crop": "^11.1.2",
+        "react-pdf": "^10.4.1",
+        "sharp": "^0.35.3",
+        "tree-node-cli": "^3.0.0",
+        "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -815,6 +816,60 @@ ALTER TABLE form_register
 ADD COLUMN jenis_kategori VARCHAR(15),
 ADD COLUMN is_public BOOLEAN default true;
 
+CREATE TABLE kelompok (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    urutan INT4 DEFAULT 0,
+    nama_kelompok VARCHAR(100) NOT NULL,
+    nama_kabim VARCHAR(100) NOT NULL,
+    link_instagram VARCHAR(255),
+    foto_kelompok VARCHAR(255),
+    keterangan TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE kelompok_members (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    kelompok_id UUID NOT NULL REFERENCES kelompok(id) ON DELETE CASCADE,
+    nama_anggota VARCHAR(100) NOT NULL,
+    nim_anggota VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.kelompok ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read kelompok" ON public.kelompok FOR SELECT TO public USING (true);
+CREATE POLICY "auth all kelompok" ON public.kelompok FOR ALL TO authenticated USING (true) WITH CHECK (true);
+ALTER TABLE public.kelompok_members ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read kelompok_members" ON public.kelompok_members FOR SELECT TO public USING (true);
+CREATE POLICY "auth all kelompok_members" ON public.kelompok_members FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+CREATE TABLE data_medis_pkkmb (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    users UUID NOT NULL REFERENCES peserta(id) ON DELETE CASCADE,
+    riwayat_penyakit VARCHAR(255),
+    penanganan VARCHAR(255),
+    alergi VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE data_tambahan_pkkmb (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    users UUID NOT NULL REFERENCES peserta(id) ON DELETE CASCADE,
+    nama_ortu_wali VARCHAR(100),
+    no_wa_ortu_wali VARCHAR(20),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.data_medis_pkkmb ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read data_medis_pkkmb" ON public.data_medis_pkkmb FOR SELECT TO public USING (true);
+CREATE POLICY "auth all data_medis_pkkmb" ON public.data_medis_pkkmb FOR ALL TO authenticated USING (true) WITH CHECK (true);
+ALTER TABLE public.data_tambahan_pkkmb ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read data_tambahan_pkkmb" ON public.data_tambahan_pkkmb FOR SELECT TO public USING (true);
+CREATE POLICY "auth all data_tambahan_pkkmb" ON public.data_tambahan_pkkmb FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+CREATE TABLE pengembangan (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    kunci BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.pengembangan ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read pengembangan" ON public.pengembangan FOR SELECT TO public USING (true);
+CREATE POLICY "auth all pengembangan" ON public.pengembangan FOR ALL TO authenticated USING (true) WITH CHECK (true);
 ```
 
 ---
@@ -827,7 +882,11 @@ ADD COLUMN is_public BOOLEAN default true;
 │   ├── proxy.js
 │   ├── api/
 │   │   ├── excel/
-│   │   │   └── sales.js/
+│   │   │   └── sales.js
+│   │   ├── logic/
+│   │   │   ├── homeLandingLogic.js
+│   │   │   ├── ketentuanLogic.js
+│   │   │   └── panduanLogic.js
 │   │   ├── pdf/
 │   │   │   └── route.js
 │   │   ├── supabase/
@@ -839,8 +898,11 @@ ADD COLUMN is_public BOOLEAN default true;
 │   │   │   │   ├── berita.js
 │   │   │   │   ├── finance.js
 │   │   │   │   ├── jadwal.js
+│   │   │   │   ├── kelompok.js
 │   │   │   │   ├── materi.js
+│   │   │   │   ├── medis.jsjs
 │   │   │   │   ├── pdf.js
+│   │   │   │   ├── pengembang.jsjs
 │   │   │   │   ├── penilaian.js
 │   │   │   │   ├── peserta.js
 │   │   │   │   ├── sales.jsjs
@@ -850,14 +912,18 @@ ADD COLUMN is_public BOOLEAN default true;
 │   │   │   │   ├── admin.js
 │   │   │   │   ├── berita.js
 │   │   │   │   ├── jadwal.js
+│   │   │   │   ├── kelompok.jsjs
 │   │   │   │   ├── materi.js
+│   │   │   │   ├── medis.jsjs
 │   │   │   │   ├── pdf.js
+│   │   │   │   ├── pengembang.js
 │   │   │   │   ├── penilaian.js
 │   │   │   │   ├── peserta.js
 │   │   │   │   ├── sales.jsjs
 │   │   │   │   ├── submission.js
 │   │   │   │   └── team.js
-│   │   │   └── storage.js
+│   │   │   ├── storage.js
+│   │   │   └── time.js
 │   │   └── openai/
 │   │       ├── chat.js
 │   │       ├── chatAdmin.js
@@ -879,6 +945,8 @@ ADD COLUMN is_public BOOLEAN default true;
 │   │   │   │   └── form/
 │   │   │   │       └── page.js
 │   │   │   ├── admin/
+│   │   │   │   ├── pengembang/
+│   │   │   │   │   └── page.js
 │   │   │   │   └── status/
 │   │   │   │       └── page.js
 │   │   │   ├── dashboard/
@@ -920,6 +988,9 @@ ADD COLUMN is_public BOOLEAN default true;
 │   │   │   │       └── page.js
 │   │   │   ├── login/
 │   │   │   │   └── page.js
+│   │   │   ├── pj_kabim/
+│   │   │   │   └── kelompok/
+│   │   │   │       └── page.js
 │   │   │   ├── pj_lomba/
 │   │   │   │   ├── dashboard/
 │   │   │   │   │   └── page.js
@@ -932,6 +1003,9 @@ ADD COLUMN is_public BOOLEAN default true;
 │   │   │   │   ├── penilaian/
 │   │   │   │   │   └── page.js 
 │   │   │   │   └── peserta_wajib/
+│   │   │   │       └── page.js
+│   │   │   ├── pj_medis/
+│   │   │   │   └── peserta/
 │   │   │   │       └── page.js
 │   │   │   ├── pkkmb/
 │   │   │   │   ├── berita/
@@ -984,12 +1058,16 @@ ADD COLUMN is_public BOOLEAN default true;
 │   │   │   │   └── page.js
 │   │   │   ├── kelompok/
 │   │   │   │   └── page.js
+│   │   │   ├── ketentuan/
+│   │   │   │   └── page.js
 │   │   │   ├── materi/
 │   │   │   │   └── [id]
 │   │   │   │       └── page.js
 │   │   │   ├── pdf/
 │   │   │   │   └── [id]
 │   │   │   │       └── page.js
+│   │   │   ├── panduan/
+│   │   │   │   └── page.js
 │   │   │   └── pemberitahuan/
 │   │   │       └── page.js
 │   │   └── pose/
@@ -1002,9 +1080,13 @@ ADD COLUMN is_public BOOLEAN default true;
 │   │       │       └── page.js
 │   │       ├── jadwal/
 │   │       │   └── page.js
+│   │       ├── ketentuan/
+│   │       │   └── page.js
 │   │       ├── nilai/
 │   │       │   ├── [link]
 │   │       │   │   └── page.js
+│   │       │   └── page.js
+│   │       ├── panduan/
 │   │       │   └── page.js
 │   │       ├── pdf/
 │   │       │   └── [id]
@@ -1022,18 +1104,31 @@ ADD COLUMN is_public BOOLEAN default true;
 │   │           └── page.js
 │   ├── assets/
 │   │   ├── logo_pkkmb/
-│   │   │   ├── icon-logo.png
+│   │   │   ├── gagal/
+│   │   │   │   ├── icon-logo.png
+│   │   │   │   ├── logo.png
+│   │   │   │   ├── pecah-gelombang handap lagu.png
+│   │   │   │   ├── pecah-lagu.png
+│   │   │   │   ├── pecah-matahari.png
+│   │   │   │   ├── pecah-motif.png
+│   │   │   │   └── pecah-titik+gelombang.png
+│   │   │   ├── ikon-logo.png
 │   │   │   ├── logo.png
-│   │   │   ├── pecah-gelombang handap lagu.png
-│   │   │   ├── pecah-lagu.png
+│   │   │   ├── logo2.png
+│   │   │   ├── pecah-gelombang.png
 │   │   │   ├── pecah-matahari.png
-│   │   │   ├── pecah-motif.png
-│   │   │   └── pecah-titik+gelombang.png
+│   │   │   └── pecah-orang.png
 │   │   ├── logo_pose/
 │   │   │   ├── icon-logo.png
 │   │   │   ├── icon-logo2.png
 │   │   │   ├── logo.png
 │   │   │   └── maskot.png
+│   │   ├── panduan_pkkmb/
+│   │   │   ├── lendingpage.png
+│   │   │   └── pemberitahuan.png
+│   │   ├── panduan_pose/
+│   │   │   ├── lendingpage.png
+│   │   │   └── pemberitahuan.png
 │   │   ├── icon-poltek.png
 │   │   ├── logopkkmb.png
 │   │   ├── logopoltek.png
@@ -1055,7 +1150,10 @@ ADD COLUMN is_public BOOLEAN default true;
 │   │   │   ├── FormPengumpulan.js
 │   │   │   ├── FormRegistration.js
 │   │   │   ├── HomeLanding.js
+│   │   │   ├── KetentuanPage.js
 │   │   │   ├── PageHero.js
+│   │   │   ├── PanduanPage.js
+│   │   │   ├── PengembangBarrier.js
 │   │   │   ├── PublicFooter.js
 │   │   │   ├── ScheduleBarrier.js
 │   │   │   ├── SiteBackground.js
@@ -1092,8 +1190,10 @@ ADD COLUMN is_public BOOLEAN default true;
 │   │       ├── AdminFormRegister.js
 │   │       ├── AdminFormWajib.js
 │   │       ├── AdminJadwalPertandinganPJ.js
+│   │       ├── AdminKelompokManager.js
 │   │       ├── AdminKeuanganDashboard.js
 │   │       ├── AdminPenilaianPJ.js
+│   │       ├── AdminPesertaMedis.jsjs
 │   │       ├── AdminPesertaPengumpulan.js
 │   │       ├── AdminPesertaRegister.js
 │   │       ├── AdminPesertaWajib.js
@@ -1114,18 +1214,24 @@ ADD COLUMN is_public BOOLEAN default true;
 │   │       ├── SalesRiwayatTable.js
 │   │       ├── DashboardCalendarLegend.js
 │   │       └── ConfirmModal.js
+│   ├── data/
+│   │   ├── ketentuanData.js
+│   │   ├── lombaPose.js
+│   │   └── panduanData.js
 │   ├── docs/
 │   │   ├── supabase/
 │   │   └── openai/
 │   │
 │   └── lib/
 │       ├── excel/
+│       │   ├── medis.js
 │       │   └── xlsx.js
 │       ├── pdf/
 │       │   ├── absensi.js
 │       │   ├── browser.js
 │       │   ├── certificate.js
 │       │   ├── invoice.js
+│       │   ├── medis.js
 │       │   ├── penilaian.js
 │       │   ├── report.js
 │       │   ├── sales.js

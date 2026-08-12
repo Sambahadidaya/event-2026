@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { getJadwalAcara } from '@/api/supabase/public/jadwal';
+import { getServerTime } from '@/api/supabase/time';
 import { Clock, ArrowRight, X } from 'lucide-react';
 import Link from 'next/link';
 
@@ -18,6 +19,7 @@ export default function ScheduleBarrier({ children, pageType }) {
     const [timeLeft, setTimeLeft] = useState('');
     const [portalRoot, setPortalRoot] = useState(null);
     const [dismissed, setDismissed] = useState(false);
+    const timeOffsetRef = useRef(0);
 
     // Siapkan portal root saat client-side
     useEffect(() => {
@@ -26,15 +28,29 @@ export default function ScheduleBarrier({ children, pageType }) {
 
     useEffect(() => {
         const fetchAndCheck = async () => {
-            const data = await getJadwalAcara('pose');
+            try {
+                const [data, serverTimeStr] = await Promise.all([
+                    getJadwalAcara('pose'),
+                    getServerTime()
+                ]);
 
-            if (!data || data.length === 0) {
+                if (serverTimeStr) {
+                    const serverNow = new Date(serverTimeStr);
+                    const clientNow = new Date();
+                    timeOffsetRef.current = serverNow.getTime() - clientNow.getTime();
+                }
+
+                if (!data || data.length === 0) {
+                    setLoading(false);
+                    return;
+                }
+
+                evaluateAccess(data);
+            } catch (e) {
+                console.error("Error in ScheduleBarrier fetchAndCheck:", e);
+            } finally {
                 setLoading(false);
-                return;
             }
-
-            evaluateAccess(data);
-            setLoading(false);
         };
 
         fetchAndCheck();
@@ -49,7 +65,7 @@ export default function ScheduleBarrier({ children, pageType }) {
     };
 
     const evaluateAccess = (data) => {
-        const now = new Date();
+        const now = new Date(Date.now() + timeOffsetRef.current);
 
         const pendaftaran = data.find(d => d.jenis_jadwal === 'pendaftaran');
         const seleksi = data.find(d => d.jenis_jadwal === 'seleksi');
@@ -131,7 +147,7 @@ export default function ScheduleBarrier({ children, pageType }) {
         if (!barrierState.show || !barrierState.targetDate) return;
 
         const interval = setInterval(() => {
-            const now = new Date().getTime();
+            const now = Date.now() + timeOffsetRef.current;
             const distance = barrierState.targetDate.getTime() - now;
 
             if (distance < 0) {

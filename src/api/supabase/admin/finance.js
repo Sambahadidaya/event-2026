@@ -939,7 +939,7 @@ export const getFormRegisterPricingAdmin = async (formId) => {
 
         const { data, error } = await supabaseAdmin
             .from('form_register_pricing')
-            .select('*')
+            .select('id, form_id, kategori, nominal, maks_team')
             .eq('form_id', formId);
 
         if (error) throw error;
@@ -1070,7 +1070,7 @@ export const getKuotaKampusByForm = async (formId) => {
         // Fetch kampus quotas
         const { data, error } = await supabaseAdmin
             .from('form_register_kampus_quota')
-            .select('*, form_register_pricing!inner(form_id, kategori)')
+            .select('id, pricing_id, nama_kampus, maks_team, form_register_pricing!inner(form_id, kategori)')
             .in('pricing_id', pricingIds);
 
         if (error) throw error;

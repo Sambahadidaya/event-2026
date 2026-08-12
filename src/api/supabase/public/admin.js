@@ -7,7 +7,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 export const submitKontak = async (payload) => {
     try {
         if (!payload) throw new Error('Payload is required');
-        
+
         // Sanitize payload
         const allowedKeys = ['nama', 'email', 'whatsapp', 'pesan', 'site'];
         const sanitized = {};
@@ -33,12 +33,12 @@ export const submitKontak = async (payload) => {
 
 export const recordTrafik = async (siteType) => {
     try {
-         if (!siteType) return;
-         await supabaseAdmin
+        if (!siteType) return;
+        await supabaseAdmin
             .from('trafik_kunjungan')
             .insert([{ site: siteType }]);
     } catch (error) {
-         console.error("Internal Log - Error record trafik:", error);
+        console.error("Internal Log - Error record trafik:", error);
     }
 };
 

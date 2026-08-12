@@ -5,6 +5,7 @@ import { uploadFile as serverUploadFile } from '@/api/supabase/storage';
 import { insertPeserta, insertPesertaBatch, checkPesertaPoseWajibByNimAndKampus, getMetodePembayaran, getFormRegisterPricing, getTeamCountsByForm, getFormRegisterKampusQuotaPublic, getTeamCountsByFormAndKampus, checkWajibPesertaLombaCount, checkPesertaRegisteredForLomba } from '@/api/supabase/public/peserta';
 import { insertTeamPublic, insertTeamMembers } from '@/api/supabase/public/team';
 import { insertSalesPose } from '@/api/supabase/public/sales';
+import { insertDataMedis, insertDataTambahan } from '@/api/supabase/public/medis';
 import { Trophy, Plus, Trash2, Users, Send, Info, Image as ImageIcon, ArrowLeft, CheckCircle2, ShieldCheck, Download, Copy, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { KAMPUS_DATA, METODE_BAYAR_DATA, parseNIM, semesterToAngkatan, PRODI_DATA, SUMBER_LOMBA } from '@/lib/lombaData';
@@ -62,6 +63,13 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
     const [metodePembayaran, setMetodePembayaran] = useState('');
     const [setujuSK, setSetujuSK] = useState(false);
     const [copied, setCopied] = useState(false);
+
+    // States khusus data medis PKKMB
+    const [riwayatPenyakit, setRiwayatPenyakit] = useState('');
+    const [penanganan, setPenanganan] = useState('');
+    const [alergi, setAlergi] = useState('');
+    const [namaOrtuWali, setNamaOrtuWali] = useState('');
+    const [noWaOrtuWali, setNoWaOrtuWali] = useState('');
 
     const [pricingMap, setPricingMap] = useState({});
     const [metodeList, setMetodeList] = useState([]);
@@ -402,15 +410,36 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                     return window.alert(`ID Mobile Legends tidak valid untuk anggota ${m.nama || (i + 1)}. Panjang ID harus minimal 4 dan maksimal 12 karakter.`);
                 }
             }
-        }
+            if (isWajib && formConfig?.site === 'pkkmb') {
+                const regexMedis = /^[a-zA-Z\s-,]*$/;
+                if (!regexMedis.test(riwayatPenyakit) || !regexMedis.test(alergi) || !regexMedis.test(penanganan)) {
+                    return window.alert("Input Data Medis hanya boleh diisi huruf, spasi, dan tanda hubung (-).");
+                }
+                if (!namaOrtuWali.trim()) {
+                    return window.alert("Nama Orang Tua / Wali wajib diisi.");
+                }
+                if (!regexMedis.test(namaOrtuWali)) {
+                    return window.alert("Nama Orang Tua / Wali hanya boleh diisi huruf, spasi, dan tanda hubung (-).");
+                }
+                const cleanWaOrtu = noWaOrtuWali.trim();
+                const waStartsWith08 = cleanWaOrtu.startsWith('08');
+                const waStartsWith628 = cleanWaOrtu.startsWith('+628');
+                const waDigitsOnly = waStartsWith628 ? cleanWaOrtu.slice(1) : cleanWaOrtu;
+                const waIsAllDigits = /^[0-9]+$/.test(waDigitsOnly);
 
-        if (requiresBukti && !buktiBayarFile) {
-            return window.alert("Mohon unggah bukti pembayaran.");
-        }
+                if (!(waStartsWith08 || waStartsWith628) || !waIsAllDigits || waDigitsOnly.length < 11) {
+                    return window.alert("Format WhatsApp Orang Tua / Wali tidak valid. Harus diawali 08 atau +628, dan minimal 11 digit.");
+                }
+            }
 
-        if (!isWajib && ['Alumni LP3I', 'Siswa', 'Umum'].includes(kategori) && sumberLomba) {
-            if (['Dari Dosen/Manajemen LP3I', 'Dari Panitia', 'Dari Mahasiswa LP3I'].includes(sumberLomba) && !namaReferal) {
-                return window.alert("Mohon lengkapi Nama/NIM pemberi referal.");
+            if (requiresBukti && !buktiBayarFile) {
+                return window.alert("Mohon unggah bukti pembayaran.");
+            }
+
+            if (!isWajib && ['Alumni LP3I', 'Siswa', 'Umum'].includes(kategori) && sumberLomba) {
+                if (['Dari Dosen/Manajemen LP3I', 'Dari Panitia', 'Dari Mahasiswa LP3I'].includes(sumberLomba) && !namaReferal) {
+                    return window.alert("Mohon lengkapi Nama/NIM pemberi referal.");
+                }
             }
         }
 
@@ -541,6 +570,25 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                 const res = await insertPeserta(pesertaPayload);
                 if (!res.success) throw new Error(res.error);
 
+                // SIMPAN DATA MEDIS (hanya site pkkmb)
+                if (formConfig?.site === 'pkkmb') {
+                    const insertedId = res.data?.id;
+                    if (insertedId) {
+                        if (riwayatPenyakit.trim() || penanganan.trim() || alergi.trim()) {
+                            await insertDataMedis(insertedId, {
+                                riwayat_penyakit: riwayatPenyakit.trim(),
+                                penanganan: penanganan.trim(),
+                                alergi: alergi.trim()
+                            });
+                        }
+                        if (namaOrtuWali.trim() || noWaOrtuWali.trim()) {
+                            await insertDataTambahan(insertedId, {
+                                nama_ortu_wali: namaOrtuWali.trim(),
+                                no_wa_ortu_wali: noWaOrtuWali.trim()
+                            });
+                        }
+                    }
+                }
             } else {
                 // INSERT KE team, team_members, & peserta
                 let token = localStorage.getItem('pose_user_token');
@@ -984,7 +1032,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                                                 <input
                                                     type="text" required value={member.email_wa} onChange={(e) => handleMemberChange(index, 'email_wa', e.target.value)}
                                                     placeholder={member.kontakType === 'whatsapp' ? "Contoh: 08123456789" : "Contoh: nama@email.com"}
-                                                    maxLength={member.kontakType === 'whatsapp' ? 13 : 30}
+                                                    maxLength={member.kontakType === 'whatsapp' ? 15 : 30}
                                                     className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 transition-all"
                                                 />
                                             </div>
@@ -1232,6 +1280,71 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                                     </div>
                                 </div>
                             ))}
+
+                            {/* Form Tambahan Medis PKKMB (Hanya untuk pendaftaran wajib PKKMB) */}
+                            {isWajib && formConfig?.site === 'pkkmb' && (
+                                <div className="p-5 sm:p-6 bg-red-50/20 dark:bg-red-950/10 border border-red-100/50 dark:border-red-900/30 rounded-2xl space-y-4">
+                                    <h4 className="text-md font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                                        <span className="w-1.5 h-5 bg-red-500 rounded-full"></span>
+                                        Data Medis & Kontak Darurat (Wajib Diisi)
+                                    </h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Riwayat Penyakit (Jika ada)</label>
+                                            <input
+                                                type="text"
+                                                value={riwayatPenyakit}
+                                                onChange={(e) => setRiwayatPenyakit(e.target.value.replace(/[^a-zA-Z\s-,]/g, ''))}
+                                                placeholder="Contoh: Asma, Jantung, atau tulis '-'"
+                                                className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Alergi (Jika ada)</label>
+                                            <input
+                                                type="text"
+                                                value={alergi}
+                                                onChange={(e) => setAlergi(e.target.value.replace(/[^a-zA-Z\s-,]/g, ''))}
+                                                placeholder="Contoh: Alergi Makanan Laut, atau tulis '-'"
+                                                className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </div>
+                                        <div className="sm:col-span-2">
+                                            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Penanganan Medis Khusus</label>
+                                            <textarea
+                                                value={penanganan}
+                                                onChange={(e) => setPenanganan(e.target.value.replace(/[^a-zA-Z\s-,]/g, ''))}
+                                                placeholder="Tulis instruksi khusus jika penyakit kambuh, obat pribadi, dsb."
+                                                rows={2}
+                                                className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Nama Orang Tua / Wali *</label>
+                                            <input
+                                                type="text"
+                                                required
+                                                value={namaOrtuWali}
+                                                onChange={(e) => setNamaOrtuWali(e.target.value.replace(/[^a-zA-Z\s-,]/g, ''))}
+                                                placeholder="Nama lengkap orang tua/wali"
+                                                className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">No. WA Orang Tua / Wali *</label>
+                                            <input
+                                                type="text"
+                                                required
+                                                value={noWaOrtuWali}
+                                                onChange={(e) => setNoWaOrtuWali(e.target.value.replace(/[^0-9+]/g, ''))}
+                                                placeholder="Contoh: 08123456789"
+                                                maxLength={15}
+                                                className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {!isWajib && (
                                 <button

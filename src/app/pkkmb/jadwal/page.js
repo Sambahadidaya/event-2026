@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { getMateri } from '@/api/supabase/public/materi';
 import { useRouter } from 'next/navigation';
 import { Clock, Calendar as CalendarIcon, User } from 'lucide-react';
+import PengembangBarrier from '@/components/public/PengembangBarrier';
 
 export default function PkkmbJadwalPage() {
     const [materiList, setMateriList] = useState([]);
@@ -21,32 +22,35 @@ export default function PkkmbJadwalPage() {
     }, []);
 
     return (
-        <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32">
-            <div className="text-center mb-16 animate-in fade-in slide-in-from-bottom-5 duration-700">
-                <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
-                    Jadwal & Materi PKKMB
-                </h1>
-                <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                    Akses seluruh materi dan tugas PKKMB sesuai dengan jadwal yang telah ditentukan.
-                </p>
-            </div>
+        <PengembangBarrier>
 
-            {loading ? (
-                <div className="flex justify-center items-center py-20">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32">
+                <div className="text-center mb-16 animate-in fade-in slide-in-from-bottom-5 duration-700">
+                    <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+                        Jadwal & Materi PKKMB
+                    </h1>
+                    <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                        Akses seluruh materi dan tugas PKKMB sesuai dengan jadwal yang telah ditentukan.
+                    </p>
                 </div>
-            ) : materiList.length === 0 ? (
-                <div className="text-center py-20 text-gray-500">
-                    Belum ada jadwal materi yang dirilis.
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {materiList.map((materi, idx) => (
-                        <MateriCard key={materi.id} materi={materi} index={idx} router={router} />
-                    ))}
-                </div>
-            )}
-        </div>
+
+                {loading ? (
+                    <div className="flex justify-center items-center py-20">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    </div>
+                ) : materiList.length === 0 ? (
+                    <div className="text-center py-20 text-gray-500">
+                        Belum ada jadwal materi yang dirilis.
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {materiList.map((materi, idx) => (
+                            <MateriCard key={materi.id} materi={materi} index={idx} router={router} />
+                        ))}
+                    </div>
+                )}
+            </div>
+        </PengembangBarrier>
     );
 }
 
@@ -132,8 +136,8 @@ function MateriCard({ materi, index, router }) {
                     onClick={handleMasuk}
                     disabled={!isActive}
                     className={`w-full py-3 rounded-xl font-bold text-sm transition-all duration-300 ${isActive
-                            ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-blue-600/30 active:scale-[0.98]'
-                            : 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-blue-600/30 active:scale-[0.98]'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
                         }`}
                 >
                     {isActive ? 'Masuk Materi' : 'Belum Dimulai'}

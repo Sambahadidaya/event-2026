@@ -26,6 +26,27 @@ Object.values(NAMA_LOMBA).flat().forEach(nama => {
   LOMBA_ROLE_MAP[roleKey] = nama;
 });
 
+// ============================================================
+// KABIM ROLE MAP — 8 kabim, tiap role map ke urutan kelompok
+// ============================================================
+export const KABIM_ROLE_MAP = {
+  'admin_pkkmb_pj_kabim_1': 1,
+  'admin_pkkmb_pj_kabim_2': 2,
+  'admin_pkkmb_pj_kabim_3': 3,
+  'admin_pkkmb_pj_kabim_4': 4,
+  'admin_pkkmb_pj_kabim_5': 5,
+  'admin_pkkmb_pj_kabim_6': 6,
+  'admin_pkkmb_pj_kabim_7': 7,
+  'admin_pkkmb_pj_kabim_8': 8,
+};
+
+// Route yang bisa diakses oleh setiap role kabim
+const KABIM_ROUTE = '/panitia/pj_kabim/kelompok';
+const kabimPermissions = {};
+Object.keys(KABIM_ROLE_MAP).forEach(roleKey => {
+  kabimPermissions[roleKey] = [KABIM_ROUTE];
+});
+
 // PJ Lomba routes
 const PJ_LOMBA_ROUTES = [
   '/panitia/pj_lomba/dashboard',
@@ -155,7 +176,6 @@ export const rolePermissions = {
     '/panitia/keuangan/laporan',
   ],
   admin_pose_keuangan_lomba_Badminton: [
-    '/panitia/pose/keuangan',
     '/panitia/keuangan/dashboard',
     '/panitia/keuangan/verifikasi',
     '/panitia/keuangan/transaksi',
@@ -175,7 +195,6 @@ export const rolePermissions = {
   ],
 
   admin_pose_keuangan_lomba_TarikTambang: [
-    '/panitia/pose/keuangan',
     '/panitia/keuangan/dashboard',
     '/panitia/keuangan/verifikasi',
     '/panitia/keuangan/transaksi',
@@ -212,6 +231,9 @@ export const rolePermissions = {
     '/panitia/pj_lomba/jadwal_pertandingan',
     '/panitia/pj_lomba/penilaian',
   ],
+  admin_pkkmb_pj_medis: [
+    '/panitia/pj_medis/peserta',
+  ],
   admin_pkkmb_belumdiatur: [
     '/panitia/pkkmb/berita',
   ],
@@ -219,7 +241,9 @@ export const rolePermissions = {
     '/panitia/pose/berita',
   ],
   // Spread dynamically generated PJ Lomba roles
-  ...pjLombaPermissions
+  ...pjLombaPermissions,
+  // Spread dynamically generated PJ Kabim roles
+  ...kabimPermissions,
 };
 
 // Map combined role to competition name for filtering
@@ -232,10 +256,12 @@ LOMBA_ROLE_MAP['admin_pose_sekretaris_lomba_seni'] = 'Dance';
 export const getRoleLabel = (roleKey) => {
   if (!roleKey) return 'Admin';
   if (roleKey === 'super_admin') return 'Super Admin';
+  if (roleKey === 'admin_pkkmb_pj_medis') return 'PJ Medis PKKMB';
   if (roleKey === 'admin_pose_keuangan_lomba_Badminton') return 'Keuangan & PJ Badminton';
   if (roleKey === 'admin_pose_keuangan_lomba_TarikTambang') return 'Keuangan & PJ Tarik Tambang';
   if (roleKey === 'admin_pose_sekretaris_lomba_TarikTambang') return 'Sekretaris & PJ Tarik Tambang';
   if (roleKey === 'admin_pose_sekretaris_lomba_seni') return 'Sekretaris & PJ Lomba Seni';
+  if (KABIM_ROLE_MAP[roleKey] !== undefined) return `PJ Kabim ${KABIM_ROLE_MAP[roleKey]}`;
   if (LOMBA_ROLE_MAP[roleKey]) return `PJ ${LOMBA_ROLE_MAP[roleKey]}`;
   return roleKey
     .split('_')
@@ -247,6 +273,8 @@ const ROUTE_CATEGORY_MAP = [
   { prefix: '/panitia/pkkmb', label: 'PKKMB' },
   { prefix: '/panitia/pose', label: 'POSE' },
   { prefix: '/panitia/pj_lomba', label: 'PJ Lomba' },
+  { prefix: '/panitia/pj_kabim', label: 'PJ Kabim' },
+  { prefix: '/panitia/pj_medis', label: 'PJ Medis' },
   { prefix: '/panitia/keuangan', label: 'Keuangan' },
   { prefix: '/panitia/absensi_panitia', label: 'Absensi Panitia' },
   { prefix: '/panitia/sales', label: 'Sales' },
@@ -299,16 +327,26 @@ export const getLombaFilter = (role) => {
 };
 
 /**
+ * Get the urutan (number) filter for a PJ Kabim admin role.
+ * Returns null if the role is not a PJ Kabim role (e.g. super_admin/admin_pkkmb sees all).
+ */
+export const getKabimFilter = (role) => {
+  if (!role) return null;
+  return KABIM_ROLE_MAP[role] ?? null;
+};
+
+/**
  * Format role key into a user-friendly label
  */
 const formatRoleLabel = (roleKey) => {
   if (roleKey === 'super_admin') return 'Super Admin';
+  if (roleKey === 'admin_pkkmb_pj_medis') return 'PJ Medis PKKMB';
   if (roleKey === 'admin_pose_keuangan_lomba_Badminton') return 'Keuangan & PJ Badminton';
   if (roleKey === 'admin_pose_keuangan_lomba_TarikTambang') return 'Keuangan & PJ TarikTambang';
   if (roleKey === 'admin_pose_sekretaris_lomba_TarikTambang') return 'Sekretaris & PJ Tarik Tambang';
   if (roleKey === 'admin_pkkmb_sekretaris') return 'Sekretaris PKKMB';
   if (roleKey === 'admin_pose_sekretaris_lomba_seni') return 'Sekretaris & PJ Lomba Seni';
-
+  if (KABIM_ROLE_MAP[roleKey] !== undefined) return `PJ Kabim ${KABIM_ROLE_MAP[roleKey]}`;
   if (LOMBA_ROLE_MAP[roleKey]) return `PJ ${LOMBA_ROLE_MAP[roleKey]}`;
   return roleKey
     .split('_')

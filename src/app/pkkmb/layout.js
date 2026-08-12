@@ -20,7 +20,11 @@ export default function PkkmbLayout({ children }) {
 
         { href: '/pkkmb/jadwal', label: 'Jadwal' },
 
-        { href: '/pkkmb/contact', label: 'Kontak' }
+        { href: '/pkkmb/contact', label: 'Kontak' },
+
+        { href: '/pkkmb/ketentuan', label: 'Ketentuan & Privasi' },
+
+        { href: '/pkkmb/panduan', label: 'Panduan' }
 
     ];
 

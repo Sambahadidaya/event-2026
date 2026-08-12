@@ -19,7 +19,7 @@ import AdminPesertaPengumpulan from '@/components/panitia/AdminPesertaPengumpula
 import { formatDateTime } from '@/lib/dashboardUtils';
 import { JENIS_LOMBA, NAMA_LOMBA } from '@/lib/lombaData';
 import { getLombaFilter } from '@/lib/adminRoleData';
-
+// import {getFormRegisterPricingAdmin} from '@/api/supabase/admin/finance';
 const ITEMS_PER_PAGE = 10;
 const CACHE_KEY = 'pj_lomba_register_cache';
 
@@ -103,13 +103,14 @@ export default function AdminPesertaRegister() {
                     const formTeams = data.filter(t => t.nama_lomba?.toLowerCase().trim() === form.nama_lomba?.toLowerCase().trim() && t.verivikasi !== false);
                     let isFull = true;
                     if (pricing && pricing.length > 0) {
-                        const lp3iPricing = pricing.find(p => p.kategori === 'Mahasiswa LP3I');
-                        if (lp3iPricing) {
-                            const registered = formTeams.filter(t => t.peserta?.[0]?.kategori === 'Mahasiswa LP3I').length;
-                            isFull = registered >= (lp3iPricing.maks_team || 0);
-                        } else {
-                            isFull = false;
+                        let totalMaks = 0;
+                        let totalRegistered = 0;
+                        for (const p of pricing) {
+                            totalMaks += (p.maks_team || 0);
+                            const registered = formTeams.filter(t => t.peserta?.[0]?.kategori === p.kategori).length;
+                            totalRegistered += registered;
                         }
+                        isFull = totalRegistered >= totalMaks;
                     } else {
                         isFull = false;
                     }
@@ -119,6 +120,14 @@ export default function AdminPesertaRegister() {
             });
         }
     }, [registerForms, data]);
+
+    const wajibLombaStatus = useMemo(() => {
+        return allLombaStatusData.filter(item => item.form.butuh_bukti === false || !item.form.butuh_bukti);
+    }, [allLombaStatusData]);
+
+    const lanjutanLombaStatus = useMemo(() => {
+        return allLombaStatusData.filter(item => item.form.butuh_bukti === true);
+    }, [allLombaStatusData]);
 
     const countsPerCategory = useMemo(() => {
         const counts = {
@@ -450,15 +459,22 @@ export default function AdminPesertaRegister() {
         const totalTeam = filteredData.length;
         const totalPeserta = filteredData.reduce((sum, item) => sum + (item.peserta?.length || 0), 0);
 
-        let sisaKuotaLP3I = null;
+        let sisaKuotaSemua = null;
         if (activeFormPricing.length > 0) {
-            const lp3iPricing = activeFormPricing.find(p => p.kategori === 'Mahasiswa LP3I');
-            if (lp3iPricing) {
-                const registeredLP3I = data.filter(t => t.nama_lomba?.toLowerCase().trim() === currentLombaName?.toLowerCase().trim() && t.verivikasi !== false && t.peserta?.[0]?.kategori === 'Mahasiswa LP3I').length;
-                sisaKuotaLP3I = Math.max(0, (lp3iPricing.maks_team || 0) - registeredLP3I);
-            }
+            let totalMaks = 0;
+            let totalRegistered = 0;
+            activeFormPricing.forEach(p => {
+                totalMaks += (p.maks_team || 0);
+                const registered = data.filter(t =>
+                    t.nama_lomba?.toLowerCase().trim() === currentLombaName?.toLowerCase().trim() &&
+                    t.verivikasi !== false &&
+                    t.peserta?.[0]?.kategori === p.kategori
+                ).length;
+                totalRegistered += registered;
+            });
+            sisaKuotaSemua = Math.max(0, totalMaks - totalRegistered);
         }
-        const subtextSisa = sisaKuotaLP3I !== null ? `Sisa Kuota LP3I: ${sisaKuotaLP3I}` : undefined;
+        const subtextSisa = sisaKuotaSemua !== null ? `Sisa Kuota: ${sisaKuotaSemua}` : undefined;
 
         if (activeTab === 'pendaftar') {
             const totalVerif = filteredData.filter(item => item.verivikasi === true).length;
@@ -921,15 +937,15 @@ export default function AdminPesertaRegister() {
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                         {kampusQuotaData.map((k, idx) => {
                             // hitung dari 'data'
-                            const registered = data.filter(t => 
-                                t.nama_lomba?.toLowerCase().trim() === currentLombaName?.toLowerCase().trim() && 
+                            const registered = data.filter(t =>
+                                t.nama_lomba?.toLowerCase().trim() === currentLombaName?.toLowerCase().trim() &&
                                 t.verivikasi !== false &&
                                 t.peserta?.[0]?.kategori === 'Mahasiswa LP3I' &&
                                 t.peserta?.[0]?.kampus === k.nama_kampus
                             ).length;
                             const max = k.maks_team || 0;
                             const remaining = Math.max(0, max - registered);
-                            
+
                             return (
                                 <div key={idx} className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-100 dark:border-purple-800/50">
                                     <div className="text-[10px] font-bold text-purple-600 dark:text-purple-400 mb-1 truncate" title={k.nama_kampus}>
@@ -949,20 +965,41 @@ export default function AdminPesertaRegister() {
             )}
 
             {/* Tahap 4: Status Semua Lomba */}
-            <div className="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm space-y-4">
-                <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    <CheckCircle2 size={16} className="text-teal-500" />
-                    Status Seluruh Lomba
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                    {allLombaStatusData.map((lombaStatus, idx) => (
-                        <span key={idx} className={`text-xs font-bold px-3 py-1.5 rounded-full border ${lombaStatus.isFull ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800' : 'bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800'}`}>
-                            {lombaStatus.form.nama_lomba} ({lombaStatus.isFull ? 'Penuh' : 'Tersedia'})
-                        </span>
-                    ))}
-                    {allLombaStatusData.length === 0 && (
-                        <span className="text-xs text-gray-500">Memuat data lomba...</span>
-                    )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* HTM Wajib */}
+                <div className="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm space-y-4">
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <CheckCircle2 size={16} className="text-teal-500" />
+                        Status Seluruh Lomba Dari HTM Wajib
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                        {wajibLombaStatus.map((lombaStatus, idx) => (
+                            <span key={idx} className={`text-xs font-bold px-3 py-1.5 rounded-full border ${lombaStatus.isFull ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800' : 'bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800'}`}>
+                                {lombaStatus.form.nama_lomba} ({lombaStatus.isFull ? 'Penuh' : 'Tersedia'})
+                            </span>
+                        ))}
+                        {wajibLombaStatus.length === 0 && (
+                            <span className="text-xs text-gray-500">Tidak ada lomba HTM Wajib.</span>
+                        )}
+                    </div>
+                </div>
+
+                {/* HTM Lanjutan */}
+                <div className="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm space-y-4">
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <CheckCircle2 size={16} className="text-blue-500" />
+                        Status Seluruh Lomba Dari HTM Lanjutan
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                        {lanjutanLombaStatus.map((lombaStatus, idx) => (
+                            <span key={idx} className={`text-xs font-bold px-3 py-1.5 rounded-full border ${lombaStatus.isFull ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800' : 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'}`}>
+                                {lombaStatus.form.nama_lomba} ({lombaStatus.isFull ? 'Penuh' : 'Tersedia'})
+                            </span>
+                        ))}
+                        {lanjutanLombaStatus.length === 0 && (
+                            <span className="text-xs text-gray-500">Tidak ada lomba HTM Lanjutan.</span>
+                        )}
+                    </div>
                 </div>
             </div>
 

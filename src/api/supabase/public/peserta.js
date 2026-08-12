@@ -58,13 +58,31 @@ export const insertPeserta = async (payload) => {
             return { success: false, error: 'Batas maksimal pendaftaran (3 kali) untuk NIM ini telah tercapai.' };
         }
 
+        // 2b. Check double submission form wajib PKKMB
+        if (sanitizedPayload.site_type === 'pkkmb' && sanitizedPayload.jenis_form === 'wajib') {
+            const { data: existingPeserta, error: existError } = await supabaseAdmin
+                .from('peserta')
+                .select('status_pembayaran')
+                .eq('site_type', 'pkkmb')
+                .eq('jenis_form', 'wajib')
+                .eq('nim', sanitizedPayload.nim)
+                .neq('status_pembayaran', 'ditolak')
+                .maybeSingle();
+            
+            if (existingPeserta) {
+                return { success: false, error: 'Anda sudah mendaftar form wajib ini dan status pendaftaran Anda saat ini belum ditolak.' };
+            }
+        }
+
         // 3. Insert ke database
-        const { error } = await supabaseAdmin
+        const { data, error } = await supabaseAdmin
             .from('peserta')
-            .insert([sanitizedPayload]);
+            .insert([sanitizedPayload])
+            .select()
+            .single();
 
         if (error) throw error;
-        return { success: true };
+        return { success: true, data };
     } catch (error) {
         // Prevent Information Disclosure
         console.error("Internal Log - Error inserting peserta:", error);
@@ -125,15 +143,32 @@ export const insertPesertaBatch = async (pesertaArray) => {
                     return { success: false, error: `Batas maksimal pendaftaran (3 kali) untuk NIM ${sanitizedPayload.nim} telah tercapai.` };
                 }
             }
+            // 2b. Check double submission form wajib PKKMB
+            if (sanitizedPayload.site_type === 'pkkmb' && sanitizedPayload.jenis_form === 'wajib') {
+                const { data: existingPeserta, error: existError } = await supabaseAdmin
+                    .from('peserta')
+                    .select('status_pembayaran')
+                    .eq('site_type', 'pkkmb')
+                    .eq('jenis_form', 'wajib')
+                    .eq('nim', sanitizedPayload.nim)
+                    .neq('status_pembayaran', 'ditolak')
+                    .maybeSingle();
+                
+                if (existingPeserta) {
+                    return { success: false, error: `Peserta dengan NIM ${sanitizedPayload.nim} sudah mendaftar form wajib.` };
+                }
+            }
+
             sanitizedArray.push(sanitizedPayload);
         }
 
-        const { error } = await supabaseAdmin
+        const { data, error } = await supabaseAdmin
             .from('peserta')
-            .insert(sanitizedArray);
+            .insert(sanitizedArray)
+            .select();
 
         if (error) throw error;
-        return { success: true };
+        return { success: true, data };
     } catch (error) {
         console.error("Internal Log - Error inserting peserta batch:", error);
         return { success: false, error: 'Terjadi kesalahan internal pada server saat mendaftar.' };
@@ -331,7 +366,7 @@ export const getFormRegisterPricing = async (formId) => {
 export const getTeamCountsByForm = async (baseKodeForm) => {
     try {
         if (!baseKodeForm) return {};
-        
+
         // 1. Dapatkan semua peserta yang mendaftar form ini
         const { data: pesertaData, error: pesertaError } = await supabaseAdmin
             .from('peserta')
@@ -344,7 +379,7 @@ export const getTeamCountsByForm = async (baseKodeForm) => {
         // 2. Kumpulkan kode_form unik dan petakan ke kategori
         const categoryKodes = {};
         const allKodeForms = new Set();
-        
+
         (pesertaData || []).forEach(p => {
             const kat = p.kategori;
             const kode = p.kode_form;
@@ -366,7 +401,7 @@ export const getTeamCountsByForm = async (baseKodeForm) => {
             .from('team')
             .select('kode_form, verivikasi')
             .in('kode_form', kodeFormArray);
-            
+
         if (teamError) throw teamError;
 
         // 4. Buat set kode_form yang ditolak (verivikasi === false)
@@ -400,7 +435,7 @@ export const getTeamCountsByForm = async (baseKodeForm) => {
 export const checkWajibPesertaLombaCount = async (nim, kampus) => {
     try {
         if (!nim || !kampus) return { count: 0, lomba: [] };
-        
+
         // Find team_members that match the nim, joined with team to ensure it's a valid team
         const { data: memberData, error: memberError } = await supabaseAdmin
             .from('team_members')
@@ -413,7 +448,7 @@ export const checkWajibPesertaLombaCount = async (nim, kampus) => {
 
         const validTeams = memberData.filter(m => m.team && m.team.verivikasi !== false);
         if (validTeams.length === 0) return { count: 0, lomba: [] };
-        
+
         // We only care about form_register with butuh_bukti = false
         const lombaNames = [...new Set(validTeams.map(t => t.team.nama_lomba).filter(Boolean))];
         if (lombaNames.length === 0) return { count: 0, lomba: [] };
@@ -431,13 +466,13 @@ export const checkWajibPesertaLombaCount = async (nim, kampus) => {
 
         const validLombaNames = new Set(formData.map(f => f.nama_lomba));
         const matchedLomba = [];
-        
+
         validTeams.forEach(t => {
             if (validLombaNames.has(t.team.nama_lomba)) {
                 matchedLomba.push(t.team.nama_lomba);
             }
         });
-        
+
         const uniqueLomba = [...new Set(matchedLomba)];
 
         return { count: uniqueLomba.length, lomba: uniqueLomba };
@@ -478,7 +513,7 @@ export const getFormRegisterKampusQuotaPublic = async (formId, kampus) => {
 export const getTeamCountsByFormAndKampus = async (baseKodeForm, kampus) => {
     try {
         if (!baseKodeForm || !kampus) return 0;
-        
+
         // 1. Dapatkan semua peserta yang mendaftar form ini dengan kategori LP3I dan kampus tsb
         const { data: pesertaData, error: pesertaError } = await supabaseAdmin
             .from('peserta')
@@ -504,7 +539,7 @@ export const getTeamCountsByFormAndKampus = async (baseKodeForm, kampus) => {
             .from('team')
             .select('kode_form, verivikasi')
             .in('kode_form', kodeFormArray);
-            
+
         if (teamError) throw teamError;
 
         // 4. Hitung jumlah tim, abaikan yang rejected

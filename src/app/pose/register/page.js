@@ -116,8 +116,23 @@ export default function PoseRegisterPage() {
     const [selectedJenis, setSelectedJenis] = useState('Semua');
     const [searchQuery, setSearchQuery] = useState('');
 
+    useEffect(() => {
+        const handleHashChange = () => {
+            const hash = window.location.hash;
+            if (hash && hash.length > 1) {
+                setSearchQuery(decodeURIComponent(hash.substring(1)));
+            }
+        };
+
+        handleHashChange(); // Jalankan sekali saat mount
+
+        window.addEventListener('hashchange', handleHashChange);
+        return () => window.removeEventListener('hashchange', handleHashChange);
+    }, []);
+
     // Scroll to Top FAB State
     const [showScrollTop, setShowScrollTop] = useState(false);
+
 
     useEffect(() => {
         const fetchForms = async () => {
@@ -238,7 +253,7 @@ export default function PoseRegisterPage() {
                                     placeholder="Cari cabang lomba..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-sm focus:ring-1 focus:ring-black dark:focus:ring-white outline-none transition-all placeholder-gray-400"
+                                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-sm text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-black dark:focus:ring-white outline-none transition-all placeholder-gray-400"
                                 />
                             </div>
                         </div>

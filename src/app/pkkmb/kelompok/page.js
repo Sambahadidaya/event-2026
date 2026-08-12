@@ -1,191 +1,303 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Users, Search, ChevronDown, ChevronUp, Image as ImageIcon } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { Users, Search, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Image as ImageIcon, ExternalLink, ArrowUp } from 'lucide-react';
 import PageHero from '@/components/public/PageHero';
-import { getTeams } from '@/api/supabase/public/team';
+import { getKelompokPublic } from '@/api/supabase/public/kelompok';
+import PengembangBarrier from '@/components/public/PengembangBarrier';
 
-const InstagramIcon = ({ size = 14, className = "" }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-  </svg>
-);
+// Horizontal Scroll Carousel Row Component
+function HorizontalScrollRow({ children }) {
+    const rowRef = useRef(null);
+    const [activeIndex, setActiveIndex] = useState(0);
+    const childArray = Array.isArray(children) ? children : [children];
 
-export default function PkkmbKelompok() {
-    const [team, setTeam] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState('');
-    const [expandedTeam, setExpandedTeam] = useState(null);
+    const handleScroll = () => {
+        if (!rowRef.current) return;
+        const container = rowRef.current;
+        const scrollPosition = container.scrollLeft + container.clientWidth / 2;
+        const items = container.querySelectorAll('.carousel-card-item');
 
-    useEffect(() => {
-        const fetchTeam = async () => {
-            const data = await getTeams('pkkmb');
-                
-            if (data) {
-                setTeam(data);
+        items.forEach((item, index) => {
+            const itemLeft = item.offsetLeft;
+            const itemRight = itemLeft + item.offsetWidth;
+            if (scrollPosition >= itemLeft && scrollPosition <= itemRight) {
+                setActiveIndex(index);
             }
-            setLoading(false);
-        };
-        fetchTeam();
-    }, []);
+        });
+    };
 
-    const filteredTeam = team.filter(t => t.title.toLowerCase().includes(filter.toLowerCase()));
+    const scrollToIndex = (index) => {
+        if (index < 0 || index >= childArray.length) return;
+        setActiveIndex(index);
 
-    const toggleExpand = (id) => {
-        if (expandedTeam === id) {
-            setExpandedTeam(null);
-        } else {
-            setExpandedTeam(id);
+        if (rowRef.current) {
+            const items = rowRef.current.querySelectorAll('.carousel-card-item');
+            if (items[index]) {
+                items[index].scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'nearest',
+                    inline: 'center'
+                });
+            }
         }
     };
 
-    return (
-        <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 md:py-12 animate-in fade-in duration-500 space-y-8 pb-20">
-            <PageHero site="pkkmb" icon={Users} title="Kelompok PKKMB" subtitle="Informasi pembagian kelompok dan anggota" />
-            <style dangerouslySetInnerHTML={{ __html: `
-                @keyframes dropFall {
-                    0% { top: -200px; }
-                    100% { top: 100%; }
-                }
-                .timeline-glow {
-                    position: absolute;
-                    left: 0;
-                    width: 100%;
-                    height: 200px;
-                    background: linear-gradient(to bottom, transparent, #3b82f6);
-                    animation: dropFall 3s infinite linear;
-                }
-            `}} />
+    const handleNext = () => scrollToIndex(Math.min(activeIndex + 1, childArray.length - 1));
+    const handlePrev = () => scrollToIndex(Math.max(activeIndex - 1, 0));
 
-            <div className="flex flex-col md:flex-row md:items-center justify-end gap-4 mb-8">
-                <div className="relative w-full md:w-72 lg:w-96 md:ml-auto">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                        <Search size={18} />
+    return (
+        <div className="relative group/row w-full">
+            {/* Left Button */}
+            <button
+                type="button"
+                onClick={handlePrev}
+                disabled={activeIndex === 0}
+                aria-label="Previous card"
+                className={`absolute left-0 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-white/90 dark:bg-gray-800/90 text-gray-800 dark:text-gray-200 shadow-lg border border-gray-200 dark:border-gray-700 transition-all flex items-center justify-center ${activeIndex === 0 ? 'opacity-30 cursor-not-allowed' : 'opacity-100 hover:scale-110 active:scale-95'}`}
+            >
+                <ChevronLeft size={20} />
+            </button>
+
+            {/* Scroll Container */}
+            <div
+                ref={rowRef}
+                onScroll={handleScroll}
+                className="flex items-stretch overflow-x-auto scrollbar-none py-8 flex-nowrap scroll-smooth px-[12vw] md:px-8 gap-4 md:gap-6 snap-x snap-mandatory w-full"
+            >
+                {childArray.map((child, idx) => (
+                    <div key={idx} className="carousel-card-item flex-none w-[76vw] sm:w-[350px] snap-center snap-always">
+                        {child}
                     </div>
-                    <input
-                        type="text" 
-                        placeholder="Cari nama kelompok..." 
-                        value={filter} 
-                        onChange={e => setFilter(e.target.value)}
-                        className="w-full pl-11 p-3.5 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all placeholder-gray-400"
-                    />
+                ))}
+            </div>
+
+            {/* Right Button */}
+            <button
+                type="button"
+                onClick={handleNext}
+                disabled={activeIndex === childArray.length - 1}
+                aria-label="Next card"
+                className={`absolute right-0 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-white/90 dark:bg-gray-800/90 text-gray-800 dark:text-gray-200 shadow-lg border border-gray-200 dark:border-gray-700 transition-all flex items-center justify-center ${activeIndex === childArray.length - 1 ? 'opacity-30 cursor-not-allowed' : 'opacity-100 hover:scale-110 active:scale-95'}`}
+            >
+                <ChevronRight size={20} />
+            </button>
+        </div>
+    );
+}
+
+export default function PkkmbKelompok() {
+    const [kelompok, setKelompok] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [expandedKelompok, setExpandedKelompok] = useState(null);
+    const [showScrollTop, setShowScrollTop] = useState(false);
+
+    useEffect(() => {
+        const fetchKelompok = async () => {
+            const data = await getKelompokPublic();
+            setKelompok(data || []);
+            setLoading(false);
+        };
+        fetchKelompok();
+
+        const handleScroll = () => {
+            if (window.scrollY > 300) {
+                setShowScrollTop(true);
+            } else {
+                setShowScrollTop(false);
+            }
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    const toggleExpand = (id) => {
+        if (expandedKelompok === id) {
+            setExpandedKelompok(null);
+        } else {
+            setExpandedKelompok(id);
+        }
+    };
+
+    const filteredKelompok = useMemo(() => {
+        return kelompok.filter(k =>
+            k.nama_kelompok.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            k.nama_kabim.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }, [kelompok, searchQuery]);
+
+    return (
+        <div className="min-h-screen pt-24 pb-12 sm:pt-32 sm:pb-20 bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-150 transition-colors duration-300">
+            <PengembangBarrier>
+
+                <div className="max-w-7xl mx-auto px-4 md:px-8 space-y-8 pb-20">
+                    <PageHero site="pkkmb" icon={Users} title="Kelompok PKKMB" subtitle="Informasi pembagian kelompok dan anggota peserta PKKMB 2026" />
+
+                    {/* Search Bar */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-end gap-4 mt-12">
+                        <div className="relative w-full md:w-72 lg:w-80">
+                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                <Search size={18} />
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="Cari kelompok / kabim..."
+                                value={searchQuery}
+                                onChange={e => setSearchQuery(e.target.value)}
+                                className="w-full pl-11 p-3 text-sm border border-gray-200 dark:border-gray-800 rounded-xl bg-white dark:bg-gray-900 outline-none focus:ring-1 focus:ring-blue-500 transition-all placeholder-gray-400"
+                            />
+                        </div>
+                    </div>
+
+                    {loading ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
+                            {[1, 2, 3].map((i) => (
+                                <div key={i} className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-200 dark:border-gray-800 space-y-4">
+                                    <div className="flex gap-4 items-center">
+                                        <div className="w-14 h-14 bg-gray-200 dark:bg-gray-800 rounded-2xl"></div>
+                                        <div className="space-y-2 flex-1">
+                                            <div className="h-5 bg-gray-200 dark:bg-gray-800 rounded w-3/4"></div>
+                                            <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/2"></div>
+                                        </div>
+                                    </div>
+                                    <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-full"></div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : filteredKelompok.length === 0 ? (
+                        <div className="p-12 rounded-3xl text-center border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 mt-12">
+                            <Users size={48} className="mx-auto text-gray-300 dark:text-gray-700 mb-4" />
+                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Belum Ada Kelompok</h3>
+                            <p className="text-gray-500 dark:text-gray-400">Data kelompok tidak ditemukan atau kosong.</p>
+                        </div>
+                    ) : (
+                        <div className="mt-12 space-y-4 w-full">
+                            <HorizontalScrollRow>
+                                {filteredKelompok.map((k, index) => {
+                                    const uniqueId = k.id || `kelompok-${index}`;
+                                    return (
+                                        <KelompokCard
+                                            key={uniqueId}
+                                            item={k}
+                                            isExpanded={expandedKelompok === uniqueId}
+                                            onToggleExpand={() => toggleExpand(uniqueId)}
+                                        />
+                                    );
+                                })}
+                            </HorizontalScrollRow>
+                        </div>
+                    )}
+                </div>
+
+                {/* Scroll to Top FAB */}
+                {showScrollTop && (
+                    <button
+                        onClick={scrollToTop}
+                        className="fixed bottom-8 right-8 z-50 p-3.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-xl transition-all duration-300 hover:scale-105 flex items-center justify-center border border-blue-500"
+                        aria-label="Scroll to top"
+                    >
+                        <ArrowUp size={20} />
+                    </button>
+                )}
+            </PengembangBarrier>
+        </div>
+    );
+}
+
+function KelompokCard({ item, isExpanded, onToggleExpand }) {
+    return (
+        <div className="bg-white dark:bg-gray-900/60 rounded-3xl shadow-xs border border-gray-200 dark:border-gray-800 overflow-hidden transition-all duration-300 flex flex-col group h-full w-full">
+            <div className="p-6 flex-1 flex flex-col">
+                <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center gap-4">
+                        {item.foto_kelompok ? (
+                            <div className="w-14 h-14 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-xs shrink-0">
+                                <img src={item.foto_kelompok} alt={item.nama_kelompok} className="w-full h-full object-cover" />
+                            </div>
+                        ) : (
+                            <div className="w-14 h-14 rounded-2xl bg-gray-50 dark:bg-gray-950 flex items-center justify-center text-gray-400 border border-gray-200 dark:border-gray-800 shrink-0">
+                                <ImageIcon size={24} className="opacity-40" />
+                            </div>
+                        )}
+                        <div className="min-w-0">
+                            <h3 className="text-base font-bold text-gray-900 dark:text-white truncate leading-snug mb-1" title={item.nama_kelompok}>
+                                {item.nama_kelompok}
+                            </h3>
+                            <div className="flex flex-wrap gap-1.5 items-center">
+                                <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded bg-blue-55 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">
+                                    PJ: {item.nama_kabim}
+                                </span>
+                                {item.link_instagram && (
+                                    <a
+                                        href={item.link_instagram}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded bg-pink-50 text-pink-700 dark:bg-pink-900/20 dark:text-pink-400"
+                                    >
+                                        @{item.link_instagram.split('/').pop() || 'ig'}
+                                    </a>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {item.keterangan && item.keterangan.trim() !== '' && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 italic mb-4 line-clamp-2 leading-relaxed flex-1">
+                        "{item.keterangan}"
+                    </p>
+                )}
+
+                <div className="mt-auto pt-4 border-t border-gray-100 dark:border-gray-800/80">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="flex -space-x-2">
+                                {item.kelompok_members?.slice(0, 3).map((m, i) => (
+                                    <div key={i} className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900 border-2 border-white dark:border-gray-900 flex items-center justify-center text-[10px] font-bold text-blue-750 dark:text-blue-350 z-10">
+                                        {m.nama_anggota.charAt(0).toUpperCase()}
+                                    </div>
+                                ))}
+                                {item.kelompok_members?.length > 3 && (
+                                    <div className="w-7 h-7 rounded-full bg-gray-105 dark:bg-gray-850 border-2 border-white dark:border-gray-900 flex items-center justify-center text-[10px] font-bold text-gray-500 dark:text-gray-400 z-10">
+                                        +{item.kelompok_members.length - 3}
+                                    </div>
+                                )}
+                            </div>
+                            <span className="text-[11px] text-gray-500 font-semibold">{(item.kelompok_members || []).length} Anggota</span>
+                        </div>
+                        <button
+                            onClick={onToggleExpand}
+                            className="w-7 h-7 rounded-full bg-gray-50 dark:bg-gray-850 flex items-center justify-center text-gray-400 hover:text-black dark:hover:text-white transition-colors"
+                        >
+                            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            {loading ? (
-                <div className="flex justify-center p-12">
-                    <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                </div>
-            ) : filteredTeam.length === 0 ? (
-                <div className="glass p-12 rounded-2xl text-center">
-                    <Users size={48} className="mx-auto text-gray-300 dark:text-gray-700 mb-4" />
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Belum Ada Kelompok</h3>
-                    <p className="text-gray-500 dark:text-gray-400">Data kelompok kosong atau kata kunci yang dicari tidak ditemukan.</p>
-                </div>
-            ) : (
-                <div className="glass p-6 sm:p-10 rounded-3xl relative max-w-4xl mx-auto mt-4">
-                    {/* Background Line */}
-                    <div className="absolute left-[32px] sm:left-[48px] top-8 bottom-8 w-1 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
-                        {/* Looping Glow Line */}
-                        <div className="timeline-glow"></div>
-                    </div>
-
-                    <div className="space-y-6 relative">
-                        {filteredTeam.map((t, index) => {
-                            const isExpanded = expandedTeam === t.id;
-                            
-                            return (
-                                <div key={t.id} className="relative flex items-start group">
-                                    {/* Static Marker Circle */}
-                                    <div className="absolute left-[26px] sm:left-[42px] top-8 w-4 h-4 rounded-full bg-white dark:bg-gray-900 border-4 border-blue-500 z-10 transition-colors group-hover:border-blue-400 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/50"></div>
-
-                                    {/* Content Card */}
-                                    <div className="w-full pl-[56px] sm:pl-[80px]">
-                                        <div className={`bg-white dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-sm border transition-all duration-300 hover:shadow-md ${isExpanded ? 'border-blue-300 dark:border-blue-700 shadow-md' : 'border-gray-100 dark:border-gray-700 hover:border-blue-200 dark:hover:border-blue-900/50'}`}>
-                                            
-                                            {/* Card Header (Always Visible) */}
-                                            <div 
-                                                className="p-4 sm:p-6 flex items-center justify-between cursor-pointer"
-                                                onClick={() => toggleExpand(t.id)}
-                                            >
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-10 h-10 flex-shrink-0 rounded-full bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
-                                                        {index + 1}
-                                                    </div>
-                                                    <div className="flex items-center gap-3">
-                                                        {t.gambar ? (
-                                                            <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-100 dark:border-gray-700">
-                                                                <img src={t.gambar} alt={t.title} className="w-full h-full object-cover" />
-                                                            </div>
-                                                        ) : (
-                                                            <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400">
-                                                                <ImageIcon size={20} />
-                                                            </div>
-                                                        )}
-                                                        <div>
-                                                            <h3 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">{t.title}</h3>
-                                                            {t.instagram_link && (
-                                                                <a href={t.instagram_link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-pink-600 hover:text-pink-500 mt-1 font-medium transition-colors" onClick={(e) => e.stopPropagation()}>
-                                                                    <InstagramIcon size={14} /> @{t.instagram_link.split('/').pop() || 'instagram'}
-                                                                </a>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                
-                                                <button className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 bg-gray-50 hover:bg-blue-50 dark:bg-gray-900/50 dark:hover:bg-blue-900/30 rounded-full transition-colors">
-                                                    {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                                                </button>
-                                            </div>
-
-                                            {/* Expanded Content */}
-                                            {isExpanded && (
-                                                <div className="p-4 sm:p-6 border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 animate-in slide-in-from-top-4 fade-in duration-300 rounded-b-2xl">
-                                                    
-                                                    {/* Deskripsi (dari kolom content lama) */}
-                                                    {t.content && t.content.trim() !== '' && (
-                                                        <div className="mb-6 text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap pl-3 border-l-2 border-blue-200 dark:border-blue-800/50 text-sm">
-                                                            {t.content}
-                                                        </div>
-                                                    )}
-
-                                                    {/* Daftar Anggota */}
-                                                    <div>
-                                                        <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                                                            <Users size={16} className="text-blue-500" /> Anggota Tim
-                                                        </h4>
-                                                        
-                                                        {(!t.team_members || t.team_members.length === 0) ? (
-                                                            <p className="text-sm text-gray-500 italic">Belum ada data anggota.</p>
-                                                        ) : (
-                                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                                {t.team_members.map(member => (
-                                                                    <div key={member.id} className="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-100 dark:border-gray-700 flex items-center gap-3">
-                                                                        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-sm">
-                                                                            {member.nama.charAt(0).toUpperCase()}
-                                                                        </div>
-                                                                        <div>
-                                                                            <p className="text-sm font-bold text-gray-900 dark:text-white">{member.nama}</p>
-                                                                            {member.jabatan && <p className="text-xs text-gray-500 dark:text-gray-400">{member.jabatan}</p>}
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
+            {/* Expanded Content */}
+            <div className={`transition-all duration-300 overflow-hidden bg-gray-50/50 dark:bg-gray-900/30 border-t border-gray-100 dark:border-gray-800/80 ${isExpanded ? 'max-h-96 opacity-100 overflow-y-auto' : 'max-h-0 opacity-0'}`}>
+                <div className="p-5">
+                    <h4 className="text-xs font-bold text-gray-900 dark:text-white mb-3">Daftar Anggota (Nama Saja)</h4>
+                    {(!item.kelompok_members || item.kelompok_members.length === 0) ? (
+                        <p className="text-xs text-gray-500 italic">Belum ada data anggota.</p>
+                    ) : (
+                        <div className="grid grid-cols-1 gap-2">
+                            {item.kelompok_members.map(member => (
+                                <div key={member.id || Math.random()} className="bg-white dark:bg-gray-950 p-2.5 rounded-xl border border-gray-200/60 dark:border-gray-800 shadow-2xs flex items-center gap-2.5">
+                                    <div className="w-7 h-7 rounded-full bg-blue-50 dark:bg-blue-900/50 flex items-center justify-center text-blue-700 dark:text-blue-300 font-bold text-xs shrink-0">
+                                        {member.nama_anggota.charAt(0).toUpperCase()}
                                     </div>
-                                    
+                                    <p className="text-xs font-bold text-gray-900 dark:text-white truncate">{member.nama_anggota}</p>
                                 </div>
-                            );
-                        })}
-                    </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
-            )}
+            </div>
         </div>
     );
 }

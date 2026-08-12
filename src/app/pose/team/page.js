@@ -18,6 +18,7 @@ import PageHero from '@/components/public/PageHero';
 import ScheduleBarrier from '@/components/public/ScheduleBarrier';
 import { getTeamsPublic } from '@/api/supabase/public/team';
 import { JENIS_LOMBA, NAMA_LOMBA } from '@/lib/lombaData';
+import PengembangBarrier from '@/components/public/PengembangBarrier';
 
 // 1. Component HorizontalScrollRow yang sudah di-upgrade
 function HorizontalScrollRow({ children }) {
@@ -180,149 +181,153 @@ export default function PoseTeam() {
     const isFilterActive = mainFilter !== 'Semua' || subFilter !== 'Semua' || searchQuery.trim() !== '';
 
     return (
-        <ScheduleBarrier pageType="jadwal">
-            <div className="min-h-screen pt-24 pb-12 sm:pt-32 sm:pb-20 bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-150 transition-colors duration-300">
-                <div className="max-w-7xl mx-auto px-4 md:px-8 space-y-8 pb-20">
-                    <PageHero site="pose" icon={Users} title="Tim POSE" subtitle="Informasi pembagian tim dan peserta lomba" />
+        <PengembangBarrier>
 
-                    {/* Filter and Search Bar */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-12">
-                        <div className="flex flex-wrap gap-2">
-                            {['Semua', ...JENIS_LOMBA].map(f => (
-                                <button
-                                    key={f}
-                                    onClick={() => setMainFilter(f)}
-                                    className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${mainFilter === f ? 'bg-black dark:bg-white text-white dark:text-black border-transparent shadow-xs' : 'bg-white dark:bg-gray-900 text-gray-650 dark:text-gray-300 border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-850'}`}
-                                >
-                                    {f}
-                                </button>
-                            ))}
-                        </div>
+            <ScheduleBarrier pageType="jadwal">
+                <div className="min-h-screen pt-24 pb-12 sm:pt-32 sm:pb-20 bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-150 transition-colors duration-300">
+                    <div className="max-w-7xl mx-auto px-4 md:px-8 space-y-8 pb-20">
+                        <PageHero site="pose" icon={Users} title="Tim POSE" subtitle="Informasi pembagian tim dan peserta lomba" />
 
-                        <div className="relative w-full md:w-72 lg:w-80">
-                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                                <Search size={18} />
+                        {/* Filter and Search Bar */}
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-12">
+                            <div className="flex flex-wrap gap-2">
+                                {['Semua', ...JENIS_LOMBA].map(f => (
+                                    <button
+                                        key={f}
+                                        onClick={() => setMainFilter(f)}
+                                        className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${mainFilter === f ? 'bg-black dark:bg-white text-white dark:text-black border-transparent shadow-xs' : 'bg-white dark:bg-gray-900 text-gray-650 dark:text-gray-300 border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-850'}`}
+                                    >
+                                        {f}
+                                    </button>
+                                ))}
                             </div>
-                            <input
-                                type="text"
-                                placeholder="Cari nama tim..."
-                                value={searchQuery}
-                                onChange={e => setSearchQuery(e.target.value)}
-                                className="w-full pl-11 p-3 text-sm border border-gray-200 dark:border-gray-800 rounded-xl bg-white dark:bg-gray-900 outline-none focus:ring-1 focus:ring-black dark:focus:ring-white transition-all placeholder-gray-400"
-                            />
-                        </div>
-                    </div>
 
-                    {mainFilter !== 'Semua' && SUB_FILTERS[mainFilter] && (
-                        <div className="flex flex-wrap gap-2 p-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800">
-                            <span className="text-sm font-medium text-gray-500 dark:text-gray-400 mr-2 flex items-center">Lomba:</span>
-                            {SUB_FILTERS[mainFilter].map(f => (
-                                <button
-                                    key={f}
-                                    onClick={() => setSubFilter(f)}
-                                    className={`px-3 py-1.5 rounded-lg text-sm transition-all ${subFilter === f ? 'bg-black dark:bg-white text-white dark:text-black font-bold shadow-xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-850 border border-transparent'}`}
-                                >
-                                    {f}
-                                </button>
-                            ))}
-                        </div>
-                    )}
-
-                    {loading ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
-                            {[1, 2, 3, 4, 5, 6].map((i) => (
-                                <div key={i} className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-200 dark:border-gray-800 space-y-4">
-                                    <div className="flex gap-4 items-center">
-                                        <div className="w-14 h-14 bg-gray-200 dark:bg-gray-800 rounded-2xl"></div>
-                                        <div className="space-y-2 flex-1">
-                                            <div className="h-5 bg-gray-200 dark:bg-gray-800 rounded w-3/4"></div>
-                                            <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/2"></div>
-                                        </div>
-                                    </div>
-                                    <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-full"></div>
+                            <div className="relative w-full md:w-72 lg:w-80">
+                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                    <Search size={18} />
                                 </div>
-                            ))}
+                                <input
+                                    type="text"
+                                    placeholder="Cari nama tim..."
+                                    value={searchQuery}
+                                    onChange={e => setSearchQuery(e.target.value)}
+                                    className="w-full pl-11 p-3 text-sm border border-gray-200 dark:border-gray-800 rounded-xl bg-white dark:bg-gray-900 outline-none focus:ring-1 focus:ring-black dark:focus:ring-white transition-all placeholder-gray-400"
+                                />
+                            </div>
                         </div>
-                    ) : filteredTeam.length === 0 ? (
-                        <div className="p-12 rounded-3xl text-center border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 mt-12">
-                            <Users size={48} className="mx-auto text-gray-300 dark:text-gray-700 mb-4" />
-                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Belum Ada Tim</h3>
-                            <p className="text-gray-500 dark:text-gray-400">Belum ada tim yang terverifikasi atau kata kunci tidak ditemukan.</p>
-                        </div>
-                    ) : isFilterActive ? (
-                        // Menggunakan HorizontalScrollRow saat mode filter aktif
-                        <div className="mt-12 space-y-4">
-                            <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                                <ShieldCheck className="text-black dark:text-white" /> Hasil Pencarian Tim
-                            </h2>
-                            <HorizontalScrollRow>
-                                {filteredTeam.map((t, index) => {
-                                    // Fallback ID unik (memperbaiki BUG expand)
-                                    const uniqueId = t.id || `filter-team-${index}`;
+
+                        {mainFilter !== 'Semua' && SUB_FILTERS[mainFilter] && (
+                            <div className="flex flex-wrap gap-2 p-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800">
+                                <span className="text-sm font-medium text-gray-500 dark:text-gray-400 mr-2 flex items-center">Lomba:</span>
+                                {SUB_FILTERS[mainFilter].map(f => (
+                                    <button
+                                        key={f}
+                                        onClick={() => setSubFilter(f)}
+                                        className={`px-3 py-1.5 rounded-lg text-sm transition-all ${subFilter === f ? 'bg-black dark:bg-white text-white dark:text-black font-bold shadow-xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-850 border border-transparent'}`}
+                                    >
+                                        {f}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {loading ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
+                                {[1, 2, 3, 4, 5, 6].map((i) => (
+                                    <div key={i} className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-200 dark:border-gray-800 space-y-4">
+                                        <div className="flex gap-4 items-center">
+                                            <div className="w-14 h-14 bg-gray-200 dark:bg-gray-800 rounded-2xl"></div>
+                                            <div className="space-y-2 flex-1">
+                                                <div className="h-5 bg-gray-200 dark:bg-gray-800 rounded w-3/4"></div>
+                                                <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/2"></div>
+                                            </div>
+                                        </div>
+                                        <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-full"></div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : filteredTeam.length === 0 ? (
+                            <div className="p-12 rounded-3xl text-center border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 mt-12">
+                                <Users size={48} className="mx-auto text-gray-300 dark:text-gray-700 mb-4" />
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Belum Ada Tim</h3>
+                                <p className="text-gray-500 dark:text-gray-400">Belum ada tim yang terverifikasi atau kata kunci tidak ditemukan.</p>
+                            </div>
+                        ) : isFilterActive ? (
+                            // Menggunakan HorizontalScrollRow saat mode filter aktif
+                            <div className="mt-12 space-y-4">
+                                <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                                    <ShieldCheck className="text-black dark:text-white" /> Hasil Pencarian Tim
+                                </h2>
+                                <HorizontalScrollRow>
+                                    {filteredTeam.map((t, index) => {
+                                        // Fallback ID unik (memperbaiki BUG expand)
+                                        const uniqueId = t.id || `filter-team-${index}`;
+                                        return (
+                                            <TeamCard
+                                                key={uniqueId}
+                                                team={t}
+                                                isExpanded={expandedTeam === uniqueId}
+                                                onToggleExpand={() => toggleExpand(uniqueId)}
+                                            />
+                                        );
+                                    })}
+                                </HorizontalScrollRow>
+                            </div>
+                        ) : (
+                            // Menggunakan HorizontalScrollRow saat mode biasa (Grouping)
+                            <div className="mt-12 space-y-16">
+                                <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                                    <ShieldCheck className="text-black dark:text-white" /> Tim Terverifikasi
+                                </h2>
+
+                                {JENIS_LOMBA.map(jenis => {
+                                    const jenisTeams = team.filter(t => t.jenis_lomba === jenis);
+                                    if (jenisTeams.length === 0) return null;
+
                                     return (
-                                        <TeamCard
-                                            key={uniqueId}
-                                            team={t}
-                                            isExpanded={expandedTeam === uniqueId}
-                                            onToggleExpand={() => toggleExpand(uniqueId)}
-                                        />
+                                        <div key={jenis} className="space-y-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-1.5 h-6 bg-black dark:bg-white rounded-full"></div>
+                                                <h3 className="text-xl font-black text-gray-950 dark:text-white">
+                                                    {jenis}
+                                                </h3>
+                                            </div>
+
+                                            <HorizontalScrollRow>
+                                                {jenisTeams.map((t, index) => {
+                                                    // Fallback ID unik (memperbaiki BUG expand)
+                                                    const uniqueId = t.id || `group-team-${jenis}-${index}`;
+                                                    return (
+                                                        <TeamCard
+                                                            key={uniqueId}
+                                                            team={t}
+                                                            isExpanded={expandedTeam === uniqueId}
+                                                            onToggleExpand={() => toggleExpand(uniqueId)}
+                                                        />
+                                                    );
+                                                })}
+                                            </HorizontalScrollRow>
+                                        </div>
                                     );
                                 })}
-                            </HorizontalScrollRow>
-                        </div>
-                    ) : (
-                        // Menggunakan HorizontalScrollRow saat mode biasa (Grouping)
-                        <div className="mt-12 space-y-16">
-                            <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                                <ShieldCheck className="text-black dark:text-white" /> Tim Terverifikasi
-                            </h2>
-
-                            {JENIS_LOMBA.map(jenis => {
-                                const jenisTeams = team.filter(t => t.jenis_lomba === jenis);
-                                if (jenisTeams.length === 0) return null;
-
-                                return (
-                                    <div key={jenis} className="space-y-6">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-1.5 h-6 bg-black dark:bg-white rounded-full"></div>
-                                            <h3 className="text-xl font-black text-gray-950 dark:text-white">
-                                                {jenis}
-                                            </h3>
-                                        </div>
-
-                                        <HorizontalScrollRow>
-                                            {jenisTeams.map((t, index) => {
-                                                // Fallback ID unik (memperbaiki BUG expand)
-                                                const uniqueId = t.id || `group-team-${jenis}-${index}`;
-                                                return (
-                                                    <TeamCard
-                                                        key={uniqueId}
-                                                        team={t}
-                                                        isExpanded={expandedTeam === uniqueId}
-                                                        onToggleExpand={() => toggleExpand(uniqueId)}
-                                                    />
-                                                );
-                                            })}
-                                        </HorizontalScrollRow>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </div>
 
-            {/* Scroll to Top FAB */}
-            {showScrollTop && (
-                <button
-                    onClick={scrollToTop}
-                    className="fixed bottom-8 right-8 z-50 p-3.5 rounded-full bg-black hover:bg-gray-900 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-black shadow-xl transition-all duration-300 hover:scale-105 flex items-center justify-center border border-gray-200 dark:border-gray-800"
-                    aria-label="Scroll to top"
-                >
-                    <ArrowUp size={20} />
-                </button>
-            )}
-        </ScheduleBarrier>
+                {/* Scroll to Top FAB */}
+                {showScrollTop && (
+                    <button
+                        onClick={scrollToTop}
+                        className="fixed bottom-8 right-8 z-50 p-3.5 rounded-full bg-black hover:bg-gray-900 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-black shadow-xl transition-all duration-300 hover:scale-105 flex items-center justify-center border border-gray-200 dark:border-gray-800"
+                        aria-label="Scroll to top"
+                    >
+                        <ArrowUp size={20} />
+                    </button>
+                )}
+            </ScheduleBarrier>
+        </PengembangBarrier>
+
     );
 }
 

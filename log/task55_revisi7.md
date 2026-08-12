@@ -5,3 +5,4 @@ untuk jenis mahasiswa_saja saya ingin formnya otomatis akan menjadi mahasiswanya
 ALTER TABLE public.form_register_pricing 
 ADD COLUMN IF NOT EXISTS umum_type VARCHAR(30) DEFAULT 'keduanya';
 ```
+fokus saja ke codingan dan jangan banyak penjelasan, cukup inti dan singkat,padat,jelas. dan jangan menjalankan perintah apapun seperti npm run karna biar aku saja yang testingnya agar kamu bener bener fokus ke codingan.

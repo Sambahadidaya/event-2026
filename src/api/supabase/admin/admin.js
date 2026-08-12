@@ -29,7 +29,7 @@ export const addAdmin = async (payload) => {
         if (authError) throw new Error(authError);
 
         if (!payload) throw new Error('Payload is required');
-        
+
         const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
             email: payload.email,
             password: payload.password,
@@ -127,8 +127,8 @@ export const updateAdminStatus = async (userId, updatePayload) => {
         if (error) throw error;
         return { success: true };
     } catch (error) {
-         console.error("Internal Log - Error updating admin status:", error);
-         return { success: false, error: 'Terjadi kesalahan internal pada server.' };
+        console.error("Internal Log - Error updating admin status:", error);
+        return { success: false, error: 'Terjadi kesalahan internal pada server.' };
     }
 };
 
@@ -144,8 +144,8 @@ export const updateAdminStatusById = async (id, updatePayload) => {
         if (error) throw error;
         return { success: true };
     } catch (error) {
-         console.error("Internal Log - Error updating admin status by id:", error);
-         return { success: false, error: 'Terjadi kesalahan internal pada server.' };
+        console.error("Internal Log - Error updating admin status by id:", error);
+        return { success: false, error: 'Terjadi kesalahan internal pada server.' };
     }
 };
 
@@ -174,18 +174,18 @@ export const updateKontakJawab = async (id, jawabStatus) => {
         const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
-         if (!id) throw new Error('ID is required');
-         const { error } = await supabaseAdmin
+        if (!id) throw new Error('ID is required');
+        const { error } = await supabaseAdmin
             .from('kontak')
             .update({ jawab: jawabStatus })
             .eq('id', id);
-            
-         if (error) throw error;
-         await insertAuditLog(user.email, 'UPDATE_KONTAK_JAWAB', id, `Kontak jawab updated to ${jawabStatus}`, adminNama);
-         return { success: true };
+
+        if (error) throw error;
+        await insertAuditLog(user.email, 'UPDATE_KONTAK_JAWAB', id, `Kontak jawab updated to ${jawabStatus}`, adminNama);
+        return { success: true };
     } catch (error) {
-         console.error("Internal Log - Error updating kontak:", error);
-         return { success: false, error: 'Terjadi kesalahan internal pada server.' };
+        console.error("Internal Log - Error updating kontak:", error);
+        return { success: false, error: 'Terjadi kesalahan internal pada server.' };
     }
 };
 
@@ -221,7 +221,7 @@ export const getTrafik = async (isoDateStart) => {
         if (isoDateStart) {
             query = query.gte('visited_at', isoDateStart);
         }
-        
+
         const { data, error } = await query;
         if (error) throw error;
         return data;

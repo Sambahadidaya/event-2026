@@ -13,7 +13,7 @@ import SamsAsisten from '@/components/SamsAsisten';
 export default function PanitiaLayout({ children }) {
     const [isDesktop, setIsDesktop] = useState(true);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-    const [menuOpen, setMenuOpen] = useState({ dashboard: true, pkkmb: false, pose: false, form: false, absensi_panitia: false, pj_lomba: false, keuangan: false, admin: false, sales: false });
+    const [menuOpen, setMenuOpen] = useState({ dashboard: true, pkkmb: false, pose: false, form: false, absensi_panitia: false, pj_lomba: false, keuangan: false, admin: false, sales: false, kabim: false, Medis: false, Mulmed: false, Tatib: false });
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [showDesktopWarning, setShowDesktopWarning] = useState(false);
     const [hasSeenDesktopWarning, setHasSeenDesktopWarning] = useState(false);
@@ -335,6 +335,98 @@ export default function PanitiaLayout({ children }) {
                             </ul>
                         </div>
                     </div>
+                    <div className="mb-6">
+                        {!collapsed && (
+                            <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Manajemen PJ Kabim</p>
+                        )}
+                        <button
+                            onClick={() => toggleMenu('kabim')}
+                            title="Kabim"
+                            className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
+                        >
+                            <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
+                                <ClipboardList size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
+                                {!collapsed && 'Kabim'}
+                            </span>
+                            {!collapsed && (menuOpen.kabim ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
+                        </button>
+                        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.kabim ? 'max-h-64 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                            <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
+                                <NavLink href="/panitia/pj_kabim/kelompok" icon={Users} label="Manajemen Kelompok" colorTheme="blue" />
+                                {/* <NavLink href="/panitia/pj_kabim/absensi" icon={FileText} label="Absensi Peserta" colorTheme="blue" />
+                                <NavLink href="/panitia/pj_kabim/tugas" icon={FileText} label="Tugas Peserta" colorTheme="blue" />
+                                <NavLink href="/panitia/pj_kabim/formatif" icon={FileText} label="Formatif Peserta" colorTheme="blue" />
+                                <NavLink href="/panitia/pj_kabim/pelanggaran" icon={FileText} label="Pelanggaran Peserta" colorTheme="blue" />
+                                <NavLink href="/panitia/pj_kabim/nilai_akhir" icon={FileText} label="Nilai Akhir Peserta" colorTheme="blue" /> */}
+                            </ul>
+                        </div>
+                    </div>
+                    <div className="mb-6">
+                        {!collapsed && (
+                            <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Manajemen PJ Medis</p>
+                        )}
+                        <button
+                            onClick={() => toggleMenu('Medis')}
+                            title="Medis"
+                            className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
+                        >
+                            <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
+                                <ClipboardList size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
+                                {!collapsed && 'Medis'}
+                            </span>
+                            {!collapsed && (menuOpen.Medis ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
+                        </button>
+                        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.Medis ? 'max-h-40 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                            <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
+                                <NavLink href="/panitia/pj_medis/peserta" icon={Users} label="Data Peserta" colorTheme="blue" />
+                                {/* <NavLink href="/panitia/pj_medis/penanganan" icon={FileText} label="Riwayat Penanganan" colorTheme="blue" /> */}
+                            </ul>
+                        </div>
+                    </div>
+                    {/* <div className="mb-6">
+                        {!collapsed && (
+                            <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Manajemen PJ Multimedia</p>
+                        )}
+                        <button
+                            onClick={() => toggleMenu('Mulmed')}
+                            title="Mulmed"
+                            className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
+                        >
+                            <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
+                                <ClipboardList size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
+                                {!collapsed && 'Mulmed'}
+                            </span>
+                            {!collapsed && (menuOpen.Mulmed ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
+                        </button>
+                        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.Mulmed ? 'max-h-40 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                            <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
+                                <NavLink href="/panitia/kabim/form" icon={FileText} label="Manajemen Berita" colorTheme="blue" />
+                                <NavLink href="/panitia/kabim/form" icon={FileText} label="Manajemen Dokumentasi" colorTheme="blue" />
+                            </ul>
+                        </div>
+                    </div> */}
+                    {/* <div className="mb-6">
+                        {!collapsed && (
+                            <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Manajemen PJ Tatib</p>
+                        )}
+                        <button
+                            onClick={() => toggleMenu('Tatib')}
+                            title="Tatib"
+                            className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
+                        >
+                            <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
+                                <ClipboardList size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
+                                {!collapsed && 'Tatib'}
+                            </span>
+                            {!collapsed && (menuOpen.Tatib ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
+                        </button>
+                        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.Tatib ? 'max-h-40 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                            <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
+                                <NavLink href="/panitia/kabim/form" icon={FileText} label="Pelanggaran Peserta" colorTheme="blue" />
+                                <NavLink href="/panitia/kabim/form" icon={FileText} label="Penyitaan Barang" colorTheme="blue" />
+                            </ul>
+                        </div>
+                    </div> */}
 
                     {adminData && (hasAccess(adminData.role, '/panitia/absensi_panitia/dashboard') || hasAccess(adminData.role, '/panitia/absensi_panitia/form') || hasAccess(adminData.role, '/panitia/absensi_panitia/absensi')) && (
                         <div className="mb-6">
@@ -470,6 +562,7 @@ export default function PanitiaLayout({ children }) {
                         <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.admin ? 'max-h-40 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
                             <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
                                 <NavLink href="/panitia/admin/status" icon={ShieldAlert} label="Status Admin" colorTheme="violet" />
+                                <NavLink href="/panitia/admin/pengembang" icon={Settings} label="Mode Pengembangan" colorTheme="violet" />
                             </ul>
                         </div>
                     </div>

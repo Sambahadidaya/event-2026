@@ -1,6 +1,7 @@
 'use server';
 
 import { supabaseAdmin } from '@/lib/supabase';
+import { getServerTime } from '../time';
 
 export const getJadwalPertandingan = async () => {
     try {
@@ -8,7 +9,7 @@ export const getJadwalPertandingan = async () => {
             .from('jadwal_pertandingan')
             .select('id, team1_id, team2_id, waktu, started_at, ended_at, nama_lomba, jenis_lomba, status, urutan, created_at, team1:team1_id(id, title, content, gambar, jenis_lomba, nama_lomba, verivikasi), team2:team2_id(id, title, content, gambar, jenis_lomba, nama_lomba, verivikasi)')
             .order('urutan', { ascending: true })
-            .order('waktu', { ascending: true });
+            .order('waktu', { ascending: true })
 
         if (error) throw error;
         return data;
@@ -33,23 +34,24 @@ export const getHasilPertandingan = async () => {
 };
 
 export const getJadwalAcara = async (siteType = null) => {
+    // 1. Dapatkan waktu server saat ini
     try {
         let query = supabaseAdmin
             .from('jadwal_acara')
             .select('*')
-            .order('waktu_mulai', { ascending: true });
-        
+            .order('waktu_mulai', { ascending: true })
+
         if (siteType) {
             query = query.eq('site', siteType);
         }
-            
+
         const { data, error } = await query;
-            
+
         if (error) {
             let fallbackQuery = supabaseAdmin
                 .from('jadwal')
                 .select('*')
-                .order('waktu_mulai', { ascending: true });
+                .order('waktu_mulai', { ascending: true })
             if (siteType) {
                 fallbackQuery = fallbackQuery.eq('site', siteType);
             }
@@ -60,6 +62,32 @@ export const getJadwalAcara = async (siteType = null) => {
         return data;
     } catch (error) {
         console.error("Internal Log - Error fetching jadwal acara:", error);
+        return [];
+    }
+};
+
+/**
+ * CONTOH/TAHAPAN PENGGUNAAN SERVER TIME:
+ * Fungsi ini mencontohkan bagaimana Anda bisa menggunakan Server Time (getServerTime) 
+ * untuk membandingkan waktu atau memfilter jadwal yang aktif/belum dimulai 
+ * berdasarkan waktu server (aman dari manipulasi device user).
+ */
+export const getActiveJadwalWithServerTime = async () => {
+    try {
+        // 1. Dapatkan waktu server saat ini
+        const serverTimeStr = await getServerTime();
+        const serverNow = new Date(serverTimeStr);
+
+        // 2. Query ke Supabase menggunakan serverNow sebagai filter waktu
+        const { data, error } = await supabaseAdmin
+            .from('jadwal_pertandingan')
+            .select('*')
+            .gte('waktu', serverNow.toISOString()); // Hanya ambil jadwal setelah/sama dengan waktu server sekarang
+
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error("Internal Log - Error getActiveJadwalWithServerTime:", error);
         return [];
     }
 };

@@ -1225,4 +1225,60 @@ ADD COLUMN IF NOT EXISTS umum_type VARCHAR(30) DEFAULT 'keduanya';
 
 alter table team
 ADD COLUMN form_register_id UUID NOT NULL REFERENCES form_register(id) ON DELETE CASCADE;
+
+
+CREATE TABLE kelompok (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    urutan INT4 DEFAULT 0,
+    nama_kelompok VARCHAR(100) NOT NULL,
+    nama_kabim VARCHAR(100) NOT NULL,
+    link_instagram VARCHAR(255),
+    foto_kelompok VARCHAR(255),
+    keterangan TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE kelompok_members (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    kelompok_id UUID NOT NULL REFERENCES kelompok(id) ON DELETE CASCADE,
+    nama_anggota VARCHAR(100) NOT NULL,
+    nim_anggota VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.kelompok ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read kelompok" ON public.kelompok FOR SELECT TO public USING (true);
+CREATE POLICY "auth all kelompok" ON public.kelompok FOR ALL TO authenticated USING (true) WITH CHECK (true);
+ALTER TABLE public.kelompok_members ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read kelompok_members" ON public.kelompok_members FOR SELECT TO public USING (true);
+CREATE POLICY "auth all kelompok_members" ON public.kelompok_members FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+CREATE TABLE data_medis_pkkmb (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    users UUID NOT NULL REFERENCES peserta(id) ON DELETE CASCADE,
+    riwayat_penyakit VARCHAR(255),
+    penanganan VARCHAR(255),
+    alergi VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE data_tambahan_pkkmb (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    users UUID NOT NULL REFERENCES peserta(id) ON DELETE CASCADE,
+    nama_ortu_wali VARCHAR(100),
+    no_wa_ortu_wali VARCHAR(20),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.data_medis_pkkmb ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read data_medis_pkkmb" ON public.data_medis_pkkmb FOR SELECT TO public USING (true);
+CREATE POLICY "auth all data_medis_pkkmb" ON public.data_medis_pkkmb FOR ALL TO authenticated USING (true) WITH CHECK (true);
+ALTER TABLE public.data_tambahan_pkkmb ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read data_tambahan_pkkmb" ON public.data_tambahan_pkkmb FOR SELECT TO public USING (true);
+CREATE POLICY "auth all data_tambahan_pkkmb" ON public.data_tambahan_pkkmb FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+CREATE TABLE pengembangan (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    kunci BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.pengembangan ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read pengembangan" ON public.pengembangan FOR SELECT TO public USING (true);
+CREATE POLICY "auth all pengembangan" ON public.pengembangan FOR ALL TO authenticated USING (true) WITH CHECK (true);
 ```

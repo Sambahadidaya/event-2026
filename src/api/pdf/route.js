@@ -9,6 +9,7 @@ import { generateTeamReportPDF } from '@/lib/pdf/teamReport';
 import { generatePenilaianPDF } from '@/lib/pdf/penilaian';
 import { generateAbsensiPDF } from '@/lib/pdf/absensi';
 import { generateSalesPDF } from '@/lib/pdf/sales';
+import { generateMedisPDF } from '@/lib/pdf/medis';
 
 /**
  * Server action to generate PDF securely for logged in admin users
@@ -200,6 +201,12 @@ export async function generatePdfAction(payload = {}) {
                 detailData,
                 printedBy,
                 namaLombaFilter
+            });
+        } else if (type === 'medis') {
+            pdfBuffer = await generateMedisPDF({
+                data,
+                title,
+                printedBy
             });
         } else {
             // Default report PDF
