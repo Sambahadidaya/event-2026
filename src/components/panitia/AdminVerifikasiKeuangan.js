@@ -6,6 +6,7 @@ import {
     FileText, UserCheck, Filter, X, FileImage, ExternalLink
 } from 'lucide-react';
 import { getPesertaKeuangan, updateStatusPembayaranPeserta } from '@/api/supabase/admin/peserta';
+import { getPembayaranPkkmbKeuangan, updateStatusPembayaranPkkmb } from '@/api/supabase/admin/pembayaran_pkkmb';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
 import TablePagination from '@/components/panitia/TablePagination';
 import ExportExcelButton from '@/components/panitia/finance/ExportExcelButton';
@@ -43,9 +44,30 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
 
     const fetchData = useCallback(async () => {
         setLoading(true);
-        const pesertaData = await getPesertaKeuangan(siteType);
-        if (pesertaData) {
-            setData(pesertaData);
+        if (siteType === 'pkkmb') {
+            const pkkmbData = await getPembayaranPkkmbKeuangan();
+            if (pkkmbData) {
+                setData(pkkmbData.map(d => ({...d, jenis_form: 'wajib', site_type: 'pkkmb'})));
+                setLastSyncedAt(Date.now());
+            }
+        } else if (siteType === 'pose') {
+            const pesertaData = await getPesertaKeuangan(siteType);
+            if (pesertaData) {
+                setData(pesertaData);
+                setLastSyncedAt(Date.now());
+            }
+        } else {
+            const [pkkmbData, pesertaData] = await Promise.all([
+                getPembayaranPkkmbKeuangan(),
+                getPesertaKeuangan('all')
+            ]);
+            
+            const merged = [
+                ...(pkkmbData ? pkkmbData.map(d => ({...d, jenis_form: 'wajib', site_type: 'pkkmb'})) : []),
+                ...(pesertaData ? pesertaData.filter(d => !(d.site_type === 'pkkmb' && d.jenis_form === 'wajib')) : [])
+            ];
+            
+            setData(merged);
             setLastSyncedAt(Date.now());
         }
         setLoading(false);
@@ -162,7 +184,13 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
         if (!verifikasiItem) return;
         setVerifikasiLoading(true);
 
-        const res = await updateStatusPembayaranPeserta(verifikasiItem.id, status);
+        let res;
+        if (verifikasiItem.tahapan !== undefined || (verifikasiItem.site_type === 'pkkmb' && verifikasiItem.jenis_form === 'wajib')) {
+            // For PKKMB: update pembayaran_pkkmb and auto-update peserta if fully paid
+            res = await updateStatusPembayaranPkkmb(verifikasiItem.id, status, verifikasiItem);
+        } else {
+            res = await updateStatusPembayaranPeserta(verifikasiItem.id, status);
+        }
 
         if (res.success) {
             setData(prev => prev.map(d => d.id === verifikasiItem.id ? { ...d, status_pembayaran: status } : d));
@@ -657,6 +685,28 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
                                         {verifikasiItem.status_pembayaran || 'pending'}
                                     </span>
                                 </div>
+                                {siteType === 'pkkmb' && (
+                                    <>
+                                        <div className="flex justify-between items-start text-xs sm:text-sm">
+                                            <span className="text-gray-500 font-medium">Kelas</span>
+                                            <span className="font-semibold text-gray-800 dark:text-gray-200 text-right">{verifikasiItem.kelas || '-'}</span>
+                                        </div>
+                                        <div className="flex justify-between items-start text-xs sm:text-sm">
+                                            <span className="text-gray-500 font-medium">Jenis Pembayaran</span>
+                                            <span className="font-semibold text-gray-800 dark:text-gray-200 text-right capitalize">{verifikasiItem.jenis_bayar || '-'}</span>
+                                        </div>
+                                        <div className="flex justify-between items-start text-xs sm:text-sm">
+                                            <span className="text-gray-500 font-medium">Tahapan</span>
+                                            <span className="font-bold text-indigo-600 dark:text-indigo-400 text-right capitalize">{verifikasiItem.tahapan || '-'}</span>
+                                        </div>
+                                        <div className="flex justify-between items-start text-xs sm:text-sm">
+                                            <span className="text-gray-500 font-medium">Nominal</span>
+                                            <span className="font-bold text-emerald-600 dark:text-emerald-400 text-right">
+                                                {verifikasiItem.nominal ? `Rp ${Number(verifikasiItem.nominal).toLocaleString('id-ID')}` : '-'}
+                                            </span>
+                                        </div>
+                                    </>
+                                )}
                             </div>
 
                             {/* Bukti Bayar Preview Link */}

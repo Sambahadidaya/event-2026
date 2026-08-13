@@ -528,6 +528,7 @@ export default function PanitiaLayout({ children }) {
                         <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.keuangan ? 'max-h-[600px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
                             <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
                                 <NavLink href="/panitia/keuangan/dashboard" icon={LayoutDashboard} label="Dashboard Keuangan" colorTheme="emerald" />
+                                <NavLink href="/panitia/keuangan/data_peserta" icon={User} label="Data Peserta" colorTheme="emerald" />
                                 <NavLink href="/panitia/keuangan/verifikasi" icon={FileCheck} label="Verifikasi Pembayaran" colorTheme="emerald" />
                                 <NavLink href="/panitia/keuangan/transaksi" icon={ArrowLeftRight} label="Riwayat Transaksi" colorTheme="emerald" />
                                 <NavLink href="/panitia/keuangan/master-transaksi" icon={Tags} label="Master Kategori" colorTheme="emerald" />

@@ -448,7 +448,12 @@ export const autoCreateTransactionFromPeserta = async (peserta, userEmail = 'sys
         if (!peserta || !peserta.id) return { success: false, error: 'Invalid peserta data' };
 
         const site = peserta.site_type || 'pkkmb';
-        const kodePayer = peserta.nim || peserta.email_wa || peserta.nama;
+        let kodePayer = peserta.nim || peserta.email_wa || peserta.nama;
+
+        // For PKKMB bertahap, we make kode_payer unique by appending tahapan
+        if (site === 'pkkmb' && peserta.jenis_form === 'wajib' && peserta._pembayaran_tahapan) {
+            kodePayer = `${peserta.nim}-${peserta._pembayaran_tahapan}`;
+        }
 
         // 1. Check Deduplication for POSE (if email_wa + bukti_bayar match or kode_payer match)
         if (site === 'pose') {
@@ -473,7 +478,7 @@ export const autoCreateTransactionFromPeserta = async (peserta, userEmail = 'sys
                 .limit(1);
 
             if (existingGeneral && existingGeneral.length > 0) {
-                console.log(`[Auto-Finance] Transaction already exists for ${peserta.nama}`);
+                console.log(`[Auto-Finance] Transaction already exists for ${peserta.nama} (${kodePayer})`);
                 return { success: true, duplicate: true };
             }
         }
@@ -487,7 +492,41 @@ export const autoCreateTransactionFromPeserta = async (peserta, userEmail = 'sys
         const rawKodeForm = peserta.kode_form;
         const searchKode = rawKodeForm ? (rawKodeForm.length > 4 ? rawKodeForm.slice(0, -4) : rawKodeForm) : null;
 
-        if (peserta.jenis_form === 'wajib') {
+        const isPkkmbWajibStaged = site === 'pkkmb' && peserta.jenis_form === 'wajib' && peserta._pembayaran_tahapan;
+        let requiredFullNominal = 500000;
+        const pkkmbTahapan = peserta._pembayaran_tahapan;
+        const pkkmbNominal = peserta._pembayaran_nominal;
+
+        if (isPkkmbWajibStaged) {
+            if (searchKode) {
+                const { data: fw } = await supabaseAdmin
+                    .from('form_wajib')
+                    .select('id, judul')
+                    .or(`kode_form.eq.${searchKode},kode_form.eq.${rawKodeForm}`)
+                    .limit(1)
+                    .single();
+
+                if (fw) {
+                    keterangan = `Pembayaran Wajib PKKMB [${pkkmbTahapan}] - ${peserta.nama}`;
+                    const { data: pricing } = await supabaseAdmin
+                        .from('form_wajib_pricing')
+                        .select('nominal')
+                        .eq('form_id', fw.id)
+                        .eq('kelas', peserta.kelas || 'Reguler')
+                        .eq('jenis_tahapan', 'full')
+                        .maybeSingle();
+
+                    if (pricing) {
+                        requiredFullNominal = pricing.nominal;
+                    }
+                }
+            }
+            if (pkkmbTahapan === 'tahap 1') {
+                nominal = pkkmbNominal || requiredFullNominal;
+            } else {
+                nominal = pkkmbNominal;
+            }
+        } else if (peserta.jenis_form === 'wajib') {
             if (searchKode) {
                 const { data: fw } = await supabaseAdmin
                     .from('form_wajib')
@@ -511,8 +550,6 @@ export const autoCreateTransactionFromPeserta = async (peserta, userEmail = 'sys
                     .single();
 
                 if (fr) {
-                    // BUG 1 FIX: Ambil nominal dari form_register_pricing berdasarkan form_id + kategori
-                    // agar nominal sesuai dengan kategori pendaftar (bukan nominal default form_register)
                     const kategoriPeserta = peserta.kategori || 'Mahasiswa LP3I';
                     const { data: pricing } = await supabaseAdmin
                         .from('form_register_pricing')
@@ -521,7 +558,6 @@ export const autoCreateTransactionFromPeserta = async (peserta, userEmail = 'sys
                         .eq('kategori', kategoriPeserta)
                         .single();
 
-                    // Gunakan pricing.nominal jika ada, fallback ke fr.nominal
                     nominal = (pricing && pricing.nominal != null) ? pricing.nominal : (fr.nominal || 0);
                     keterangan = `Pendaftaran ${fr.nama_lomba || 'Lomba'} - ${peserta.nama}`;
                     formCategoryName = `Lomba ${fr.nama_lomba || ''}`;
@@ -536,7 +572,6 @@ export const autoCreateTransactionFromPeserta = async (peserta, userEmail = 'sys
         }
 
         // 3. Map Payment Method to Master Account
-        // Fetch or find matching master_account (Asset)
         const paymentMethod = (peserta.metode_pembayaran || 'Tunai').trim();
         const { data: accounts } = await supabaseAdmin
             .from('master_account')
@@ -546,11 +581,9 @@ export const autoCreateTransactionFromPeserta = async (peserta, userEmail = 'sys
         let revenueAccount = null;
 
         if (accounts && accounts.length > 0) {
-            // Find Asset account by matching name or fallback
             assetAccount = accounts.find(a => a.akun_type === 'Asset' && a.nama_akun.toLowerCase().includes(paymentMethod.toLowerCase()))
                 || accounts.find(a => a.akun_type === 'Asset');
 
-            // Find Revenue account
             revenueAccount = accounts.find(a => a.akun_type === 'Revenue');
         }
 
@@ -613,8 +646,70 @@ export const autoCreateTransactionFromPeserta = async (peserta, userEmail = 'sys
 
             const utangAccount = accounts?.find(a => a.kode_akun === '2002');
             const bebanAccount = accounts?.find(a => a.kode_akun === '5005');
+            const piutangAccount = accounts?.find(a => a.kode_akun === '1005' || a.nama_akun.toLowerCase().includes('piutang'));
 
-            if (salesEntry && salesEntry.nominal > 0 && utangAccount && bebanAccount) {
+            if (isPkkmbWajibStaged) {
+                if (pkkmbTahapan === 'tahap 1') {
+                    // Tahap 1: Debit Kas, Debit Piutang, Credit Revenue
+                    const piutangNominal = requiredFullNominal - pkkmbNominal;
+                    await supabaseAdmin.from('journal_entry').insert([
+                        {
+                            kode_id: je1_kode,
+                            transaction_id: tf.id,
+                            account_id: assetAccount.id, // DEBIT Asset (Kas/QRIS/Seabank)
+                            debit: pkkmbNominal,
+                            credit: 0,
+                            description: `Penerimaan ${keterangan} via ${paymentMethod}`,
+                            journal_date: new Date().toISOString().split('T')[0],
+                            site: site
+                        },
+                        {
+                            kode_id: `JE${Math.floor(100 + Math.random() * 900)}`,
+                            transaction_id: tf.id,
+                            account_id: piutangAccount ? piutangAccount.id : assetAccount.id, // DEBIT Piutang (or asset fallback)
+                            debit: piutangNominal,
+                            credit: 0,
+                            description: `Piutang Pembayaran ${keterangan}`,
+                            journal_date: new Date().toISOString().split('T')[0],
+                            site: site
+                        },
+                        {
+                            kode_id: je2_kode,
+                            transaction_id: tf.id,
+                            account_id: revenueAccount.id, // CREDIT Revenue
+                            debit: 0,
+                            credit: requiredFullNominal,
+                            description: `Pendapatan ${keterangan}`,
+                            journal_date: new Date().toISOString().split('T')[0],
+                            site: site
+                        }
+                    ]);
+                } else if (pkkmbTahapan === 'tahap 2') {
+                    // Tahap 2: Debit Kas, Credit Piutang
+                    await supabaseAdmin.from('journal_entry').insert([
+                        {
+                            kode_id: je1_kode,
+                            transaction_id: tf.id,
+                            account_id: assetAccount.id, // DEBIT Asset (Kas/QRIS/Seabank)
+                            debit: pkkmbNominal,
+                            credit: 0,
+                            description: `Penerimaan Pelunasan ${keterangan} via ${paymentMethod}`,
+                            journal_date: new Date().toISOString().split('T')[0],
+                            site: site
+                        },
+                        {
+                            kode_id: je2_kode,
+                            transaction_id: tf.id,
+                            account_id: piutangAccount ? piutangAccount.id : assetAccount.id, // CREDIT Piutang (or asset fallback)
+                            debit: 0,
+                            credit: pkkmbNominal,
+                            description: `Pelunasan Piutang ${keterangan}`,
+                            journal_date: new Date().toISOString().split('T')[0],
+                            site: site
+                        }
+                    ]);
+                }
+            } else if (salesEntry && salesEntry.nominal > 0 && utangAccount && bebanAccount) {
                 // 4 Entries: Asset, Revenue, Beban Komisi (5005), Utang Komisi (2002)
                 await supabaseAdmin.from('journal_entry').insert([
                     {
@@ -708,7 +803,7 @@ export const autoDeleteTransactionFromPeserta = async (peserta) => {
             .from('transaction_finance')
             .select('id')
             .eq('site', site)
-            .eq('kode_payer', kodePayer);
+            .or(`kode_payer.eq.${kodePayer},kode_payer.ilike.${kodePayer}-%`);
 
         if (existing && existing.length > 0) {
             const ids = existing.map(e => e.id);
@@ -1080,3 +1175,63 @@ export const getKuotaKampusByForm = async (formId) => {
         return [];
     }
 };
+
+export const getFormWajibPricingAdmin = async (formId) => {
+    try {
+        const { error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        if (!formId) return [];
+
+        const { data, error } = await supabaseAdmin
+            .from('form_wajib_pricing')
+            .select('id, form_id, kelas, nominal, jenis_tahapan')
+            .eq('form_id', formId);
+
+        if (error) throw error;
+        return data || [];
+    } catch (error) {
+        console.error("Internal Log - Error fetching form wajib pricing admin:", error);
+        return [];
+    }
+};
+
+export const upsertFormWajibPricing = async (formId, pricingList) => {
+    try {
+        const { user, adminNama, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        if (!formId) throw new Error('form_id is required');
+        if (!Array.isArray(pricingList)) throw new Error('pricingList must be an array');
+
+        await supabaseAdmin
+            .from('form_wajib_pricing')
+            .delete()
+            .eq('form_id', formId);
+
+        let insertedData = [];
+        if (pricingList.length > 0) {
+            const rowsToInsert = pricingList.map(item => ({
+                form_id: formId,
+                kelas: item.kelas,
+                nominal: parseInt(item.nominal, 10) || 0,
+                jenis_tahapan: item.jenis_tahapan || 'full'
+            }));
+
+            const { data, error: insertError } = await supabaseAdmin
+                .from('form_wajib_pricing')
+                .insert(rowsToInsert)
+                .select();
+
+            if (insertError) throw insertError;
+            insertedData = data;
+        }
+
+        await insertAuditLog(user.email, 'UPSERT_FORM_WAJIB_PRICING', formId, `Updated pricing for form wajib ${formId}`, adminNama);
+        return { success: true, data: insertedData };
+    } catch (error) {
+        console.error("Internal Log - Error upserting form wajib pricing:", error);
+        return { success: false, error: error.message || 'Terjadi kesalahan internal pada server' };
+    }
+};
+

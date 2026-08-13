@@ -46,6 +46,12 @@ export default function KeuanganDashboardHeader({ transactions = [], pesertaLuna
         } else {
           income += val;
           if (!isNaN(month)) monthlyIncome[month] += val;
+          
+          const comm = Number(item.potongan_sales || 0);
+          if (comm > 0) {
+            expense += comm;
+            if (!isNaN(month)) monthlyExpense[month] += comm;
+          }
         }
       });
     } else {

@@ -1,0 +1,3 @@
+lihat dan analisislah codingan yang ada difle src/components/public/FormRegistration.js, nah disitukan ada form wajib dan form register yang bersite pkkmb dan site yang semua itu diatur menggunakan formconfig dan iswajib. nah saya ingin memisahkan saja form antara form wajib dan form register yang sudah aku persiapkan difile src/components/public/FormRegister.js dan src/components/public/FormWajib.js. 
+ingat saya cuman ingin memisahkan saja untuk layout atau desain atau isian atau validasi atau logika pokonya semuanya harus ada dan sama persis seperti yang awal ini.
+fokus saja ke codingan, jangan menjalankan apapun untuk testing seperti npm run biar aku saja yang menjalankannya dan untuk penjelasannya yang intinya saja secara singkat padat dan jelas.

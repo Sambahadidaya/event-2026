@@ -6,8 +6,8 @@ import { getJadwalAcara } from '@/api/supabase/public/jadwal';
 import { useParams } from 'next/navigation';
 import { Trophy, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import FormRegistration from '@/components/public/FormRegistration';
-
+// import FormRegistration from '@/components/public/FormRegistration';
+import FormRegister from '@/components/public/FormRegister';
 import SiteBackground from '@/components/public/SiteBackground';
 
 export default function DynamicFormRegisterPage() {
@@ -29,7 +29,7 @@ export default function DynamicFormRegisterPage() {
                 setNotFound(true);
             } else {
                 setFormConfig(data);
-                
+
                 // Check jadwal pendaftaran
                 const pendaftaranJadwal = (jadwalData || []).find(j => j.jenis_jadwal === 'pendaftaran');
                 if (pendaftaranJadwal) {
@@ -37,7 +37,7 @@ export default function DynamicFormRegisterPage() {
                     const mulai = new Date(pendaftaranJadwal.waktu_mulai);
                     const selesai = new Date(pendaftaranJadwal.waktu_selesai);
                     setJadwalInfo({ mulai, selesai });
-                    
+
                     if (now < mulai) {
                         setJadwalStatus('early');
                     } else if (now > selesai) {
@@ -121,7 +121,8 @@ export default function DynamicFormRegisterPage() {
                 <Link href="/pose/register" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 mb-6 transition-colors">
                     <ArrowLeft size={16} /> Kembali
                 </Link>
-                <FormRegistration formConfig={formConfig} isWajib={false} />
+                {/* <FormRegistration formConfig={formConfig} isWajib={false} /> */}
+                <FormRegister formConfig={formConfig} />
             </div>
         </div>
     );

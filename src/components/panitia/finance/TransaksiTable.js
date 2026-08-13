@@ -126,6 +126,11 @@ export default function TransaksiTable({ siteType = 'all', adminRole = '' }) {
                 totalExpense += val;
             } else {
                 totalIncome += val;
+                
+                const comm = Number(item.potongan_sales || 0);
+                if (comm > 0) {
+                    totalExpense += comm;
+                }
             }
         });
 

@@ -78,7 +78,10 @@ export const rolePermissions = {
     '/panitia/pkkmb/jadwal_acara',
     '/panitia/pkkmb/materi',
     '/panitia/pkkmb/tugas',
+    '/panitia/pj_kabim/kelompok',
+    '/panitia/pj_medis/peserta',
     '/panitia/keuangan/dashboard',
+    '/panitia/keuangan/data_peserta',
     '/panitia/keuangan/verifikasi',
     '/panitia/keuangan/transaksi',
     '/panitia/keuangan/master-transaksi',
@@ -162,6 +165,7 @@ export const rolePermissions = {
   ],
   admin_pkkmb_keuangan: [
     '/panitia/keuangan/dashboard',
+    '/panitia/keuangan/data_peserta',
     '/panitia/keuangan/verifikasi',
     '/panitia/keuangan/transaksi',
     '/panitia/keuangan/master-transaksi',

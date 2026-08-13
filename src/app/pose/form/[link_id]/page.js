@@ -5,7 +5,8 @@ import { getFormWajibByLinkId } from '@/api/supabase/public/peserta';
 import { useParams } from 'next/navigation';
 import { Trophy, ArrowLeft, FileText } from 'lucide-react';
 import Link from 'next/link';
-import FormRegistration from '@/components/public/FormRegistration';
+// import FormRegistration from '@/components/public/FormRegistration';
+import FormWajib from '@/components/public/FormWajib';
 import SiteBackground from '@/components/public/SiteBackground';
 
 export default function PoseFormWajibPage() {
@@ -62,7 +63,8 @@ export default function PoseFormWajibPage() {
                     <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white mb-2">{formConfig.judul}</h1>
                     <p className="text-gray-600 dark:text-gray-400">Isi formulir di bawah ini dengan lengkap dan benar</p>
                 </div>
-                <FormRegistration formConfig={formConfig} isWajib={true} />
+                {/* <FormRegistration formConfig={formConfig} isWajib={true} /> */}
+                <FormWajib formConfig={formConfig} />
             </div>
         </div>
     );

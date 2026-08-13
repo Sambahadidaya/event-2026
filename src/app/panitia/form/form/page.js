@@ -12,7 +12,7 @@ import { JENIS_LOMBA, NAMA_LOMBA, KODE_JENIS_LOMBA, KODE_NAMA_LOMBA, KAMPUS_DATA
 import { generateKodeFormWajib, generateKodeFormRegister } from '@/lib/kodeFormUtils';
 import { upsertFormWajib, upsertFormRegister } from '@/api/supabase/admin/peserta';
 import { upsertFormPengumpulan } from '@/api/supabase/admin/submission';
-import { upsertFormRegisterPricing, upsertFormRegisterKampusQuota } from '@/api/supabase/admin/finance';
+import { upsertFormRegisterPricing, upsertFormRegisterKampusQuota, upsertFormWajibPricing } from '@/api/supabase/admin/finance';
 import { uploadFile } from '@/api/supabase/storage';
 import { nanoid } from 'nanoid';
 
@@ -31,6 +31,15 @@ export default function UnifiedFormDashboard() {
     const [nominal, setNominal] = useState('');
     const [imageFile, setImageFile] = useState(null);
     const [butuhBukti, setButuhBukti] = useState(true);
+
+    // PKKMB Wajib Staged pricing states
+    const [regulerTahap1, setRegulerTahap1] = useState('');
+    const [regulerTahap2, setRegulerTahap2] = useState('');
+    const [regulerFull, setRegulerFull] = useState('');
+    const [nonRegulerTahap1, setNonRegulerTahap1] = useState('');
+    const [nonRegulerTahap2, setNonRegulerTahap2] = useState('');
+    const [nonRegulerFull, setNonRegulerFull] = useState('');
+    const [kipFull, setKipFull] = useState('');
 
     const [jenisLomba, setJenisLomba] = useState('');
     const [namaLomba, setNamaLomba] = useState('');
@@ -98,6 +107,13 @@ export default function UnifiedFormDashboard() {
         setPakaiGrupKategori(false);
         setJenisKategoriList([]);
         setIsPublic(true);
+        setRegulerTahap1('');
+        setRegulerTahap2('');
+        setRegulerFull('');
+        setNonRegulerTahap1('');
+        setNonRegulerTahap2('');
+        setNonRegulerFull('');
+        setKipFull('');
     };
 
     const handleOpenModal = () => {
@@ -169,6 +185,19 @@ export default function UnifiedFormDashboard() {
                 gambar: gambarUrl,
                 kode_form: kodeForm
             });
+
+            if (res.success && res.data?.id && formSite === 'pkkmb') {
+                const pricingList = [
+                    { kelas: 'Reguler', nominal: regulerTahap1 || 0, jenis_tahapan: 'tahap 1' },
+                    { kelas: 'Reguler', nominal: regulerTahap2 || 0, jenis_tahapan: 'tahap 2' },
+                    { kelas: 'Reguler', nominal: regulerFull || 0, jenis_tahapan: 'full' },
+                    { kelas: 'NonReguler', nominal: nonRegulerTahap1 || 0, jenis_tahapan: 'tahap 1' },
+                    { kelas: 'NonReguler', nominal: nonRegulerTahap2 || 0, jenis_tahapan: 'tahap 2' },
+                    { kelas: 'NonReguler', nominal: nonRegulerFull || 0, jenis_tahapan: 'full' },
+                    { kelas: 'KIP', nominal: kipFull || 0, jenis_tahapan: 'full' }
+                ];
+                await upsertFormWajibPricing(res.data.id, pricingList);
+            }
         } else if (formType === 'register') {
             const linkId = nanoid(64);
             const jenisKode = KODE_JENIS_LOMBA[jenisLomba] || 'XX';
@@ -463,17 +492,73 @@ export default function UnifiedFormDashboard() {
                                 />
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nominal Pembayaran (Opsional)</label>
-                                <input
-                                    type="number"
-                                    value={nominal}
-                                    onChange={(e) => setNominal(e.target.value)}
-                                    placeholder="Contoh: 50000"
-                                    min="0"
-                                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
-                                />
-                            </div>
+                             {formType === 'wajib' && formSite === 'pkkmb' ? (
+                                <div className="space-y-4 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
+                                    <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                        <span className="w-1.5 h-4 bg-blue-500 rounded-full"></span>
+                                        Konfigurasi Nominal per Kelas & Tahapan
+                                    </h4>
+                                    
+                                    {/* Reguler */}
+                                    <div className="space-y-2 border-b border-gray-200 dark:border-gray-800 pb-3">
+                                        <h5 className="text-xs font-semibold text-gray-700 dark:text-gray-300">Kelas Reguler</h5>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <div>
+                                                <label className="block text-[10px] text-gray-500">Tahap 1</label>
+                                                <input type="number" value={regulerTahap1} onChange={(e) => setRegulerTahap1(e.target.value)} className="w-full px-2 py-1 bg-white dark:bg-gray-800 border rounded-lg text-xs" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] text-gray-500">Tahap 2</label>
+                                                <input type="number" value={regulerTahap2} onChange={(e) => setRegulerTahap2(e.target.value)} className="w-full px-2 py-1 bg-white dark:bg-gray-800 border rounded-lg text-xs" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] text-gray-500">Full</label>
+                                                <input type="number" value={regulerFull} onChange={(e) => setRegulerFull(e.target.value)} className="w-full px-2 py-1 bg-white dark:bg-gray-800 border rounded-lg text-xs" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* NonReguler */}
+                                    <div className="space-y-2 border-b border-gray-200 dark:border-gray-800 pb-3">
+                                        <h5 className="text-xs font-semibold text-gray-700 dark:text-gray-300">Kelas Non Reguler</h5>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <div>
+                                                <label className="block text-[10px] text-gray-500">Tahap 1</label>
+                                                <input type="number" value={nonRegulerTahap1} onChange={(e) => setNonRegulerTahap1(e.target.value)} className="w-full px-2 py-1 bg-white dark:bg-gray-800 border rounded-lg text-xs" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] text-gray-500">Tahap 2</label>
+                                                <input type="number" value={nonRegulerTahap2} onChange={(e) => setNonRegulerTahap2(e.target.value)} className="w-full px-2 py-1 bg-white dark:bg-gray-800 border rounded-lg text-xs" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] text-gray-500">Full</label>
+                                                <input type="number" value={nonRegulerFull} onChange={(e) => setNonRegulerFull(e.target.value)} className="w-full px-2 py-1 bg-white dark:bg-gray-800 border rounded-lg text-xs" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* KIP */}
+                                    <div className="space-y-2">
+                                        <h5 className="text-xs font-semibold text-gray-700 dark:text-gray-300">Kelas KIP (Langsung Full)</h5>
+                                        <div className="w-1/2">
+                                            <label className="block text-[10px] text-gray-500">Full Only</label>
+                                            <input type="number" value={kipFull} onChange={(e) => setKipFull(e.target.value)} className="w-full px-2 py-1 bg-white dark:bg-gray-800 border rounded-lg text-xs" />
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nominal Pembayaran (Opsional)</label>
+                                    <input
+                                        type="number"
+                                        value={nominal}
+                                        onChange={(e) => setNominal(e.target.value)}
+                                        placeholder="Contoh: 50000"
+                                        min="0"
+                                        className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                                    />
+                                </div>
+                            )}
 
                             {formType === 'register' && (
                                 <div>

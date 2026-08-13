@@ -35,7 +35,9 @@ Proyek ini menggunakan Next.js (App Router) berbasis JavaScript murni (bukan Typ
         "react-chartjs-2": "^5.3.1",
         "react-dom": "19.2.4",
         "react-image-crop": "^11.1.2",
+        "react-markdown": "^10.1.0",
         "react-pdf": "^10.4.1",
+        "remark-gfm": "^4.0.1",
         "sharp": "^0.35.3",
         "tree-node-cli": "^3.0.0",
         "xlsx": "^0.18.5"
@@ -870,6 +872,39 @@ CREATE TABLE pengembangan (
 ALTER TABLE public.pengembangan ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "public read pengembangan" ON public.pengembangan FOR SELECT TO public USING (true);
 CREATE POLICY "auth all pengembangan" ON public.pengembangan FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+
+CREATE TABLE public.form_wajib_pricing (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    form_id UUID NOT NULL REFERENCES public.form_wajib(id) ON DELETE CASCADE,
+    kelas VARCHAR(50) NOT NULL,
+    nominal INT4 NOT NULL DEFAULT 0,
+    jenis_tahapan VARCHAR (20),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.form_wajib_pricing ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read pricing" ON public.form_wajib_pricing FOR SELECT TO public USING (true);
+CREATE POLICY "auth all pricing" ON public.form_wajib_pricing FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+
+CREATE TABLE public.pembayaran_pkkmb (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    nim_user VARCHAR(50) NOT NULL,
+    jenis_bayar VARCHAR(50) NOT NULL,
+    tahapan VARCHAR(50) NOT NULL,
+    nominal INT4 NOT NULL DEFAULT 0,
+    status_pembayaran VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.pembayaran_pkkmb ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read pricing" ON public.pembayaran_pkkmb FOR SELECT TO public USING (true);
+CREATE POLICY "auth all pricing" ON public.pembayaran_pkkmb FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+INSERT INTO master_account (kode_id, kode_akun, nama_akun, akun_type, site)
+VALUES
+  ('MA015', '1005', 'Piutang','Asset','pkkmb')
+  ON CONFLICT (kode_akun) DO NOTHING;
+
 ```
 
 ---
@@ -902,6 +937,7 @@ CREATE POLICY "auth all pengembangan" ON public.pengembangan FOR ALL TO authenti
 │   │   │   │   ├── materi.js
 │   │   │   │   ├── medis.jsjs
 │   │   │   │   ├── pdf.js
+│   │   │   │   ├── pembayaran_pkkmb.js
 │   │   │   │   ├── pengembang.jsjs
 │   │   │   │   ├── penilaian.js
 │   │   │   │   ├── peserta.js
@@ -916,6 +952,7 @@ CREATE POLICY "auth all pengembangan" ON public.pengembangan FOR ALL TO authenti
 │   │   │   │   ├── materi.js
 │   │   │   │   ├── medis.jsjs
 │   │   │   │   ├── pdf.js
+│   │   │   │   ├── pembayaran_pkkmb.js
 │   │   │   │   ├── pengembang.js
 │   │   │   │   ├── penilaian.js
 │   │   │   │   ├── peserta.js
@@ -965,6 +1002,8 @@ CREATE POLICY "auth all pengembangan" ON public.pengembangan FOR ALL TO authenti
 │   │   │   │   ├── buku-besar/
 │   │   │   │   │   └── page.js
 │   │   │   │   ├── dashboard/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── data_peserta/
 │   │   │   │   │   └── page.js
 │   │   │   │   ├── jurnal-entry/
 │   │   │   │   │   └── page.js
@@ -1148,7 +1187,9 @@ CREATE POLICY "auth all pengembangan" ON public.pengembangan FOR ALL TO authenti
 │   │   │   ├── AnnouncementTimeline.js
 │   │   │   ├── Carousel.js
 │   │   │   ├── FormPengumpulan.js
+│   │   │   ├── FormRegister.js
 │   │   │   ├── FormRegistration.js
+│   │   │   ├── FormWajib.js
 │   │   │   ├── HomeLanding.js
 │   │   │   ├── KetentuanPage.js
 │   │   │   ├── PageHero.js

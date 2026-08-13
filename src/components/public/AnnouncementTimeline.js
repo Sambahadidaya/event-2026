@@ -1,6 +1,8 @@
 'use client';
 
 import { Bell, Search } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const siteStyles = {
     pkkmb: {
@@ -40,7 +42,7 @@ function formatAnnouncementDate(item) {
         month: 'long',
         year: 'numeric',
     });
-    return `📢${formatted}`;
+    return `📢 ${formatted}`;
 }
 
 export default function AnnouncementTimeline({ site, items, loading, filter, onFilterChange }) {
@@ -48,7 +50,8 @@ export default function AnnouncementTimeline({ site, items, loading, filter, onF
 
     return (
         <>
-            <style dangerouslySetInnerHTML={{ __html: `
+            <style dangerouslySetInnerHTML={{
+                __html: `
                 @keyframes dropFall {
                     0% { top: -200px; }
                     100% { top: 100%; }
@@ -114,8 +117,33 @@ export default function AnnouncementTimeline({ site, items, loading, filter, onF
                                         <h3 className={`text-xl sm:text-2xl font-extrabold text-gray-900 dark:text-white mb-4 tracking-tight pb-3 border-b ${styles.titleAccent}`}>
                                             {item.title}
                                         </h3>
-                                        <div className="text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap text-[15px] sm:text-base">
-                                            {item.content}
+
+                                        {/* Bagian Konten yang Mendukung Formatting & Clickable Link */}
+                                        <div className="text-gray-600 dark:text-gray-300 leading-relaxed text-[15px] sm:text-base space-y-3">
+                                            <ReactMarkdown
+                                                remarkPlugins={[remarkGfm]}
+                                                components={{
+                                                    // Mengatur styling paragraf & spasi
+                                                    p: ({ node, ...props }) => <p className="mb-2 whitespace-pre-wrap" {...props} />,
+                                                    // Styling untuk teks tebal
+                                                    strong: ({ node, ...props }) => <strong className="font-bold text-gray-900 dark:text-white" {...props} />,
+                                                    // Styling untuk link otomatis
+                                                    a: ({ node, ...props }) => (
+                                                        <a
+                                                            className="text-blue-600 dark:text-blue-400 hover:underline font-medium break-all"
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            {...props}
+                                                        />
+                                                    ),
+                                                    // Styling untuk bullet list
+                                                    ul: ({ node, ...props }) => <ul className="list-disc pl-5 my-2 space-y-1" {...props} />,
+                                                    ol: ({ node, ...props }) => <ol className="list-decimal pl-5 my-2 space-y-1" {...props} />,
+                                                    li: ({ node, ...props }) => <li className="pl-1" {...props} />,
+                                                }}
+                                            >
+                                                {item.content}
+                                            </ReactMarkdown>
                                         </div>
                                     </div>
                                 </div>

@@ -6,6 +6,8 @@ import { supabaseAdmin } from '@/lib/supabase';
  * Mendapatkan status pengembangan (kunci: boolean)
  * @returns {Promise<{ kunci: boolean }>}
  */
+
+// Mode Production 
 export const getStatusPengembangan = async () => {
     try {
         const { data, error } = await supabaseAdmin
@@ -28,3 +30,4 @@ export const getStatusPengembangan = async () => {
 // export const getStatusPengembangan = async () => {
 //     return { kunci: false };
 // };
+

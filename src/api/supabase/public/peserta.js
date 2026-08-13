@@ -60,17 +60,27 @@ export const insertPeserta = async (payload) => {
 
         // 2b. Check double submission form wajib PKKMB
         if (sanitizedPayload.site_type === 'pkkmb' && sanitizedPayload.jenis_form === 'wajib') {
-            const { data: existingPeserta, error: existError } = await supabaseAdmin
+            const { count, error: existError } = await supabaseAdmin
                 .from('peserta')
-                .select('status_pembayaran')
+                .select('id', { count: 'exact', head: true })
                 .eq('site_type', 'pkkmb')
                 .eq('jenis_form', 'wajib')
                 .eq('nim', sanitizedPayload.nim)
-                .neq('status_pembayaran', 'ditolak')
-                .maybeSingle();
-            
-            if (existingPeserta) {
-                return { success: false, error: 'Anda sudah mendaftar form wajib ini dan status pendaftaran Anda saat ini belum ditolak.' };
+                .neq('status_pembayaran', 'ditolak');
+
+            if (existError) {
+                return {
+                    success: false,
+                    error: 'Gagal memeriksa data pendaftaran sebelumnya.'
+                };
+            }
+
+            // Maksimal 2 pendaftaran
+            if (count >= 2) {
+                return {
+                    success: false,
+                    error: 'Anda sudah mencapai batas maksimal 2 pendaftaran form wajib.'
+                };
             }
         }
 
@@ -153,7 +163,7 @@ export const insertPesertaBatch = async (pesertaArray) => {
                     .eq('nim', sanitizedPayload.nim)
                     .neq('status_pembayaran', 'ditolak')
                     .maybeSingle();
-                
+
                 if (existingPeserta) {
                     return { success: false, error: `Peserta dengan NIM ${sanitizedPayload.nim} sudah mendaftar form wajib.` };
                 }
@@ -591,4 +601,22 @@ export const checkPesertaRegisteredForLomba = async (nim, kampus, namaLomba) => 
         return false;
     }
 };
+
+export const getFormWajibPricing = async (formId) => {
+    try {
+        if (!formId) return [];
+
+        const { data, error } = await supabaseAdmin
+            .from('form_wajib_pricing')
+            .select('kelas, nominal, jenis_tahapan')
+            .eq('form_id', formId);
+
+        if (error) throw error;
+        return data || [];
+    } catch (error) {
+        console.error("Internal Log - Error fetching public form wajib pricing:", error);
+        return [];
+    }
+};
+
 
