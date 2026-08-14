@@ -399,11 +399,11 @@ export default function FormRegister({ formConfig }) {
                     const exists = await checkPesertaPoseWajibByNimAndKampus(m.nim, finalKampusReg);
                     if (!exists) {
                         setSubmitting(false);
-                        return window.alert(`Pendaftaran gagal: NIM ${m.nim} dan Kampus ${finalKampusReg} atas nama ${m.nama} belum terdaftar pada Form Wajib POSE.`);
+                        return window.alert(`Pendaftaran gagal: NIM ${m.nim} dan Kampus ${finalKampusReg} atas nama ${m.nama} belum terdaftar pada Form Wajib POSE. Silahkan cek digrup WhatsApp Angkatan untuk link form wajibnya atau minta ke panitia`);
                     }
                     if (exists.status_pembayaran?.toLowerCase() !== 'lunas') {
                         setSubmitting(false);
-                        return window.alert(`Pendaftaran gagal: Pembayaran Form Wajib untuk NIM ${m.nim} belum Lunas (Status: ${exists.status_pembayaran || 'pending'}).`);
+                        return window.alert(`Pendaftaran gagal: Pembayaran Form Wajib untuk NIM ${m.nim} belum diverifikasi oleh panitia (Status: ${exists.status_pembayaran || 'pending'}). Silahkan tunggu, jadwal Verifikasi Siang Pukul 11.00-12.00 WIB, dan Malam Pukul 20.00-21.00 WIB.`);
                     }
                     fetchedWajibData.push(exists);
                 }

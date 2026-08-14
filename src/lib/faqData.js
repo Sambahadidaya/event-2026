@@ -19,6 +19,10 @@ export const poseFaq = [
     { question: 'Bagaimana cara mendaftar lomba?', answer: 'Pendaftaran lomba dapat dilakukan pada halaman register.' },
     { question: 'Kapan pendaftaran lomba ditutup?', answer: 'Pendaftaran lomba ditutup pada tanggal 10 September.' },
     { question: 'Di mana lokasi POSE?', answer: 'Lokasi pertandingan POSE bervariasi sesuai cabang lomba. Silakan cek detail di jadwal.' },
+    { question: 'Kenapa gagal register terus?', answer: 'Gagal register bisa disebabkan beberapa faktor, khusus untuk mahasiswa lp3i bisa jadi penyebabnya karna Anda belum terdaftar/belum mengisi Form Wajib POSE, atau status pembayaran belum diverifikasi oleh panitia. Silahkan cek kembali data Anda dan pastikan sudah membayar Form Wajib.' },
+    { question: 'Apakah benar Mahasiswa LP3I bisa mendaftar lebih dari 2 lomba?', answer: 'Benar, Mahasiswa LP3I bisa mendaftar lebih dari 2 lomba jika sudah mendaftarkan diri dan sudah membayar Form Wajib POSE dan mahasiswa cuman bayar 1 kali diform wajib dan bisa mengikuti maksimal 2 lomba, namun kuota untuk dari form wajib ini sangat terbatas.' },
+    { question: 'Apakah kalo ikut lombanya dua harus bayar dua kali?', answer: 'Tidak, jika kamu sudah mendaftar dan sudah membayar Form Wajib POSE dan mahasiswa cuman bayar 1 kali diform wajib dan bisa mengikuti maksimal 2 lomba, namun kuota untuk dari form wajib ini sangat terbatas.' },
+    { question: 'Terus bagaimana jika sudah koata habis dilomba tersebut?', answer: 'Kamu bisa mendaftar dilomba yang sama namun formnya tidak ada diwebsite, silahkan menghubungi panitia untuk untuk minta form lanjutannya namun diform lanjutan ini mahasiswa harus bayar lagi sesuai dengan htm masing masing lomba, atau bisa juga mendaftar dilomba lainnya yang masih tersedia kuotanya.' },
     { question: 'Dimana saya bisa melihat jadwal pose?', answer: 'Jadwal dapat dilihat di menu Jadwal POSE.' }
 ];
 
