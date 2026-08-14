@@ -81,9 +81,12 @@ export const uploadFile = async (formData, bucket, pathPrefix = '') => {
         const fileName = `${nanoid(16)}.${fileExt}`;
         const filePath = `${pathPrefix}${fileName}`;
 
+        // Konversi Buffer ke Uint8Array / Blob untuk menghindari korupsi data di Vercel/Node fetch
+        const fileBody = new Blob([buffer], { type: fileTypeResult.mime });
+
         const { error: uploadError } = await supabaseAdmin.storage
             .from(bucket)
-            .upload(filePath, buffer, {
+            .upload(filePath, fileBody, {
                 contentType: fileTypeResult.mime,
                 upsert: false
             });
