@@ -228,14 +228,311 @@ const PhilosophyModal = ({ isOpen, onClose, type, theme, logoSlides, mascotInfo,
     );
 };
 
+// Poster Modal Component
+const PosterModal = ({ isOpen, onClose, lomba, theme }) => {
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const modalRef = useRef(null);
+
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+            setIsFullscreen(false);
+        }
+        return () => { document.body.style.overflow = 'unset'; };
+    }, [isOpen]);
+
+    if (!isOpen || !lomba) return null;
+
+    const posterSrc = lomba.poster ? (typeof lomba.poster === 'string' ? lomba.poster : lomba.poster.src) : null;
+
+    const handleDownload = async () => {
+        if (!posterSrc) return;
+        try {
+            const response = await fetch(posterSrc);
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Poster_${lomba.nama.replace(/\s+/g, '_')}.webp`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            const a = document.createElement('a');
+            a.href = posterSrc;
+            a.target = '_blank';
+            a.download = `Poster_${lomba.nama.replace(/\s+/g, '_')}`;
+            a.click();
+        }
+    };
+
+    const toggleFullscreen = () => {
+        if (!isFullscreen) {
+            setIsFullscreen(true);
+            if (modalRef.current && modalRef.current.requestFullscreen) {
+                modalRef.current.requestFullscreen().catch(() => { });
+            }
+        } else {
+            setIsFullscreen(false);
+            if (document.fullscreenElement && document.exitFullscreen) {
+                document.exitFullscreen().catch(() => { });
+            }
+        }
+    };
+
+    return (
+        <div ref={modalRef} className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-300 ${isFullscreen ? 'bg-black/95 p-0' : ''}`}>
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={onClose} />
+            <div className={`relative w-full ${isFullscreen ? 'max-w-none h-full rounded-none border-none' : 'max-w-2xl max-h-[90vh] rounded-3xl shadow-2xl border border-white/20'} bg-white dark:bg-slate-900 overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col z-10 transition-all duration-300`}>
+                {/* Header */}
+                <div className="p-3.5 sm:p-5 flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/50 shrink-0">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                        <span className={`px-2.5 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded-full border shrink-0 ${theme.badge}`}>
+                            Poster Lomba
+                        </span>
+                        <h3 className="text-sm sm:text-lg font-black text-gray-900 dark:text-white truncate">
+                            {lomba.nama}
+                        </h3>
+                    </div>
+
+                    {/* Action Buttons: Fullscreen, Download, Close */}
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                        {lomba.poster && (
+                            <>
+                                {/* Tombol Fullscreen */}
+                                <button
+                                    onClick={toggleFullscreen}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-200/80 dark:bg-slate-700/80 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-800 dark:text-gray-100 text-xs font-bold transition-all active:scale-95 cursor-pointer"
+                                    title={isFullscreen ? "Keluar Mode Fullscreen" : "Tampilan Layar Penuh"}
+                                >
+                                    {isFullscreen ? <LucideIcons.Minimize2 size={15} /> : <LucideIcons.Maximize2 size={15} />}
+                                    <span className="hidden sm:inline">{isFullscreen ? "Normal" : "Fullscreen"}</span>
+                                </button>
+
+                                {/* Tombol Download Poster */}
+                                <button
+                                    onClick={handleDownload}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-all active:scale-95 cursor-pointer"
+                                    title="Download Poster Lomba"
+                                >
+                                    <LucideIcons.Download size={15} />
+                                    <span>Unduh</span>
+                                </button>
+                            </>
+                        )}
+
+                        <button
+                            onClick={onClose}
+                            className="p-1.5 sm:p-2 rounded-full hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-500 dark:text-gray-300 transition-colors ml-1"
+                            aria-label="Close Poster"
+                        >
+                            <LucideIcons.X size={20} />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Poster Content */}
+                <div className="p-3 sm:p-4 overflow-y-auto flex items-center justify-center bg-gray-900/5 dark:bg-slate-950/50 flex-1 min-h-0">
+                    {lomba.poster ? (
+                        <div className={`relative w-full ${isFullscreen ? 'h-[85vh]' : 'h-[60vh] max-h-[550px]'} flex items-center justify-center`}>
+                            <Image
+                                src={lomba.poster}
+                                alt={`Poster ${lomba.nama}`}
+                                fill
+                                className="object-contain drop-shadow-2xl rounded-xl"
+                                priority
+                            />
+                        </div>
+                    ) : (
+                        <div className="py-12 text-center text-gray-400">
+                            <LucideIcons.ImageOff size={48} className="mx-auto mb-3 opacity-50" />
+                            <p className="text-sm font-medium">Poster belum tersedia</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// Lomba Card Component with 3-dots action menu overlay
+const LombaCard = ({ lomba, theme, lombaKategori, openPosterModal }) => {
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const cardRef = useRef(null);
+
+    const IconComponent = getLucideIcon(lomba.lucideIcon);
+    const kategori = (lombaKategori && lombaKategori[lomba.nama]) || [];
+
+    // Close menu when clicking outside the card
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (cardRef.current && !cardRef.current.contains(e.target)) {
+                setIsMenuOpen(false);
+            }
+        };
+        if (isMenuOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+            document.addEventListener('touchstart', handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
+        };
+    }, [isMenuOpen]);
+
+    // Handle contacts list (supporting 1 or 2 contacts)
+    const contactsList = lomba.contacts || (lomba.contactPerson ? [{ name: lomba.contactPersonName || 'Panitia', link: lomba.contactPerson }] : []);
+
+    return (
+        <div ref={cardRef} className="glass rounded-[2rem] p-6 md:p-8 group hover:-translate-y-2 transition-all duration-500 hover:shadow-2xl hover:shadow-black/5 flex flex-col border border-white/40 dark:border-white/10 relative overflow-hidden min-h-[350px] md:min-h-[370px] justify-between">
+            <div className={`absolute top-0 right-0 w-36 h-36 bg-gradient-to-br ${theme.gradient} opacity-5 blur-2xl rounded-full group-hover:opacity-10 transition-opacity`} />
+
+            {/* Content section */}
+            <div className="space-y-4 flex-1 flex flex-col justify-between">
+                <div className="flex justify-between items-start">
+                    <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center bg-white/60 dark:bg-slate-800/60 border border-gray-200 dark:border-white/10 shadow-xs shrink-0">
+                        <IconComponent size={26} className="text-gray-900 dark:text-white" />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <span className={`inline-block px-3.5 py-1.5 text-xs md:text-sm font-extrabold uppercase tracking-widest rounded-full border ${theme.badge}`}>
+                            {lomba.jenis}
+                        </span>
+
+                        {/* 3-Dots Menu Trigger Button */}
+                        <button
+                            onClick={() => setIsMenuOpen(!isMenuOpen)}
+                            className="p-2 md:p-2.5 rounded-full bg-white/70 dark:bg-slate-800/70 hover:bg-white dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-white/10 transition-all hover:scale-105 active:scale-95 shadow-sm cursor-pointer z-10"
+                            aria-label="Menu Aksi"
+                        >
+                            <LucideIcons.MoreVertical size={18} />
+                        </button>
+                    </div>
+                </div>
+
+                <div className="space-y-1">
+                    <h3 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white leading-snug">
+                        {lomba.nama}
+                    </h3>
+                    <p className="text-sm md:text-base font-bold text-orange-600 dark:text-orange-400">
+                        Total Uang Pembinaan: {lomba.hadiah}
+                    </p>
+                </div>
+
+                <p className="text-gray-600 dark:text-gray-300 text-sm md:text-base leading-relaxed line-clamp-3 md:line-clamp-4">
+                    {lomba.desc}
+                </p>
+
+                {/* Kategori Badge dari DB & Static Kategori (Pojok Kanan Bawah) */}
+                {(kategori.length > 0 || lomba.kategori) && (
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-100/80 dark:border-slate-800/60 mt-auto">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                            {kategori.map((kat, idx) => (
+                                <span key={idx} className="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-slate-800/80 text-gray-700 dark:text-gray-200 font-bold text-xs uppercase tracking-wide border border-gray-200/50 dark:border-slate-700/50">
+                                    {kat}
+                                </span>
+                            ))}
+                        </div>
+                        {lomba.kategori && (
+                            <span className="px-2.5 py-1 rounded-lg bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 font-black text-xs uppercase tracking-wide border border-orange-500/20 shadow-xs ml-auto">
+                                {lomba.kategori}
+                            </span>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* 3-Dots Action Overlay Menu (Fills upper/partial section of the card) */}
+            <div
+                className={`absolute top-16 right-4 left-4 md:right-6 md:left-6 z-30 bg-white/95 dark:bg-slate-900/95 border border-gray-200/80 dark:border-slate-700/80 rounded-2xl p-3.5 md:p-4 shadow-2xl backdrop-blur-xl flex flex-col gap-2.5
+                ${isMenuOpen
+                        ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
+                        : 'opacity-0 -translate-y-3 scale-95 pointer-events-none'
+                    }
+                transition-none md:transition-all md:duration-300 md:ease-out origin-top-right`}
+            >
+                <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-slate-800/80">
+                    <span className="text-xs font-black uppercase tracking-wider text-gray-400 dark:text-gray-500 px-1">
+                        Menu Aksi
+                    </span>
+                    <button
+                        onClick={() => setIsMenuOpen(false)}
+                        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 cursor-pointer rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                        <LucideIcons.X size={16} />
+                    </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                    {/* Tombol Daftar */}
+                    <Link
+                        href={lomba.linkDaftar}
+                        onClick={() => setIsMenuOpen(false)}
+                        className={`flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs md:text-sm font-bold text-white transition-all shadow-sm ${theme.btnPrimary} hover:opacity-90 active:scale-95`}
+                    >
+                        <LucideIcons.UserPlus size={16} />
+                        Daftar
+                    </Link>
+
+                    {/* Tombol Ketentuan */}
+                    <Link
+                        href={lomba.linkKetentuan}
+                        onClick={() => setIsMenuOpen(false)}
+                        className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs md:text-sm font-bold bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-white/10 transition-all active:scale-95"
+                    >
+                        <LucideIcons.FileText size={16} />
+                        Ketentuan
+                    </Link>
+                </div>
+
+                {/* Tombol Poster */}
+                <button
+                    onClick={() => {
+                        setIsMenuOpen(false);
+                        openPosterModal(lomba);
+                    }}
+                    className="flex items-center justify-center gap-1.5 w-full px-3.5 py-2.5 rounded-xl text-xs md:text-sm font-bold bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-white/10 transition-all active:scale-95 cursor-pointer"
+                >
+                    <LucideIcons.Image size={16} />
+                    Poster Lomba
+                </button>
+
+                {/* Tombol Contact Person (1 atau 2 kontak) */}
+                <div className="flex flex-col gap-1.5 pt-1.5 border-t border-gray-100 dark:border-slate-800/80">
+                    {contactsList.map((contact, idx) => (
+                        <a
+                            key={idx}
+                            href={contact.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => setIsMenuOpen(false)}
+                            className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-gray-200/50 dark:border-white/10 transition-all active:scale-95 text-center truncate"
+                        >
+                            <LucideIcons.MessageCircle size={15} className="shrink-0" />
+                            <span className="truncate">Kontak {contact.name}</span>
+                        </a>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export default function HomeLanding({ site, content, logoSlides, mascotInfo, lombaList, lombaKategori }) {
     const theme = getTheme(site);
     const isPkkmb = site === 'pkkmb';
 
     const [modalConfig, setModalConfig] = useState({ isOpen: false, type: null });
+    const [posterModal, setPosterModal] = useState({ isOpen: false, lomba: null });
 
     const openModal = (type) => setModalConfig({ isOpen: true, type });
     const closeModal = () => setModalConfig({ isOpen: false, type: null });
+
+    const openPosterModal = (lomba) => setPosterModal({ isOpen: true, lomba });
+    const closePosterModal = () => setPosterModal({ isOpen: false, lomba: null });
 
     if (!content) return null;
 
@@ -471,67 +768,14 @@ export default function HomeLanding({ site, content, logoSlides, mascotInfo, lom
                                     items={lombaList}
                                     animated={true}
                                     autoPlay={false}
-                                    renderItem={(lomba) => {
-                                        const IconComponent = getLucideIcon(lomba.lucideIcon);
-                                        // Ambil kategori dari database map
-                                        const kategori = (lombaKategori && lombaKategori[lomba.nama]) || [];
-
-                                        return (
-                                            <div className="glass rounded-[2rem] p-6 md:p-8 group hover:-translate-y-2 transition-all duration-500 hover:shadow-2xl hover:shadow-black/5 flex flex-col border border-white/40 dark:border-white/10 relative overflow-hidden h-[320px] justify-between">
-                                                <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${theme.gradient} opacity-5 blur-2xl rounded-full group-hover:opacity-10 transition-opacity`} />
-
-                                                <div className="space-y-4">
-                                                    <div className="flex justify-between items-start">
-                                                        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-white/50 dark:bg-slate-800/50 border border-gray-200 dark:border-white/10 shadow-xs">
-                                                            <IconComponent size={24} className="text-gray-900 dark:text-white" />
-                                                        </div>
-                                                        <span className={`inline-block px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full border ${theme.badge}`}>
-                                                            {lomba.jenis}
-                                                        </span>
-                                                    </div>
-
-                                                    <div>
-                                                        <h3 className="text-lg md:text-xl font-black text-gray-900 dark:text-white leading-tight">
-                                                            {lomba.nama}
-                                                        </h3>
-                                                        <p className="text-xs font-bold text-orange-600 dark:text-orange-400 mt-0.5">
-                                                            Total Hadiah: {lomba.hadiah}
-                                                        </p>
-                                                    </div>
-
-                                                    <p className="text-gray-500 dark:text-gray-400 text-xs leading-relaxed line-clamp-3">
-                                                        {lomba.desc}
-                                                    </p>
-
-                                                    {/* Kategori Badge dari DB */}
-                                                    {kategori.length > 0 && (
-                                                        <div className="flex flex-wrap gap-1.5 pt-1">
-                                                            {kategori.map((kat, idx) => (
-                                                                <span key={idx} className="px-2 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 font-bold text-[9px] uppercase tracking-wide">
-                                                                    {kat}
-                                                                </span>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                <div className="grid grid-cols-2 gap-3 pt-4 border-t border-gray-100 dark:border-slate-800/40">
-                                                    <Link
-                                                        href={lomba.linkDaftar}
-                                                        className={`inline-flex items-center justify-center text-center px-4 py-2.5 rounded-xl text-xs font-bold text-white transition-all shadow-sm ${theme.btnPrimary} hover:opacity-90 active:scale-95`}
-                                                    >
-                                                        Daftar
-                                                    </Link>
-                                                    <Link
-                                                        href={lomba.linkKetentuan}
-                                                        className="inline-flex items-center justify-center text-center px-4 py-2.5 rounded-xl text-xs font-bold glass hover:bg-gray-150 dark:hover:bg-slate-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-white/10 transition-all active:scale-95"
-                                                    >
-                                                        Ketentuan
-                                                    </Link>
-                                                </div>
-                                            </div>
-                                        );
-                                    }}
+                                    renderItem={(lomba) => (
+                                        <LombaCard
+                                            lomba={lomba}
+                                            theme={theme}
+                                            lombaKategori={lombaKategori}
+                                            openPosterModal={openPosterModal}
+                                        />
+                                    )}
                                 />
                             </div>
                         </RevealWrapper>
@@ -643,6 +887,13 @@ export default function HomeLanding({ site, content, logoSlides, mascotInfo, lom
                 logoSlides={logoSlides}
                 mascotInfo={mascotInfo}
                 isPkkmb={isPkkmb}
+            />
+
+            <PosterModal
+                isOpen={posterModal.isOpen}
+                onClose={closePosterModal}
+                lomba={posterModal.lomba}
+                theme={theme}
             />
         </div>
     );

@@ -117,6 +117,7 @@ export default function AdminPesertaRegister() {
                     statusList.push({ form, isFull });
                 }
                 setAllLombaStatusData(statusList);
+                localStorage.setItem(CACHE_KEY + '_allLombaStatus', JSON.stringify(statusList));
             });
         }
     }, [registerForms, data]);
@@ -139,7 +140,11 @@ export default function AdminPesertaRegister() {
         };
         if (!currentLombaName) return counts;
 
-        const targetTeams = data.filter(t => t.nama_lomba?.toLowerCase().trim() === currentLombaName.toLowerCase().trim() && t.verivikasi !== false);
+        const targetTeams = data.filter(t =>
+            t.nama_lomba?.toLowerCase().trim() === currentLombaName.toLowerCase().trim() &&
+            t.verivikasi !== false &&
+            (!activeForm?.kode_form || t.kode_form === activeForm.kode_form)
+        );
         targetTeams.forEach(team => {
             const kat = team.peserta?.[0]?.kategori;
             if (kat && counts[kat] !== undefined) {
@@ -147,7 +152,7 @@ export default function AdminPesertaRegister() {
             }
         });
         return counts;
-    }, [data, currentLombaName]);
+    }, [data, currentLombaName, activeForm?.kode_form]);
 
 
     const handleSelectStatus = async (subItem, newStatusBoolean) => {
@@ -206,12 +211,14 @@ export default function AdminPesertaRegister() {
             const cachedSub = localStorage.getItem(cacheKey + '_sub');
             const cachedRegForms = localStorage.getItem(cacheKey + '_regf');
             const cachedSubForms = localStorage.getItem(cacheKey + '_subf');
+            const cachedAllLombaStatus = localStorage.getItem(cacheKey + '_allLombaStatus');
             if (cachedData) {
                 try {
                     setData(JSON.parse(cachedData));
                     if (cachedSub) setPengumpulanList(JSON.parse(cachedSub));
                     if (cachedRegForms) setRegisterForms(JSON.parse(cachedRegForms));
                     if (cachedSubForms) setSubmissionForms(JSON.parse(cachedSubForms));
+                    if (cachedAllLombaStatus) setAllLombaStatusData(JSON.parse(cachedAllLombaStatus));
                     if (cachedAt) setLastSyncedAt(Number(cachedAt));
                     setLoading(false);
                     return;
@@ -456,7 +463,9 @@ export default function AdminPesertaRegister() {
     };
 
     const overviewCards = useMemo(() => {
-        const totalTeam = filteredData.length;
+        const totalTeam = currentLombaName
+            ? data.filter(t => t.nama_lomba?.toLowerCase().trim() === currentLombaName.toLowerCase().trim()).length
+            : filteredData.length;
         const totalPeserta = filteredData.reduce((sum, item) => sum + (item.peserta?.length || 0), 0);
 
         let sisaKuotaSemua = null;
@@ -468,7 +477,8 @@ export default function AdminPesertaRegister() {
                 const registered = data.filter(t =>
                     t.nama_lomba?.toLowerCase().trim() === currentLombaName?.toLowerCase().trim() &&
                     t.verivikasi !== false &&
-                    t.peserta?.[0]?.kategori === p.kategori
+                    t.peserta?.[0]?.kategori === p.kategori &&
+                    (!activeForm?.kode_form || t.kode_form === activeForm.kode_form)
                 ).length;
                 totalRegistered += registered;
             });
@@ -493,7 +503,7 @@ export default function AdminPesertaRegister() {
                 { label: 'Total Sudah Pengumpulan', value: totalSubmitted, icon: CheckCircle2, iconBg: 'bg-green-50 dark:bg-green-900/20', iconClass: 'text-green-500', subtext: `${totalTeam - totalSubmitted} Belum Mengumpulkan`, subtextClass: 'text-amber-500' }
             ];
         }
-    }, [filteredData, activeTab, pengumpulanList, activeFormPricing, data, currentLombaName]);
+    }, [filteredData, activeTab, pengumpulanList, activeFormPricing, data, currentLombaName, activeForm?.kode_form]);
 
     const activeFormLink = useMemo(() => {
         // 1. Ambil nama lomba aktif (lengkap dengan fallback lama kamu)
@@ -941,7 +951,8 @@ export default function AdminPesertaRegister() {
                                 t.nama_lomba?.toLowerCase().trim() === currentLombaName?.toLowerCase().trim() &&
                                 t.verivikasi !== false &&
                                 t.peserta?.[0]?.kategori === 'Mahasiswa LP3I' &&
-                                t.peserta?.[0]?.kampus === k.nama_kampus
+                                t.peserta?.[0]?.kampus === k.nama_kampus &&
+                                (!activeForm?.kode_form || t.kode_form === activeForm.kode_form)
                             ).length;
                             const max = k.maks_team || 0;
                             const remaining = Math.max(0, max - registered);
@@ -1070,7 +1081,7 @@ export default function AdminPesertaRegister() {
                                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                                     }`}
                             >
-                                Form #{idx + 1}
+                                Form #{idx + 1} ({form.butuh_bukti ? 'HTM Lanjutan' : 'HTM Wajib'})
                             </button>
                         ))}
                     </div>

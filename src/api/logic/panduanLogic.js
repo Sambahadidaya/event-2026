@@ -22,6 +22,13 @@ import pkkmbLendingPage from '@/assets/panduan_pkkmb/lendingpage.png';
 import pkkmbMateri from '@/assets/panduan_pkkmb/materi.png';
 import pkkmbPemberitahuan from '@/assets/panduan_pkkmb/pemberitahuan.png';
 
+// Import update assets
+import poseUpdate11 from '@/assets/update/pose/versi1.1.png';
+import poseUpdate12 from '@/assets/update/pose/versi1.2.png';
+
+import pkkmbUpdate11 from '@/assets/update/pkkmb/versi1.1.png';
+import pkkmbUpdate12 from '@/assets/update/pkkmb/versi1.2.png';
+
 const imageMap = {
     pose: {
         daftar: poseDaftar,
@@ -47,9 +54,20 @@ const imageMap = {
     }
 };
 
+const updateImageMap = {
+    pose: {
+        'versi1.1': poseUpdate11,
+        'versi1.2': poseUpdate12
+    },
+    pkkmb: {
+        'versi1.1': pkkmbUpdate11,
+        'versi1.2': pkkmbUpdate12
+    }
+};
+
 export async function getPanduanBySite(site) {
     if (!site || !panduanData[site]) {
-        return { sections: [] };
+        return { sections: [], updateVersi: [] };
     }
 
     const rawData = panduanData[site];
@@ -61,8 +79,17 @@ export async function getPanduanBySite(site) {
         };
     });
 
+    const updateVersiWithImages = (rawData.updateVersi || []).map(item => {
+        const image = updateImageMap[site]?.[item.imageKey] || null;
+        return {
+            ...item,
+            image
+        };
+    });
+
     return {
         sections: sectionsWithImages,
-        privacyPolicy: rawData.privacyPolicy || null
+        privacyPolicy: rawData.privacyPolicy || null,
+        updateVersi: updateVersiWithImages
     };
 }

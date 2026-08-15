@@ -147,7 +147,23 @@ export const panduanData = {
         privacyPolicy: {
             title: 'Kebijakan Privasi & Keamanan Data PKKMB 2026',
             content: 'Kami berkomitmen untuk menjaga keamanan data pribadi seluruh mahasiswa baru Politeknik LP3I:\n- Data seperti NIM, nama lengkap, program studi, dan nomor WhatsApp hanya digunakan untuk keperluan administrasi PKKMB, pembagian kelompok, dan distribusi informasi resmi.\n- Foto dokumentasi dan tugas yang diunggah hanya dapat diakses oleh panitia pelaksana dan mentor pendamping kelompok.\n- Data Anda dienkripsi dengan aman di database kami dan tidak akan dibagikan kepada pihak ketiga di luar Politeknik LP3I tanpa persetujuan tertulis.'
-        }
+        },
+        updateVersi: [
+            {
+                versi: 'versi 2026.1.2',
+                tanggal: '10 Juli 2026',
+                judul: 'Rilis Versi 1.2 — Fitur Pusat Bantuan & Panduan Terpadu',
+                isi: 'Pembaruan ini menghadirkan modul Panduan Penggunaan Portal PKKMB 2026 secara menyeluruh, perbaikan antarmuka publik, serta optimasi performa navigasi.',
+                imageKey: 'versi1.2'
+            },
+            {
+                versi: 'versi 2026.1.1',
+                tanggal: '28 Juni 2026',
+                judul: 'Rilis Versi 1.1 — Peningkatan Sistem Pendaftaran & Verifikasi',
+                isi: 'Peningkatan integrasi form pendaftaran mahasiswa baru, dukungan bukti pembayaran multi-format, serta penyempurnaan manajemen kelompok PKKMB.',
+                imageKey: 'versi1.1'
+            }
+        ]
     },
     pose: {
         sections: [
@@ -306,6 +322,22 @@ export const panduanData = {
         privacyPolicy: {
             title: 'Kebijakan Privasi & Keamanan Data POSE 2026',
             content: 'Kebijakan perlindungan data untuk tim, peserta, dan sivitas akademika dalam kegiatan POSE 2026:\n- Informasi registrasi tim, detail kontak kapten, NIM anggota, serta bukti transfer pembayaran disimpan secara aman demi verifikasi keabsahan mahasiswa aktif.\n- Publikasi data di halaman Klasemen dan Tim dibatasi hanya pada Nama Tim, Nama Anggota, Program Studi, dan hasil pertandingan demi kenyamanan privasi Anda.\n- Seluruh berkas bukti bayar dan pengumpulan karya lomba dilindungi secara aman di dalam bucket storage dan hanya diakses oleh dewan juri serta panitia penanggung jawab.'
-        }
+        },
+        updateVersi: [
+            {
+                versi: 'versi 2026.1.2',
+                tanggal: '10 Juli 2026',
+                judul: 'Rilis Versi 1.2 — Modul Panduan & Monitoring Perlombaan POSE',
+                isi: 'Menambahkan panduan lengkap kompetisi POSE 2026, integrasi catatan rilis versi, serta optimalisasi alur pengumpulan karya lomba digital.',
+                imageKey: 'versi1.2'
+            },
+            {
+                versi: 'versi 2026.1.1',
+                tanggal: '28 Juni 2026',
+                judul: 'Rilis Versi 1.1 — Peluncuran Fitur Klasemen & Bagan Turnamen',
+                isi: 'Sistem pencatatan skor perolehan medali prodi, integrasi jadwal pertandingan real-time, dan perbaikan alur registrasi tim kontingen.',
+                imageKey: 'versi1.1'
+            }
+        ]
     }
 };

@@ -70,6 +70,8 @@ ATURAN PENTING:
         console.log("Request ID :", response.headers.get("x-request-id"));
         console.log("Processing :", response.headers.get("openai-processing-ms"));
 
+        const token = parseInt(response.headers.get("openai-processing-ms") || '0', 10) || 0;
+
         const rawAnswer = data.choices[0].message.content.trim();
 
         // Parse flag dari jawaban AI
@@ -81,7 +83,7 @@ ATURAN PENTING:
             .replace(/\[NOT_FAQ\]/g, '')
             .trim();
 
-        return { answer: cleanAnswer, isFaqMatched };
+        return { answer: cleanAnswer, isFaqMatched, token };
     } catch (error) {
         console.error("OpenAI Error:", error);
         throw error;

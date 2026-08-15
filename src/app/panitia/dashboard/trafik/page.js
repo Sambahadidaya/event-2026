@@ -115,17 +115,52 @@ export default function TrafikDashboard() {
 
         if (appliedDateRange) {
             const days = getDaysBetween(appliedDateRange.start, appliedDateRange.end) + 1;
-            for (let i = 0; i < days; i++) {
-                const d = startOfDay(new Date(appliedDateRange.start));
-                d.setDate(d.getDate() + i);
-                labels.push(d.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' }));
-                dataPoints.push(0);
+            if (days === 1) {
+                // Breakdown per jam untuk filter 1 hari
+                for (let i = 0; i < 24; i++) {
+                    labels.push(`${String(i).padStart(2, '0')}:00`);
+                    dataPoints.push(0);
+                }
+                filtered.forEach(item => {
+                    const h = new Date(item.visited_at).getHours();
+                    if (h >= 0 && h < 24) dataPoints[h]++;
+                });
+            } else if (days <= 14) {
+                // Breakdown per hari
+                for (let i = 0; i < days; i++) {
+                    const d = startOfDay(new Date(appliedDateRange.start));
+                    d.setDate(d.getDate() + i);
+                    labels.push(d.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' }));
+                    dataPoints.push(0);
+                }
+                filtered.forEach(item => {
+                    const key = toDateKey(new Date(item.visited_at));
+                    const idx = getDaysBetween(appliedDateRange.start, key);
+                    if (idx >= 0 && idx < days) dataPoints[idx]++;
+                });
+            } else {
+                // Breakdown per minggu (>14 hari)
+                const totalWeeks = Math.ceil(days / 7);
+                for (let w = 0; w < totalWeeks; w++) {
+                    const wStart = startOfDay(new Date(appliedDateRange.start));
+                    wStart.setDate(wStart.getDate() + w * 7);
+                    const wEnd = new Date(wStart);
+                    wEnd.setDate(wEnd.getDate() + 6);
+                    const lastEnd = new Date(appliedDateRange.end);
+                    const actualEnd = wEnd > lastEnd ? lastEnd : wEnd;
+
+                    labels.push(`${wStart.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} – ${actualEnd.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}`);
+                    dataPoints.push(0);
+                }
+                filtered.forEach(item => {
+                    const key = toDateKey(new Date(item.visited_at));
+                    const idx = getDaysBetween(appliedDateRange.start, key);
+                    if (idx >= 0 && idx < days) {
+                        const weekIdx = Math.floor(idx / 7);
+                        if (weekIdx < totalWeeks) dataPoints[weekIdx]++;
+                    }
+                });
             }
-            filtered.forEach(item => {
-                const key = toDateKey(new Date(item.visited_at));
-                const idx = getDaysBetween(appliedDateRange.start, key);
-                if (idx >= 0 && idx < days) dataPoints[idx]++;
-            });
         } else if (timeFilter === 'today') {
             const dayEnd = new Date(ref);
             dayEnd.setDate(dayEnd.getDate() + 1);
@@ -247,35 +282,62 @@ export default function TrafikDashboard() {
         });
     };
 
-    const handleCalendarDayClick = (day, dateKey) => {
+    const handleCalendarDayClick = (day, dateKey, e) => {
         if (!dateKey) return;
-        setDraftStartDate(dateKey);
-        setDraftEndDate(dateKey);
-        setAppliedDateRange({ start: dateKey, end: dateKey });
-        const d = startOfDay(new Date(dateKey));
-        setReferenceDate(d);
+        if (e?.shiftKey && draftStartDate) {
+            const start = dateKey < draftStartDate ? dateKey : draftStartDate;
+            const end = dateKey < draftStartDate ? draftStartDate : dateKey;
+            setDraftStartDate(start);
+            setDraftEndDate(end);
+            setAppliedDateRange({ start, end });
+            setReferenceDate(startOfDay(new Date(start)));
+        } else {
+            setDraftStartDate(dateKey);
+            setDraftEndDate(dateKey);
+            setAppliedDateRange({ start: dateKey, end: dateKey });
+            setReferenceDate(startOfDay(new Date(dateKey)));
+        }
     };
 
     const formatMonthData = async () => {
         if (adminRole !== 'super_admin') return;
-        const { year, month } = calendarMonth;
-        const monthStart = new Date(year, month, 1);
-        const monthEnd = new Date(year, month + 1, 0, 23, 59, 59, 999);
 
-        const targets = rawTrafik.filter(item => {
-            const visited = new Date(item.visited_at);
-            if (visited < monthStart || visited > monthEnd) return false;
-            if (siteFilter !== 'all' && item.site !== siteFilter) return false;
-            return true;
-        });
+        let targets = [];
+        if (appliedDateRange && appliedDateRange.start && appliedDateRange.end) {
+            targets = rawTrafik.filter(item => {
+                const key = toDateKey(new Date(item.visited_at));
+                if (key < appliedDateRange.start || key > appliedDateRange.end) return false;
+                if (siteFilter !== 'all' && item.site !== siteFilter) return false;
+                return true;
+            });
 
-        if (targets.length === 0) {
-            window.alert(`Tidak ada data trafik untuk ${MONTH_NAMES[month]} ${year}.`);
-            return;
+            if (targets.length === 0) {
+                window.alert(`Tidak ada data trafik untuk rentang tanggal ${appliedDateRange.start} s/d ${appliedDateRange.end}.`);
+                return;
+            }
+
+            const siteLabel = siteFilter === 'all' ? 'semua situs' : siteFilter.toUpperCase();
+            if (!window.confirm(`Hapus ${targets.length} data trafik ${siteLabel} pada rentang ${appliedDateRange.start} s/d ${appliedDateRange.end}?`)) return;
+        } else {
+            const { year, month } = calendarMonth;
+            const monthStart = new Date(year, month, 1);
+            const monthEnd = new Date(year, month + 1, 0, 23, 59, 59, 999);
+
+            targets = rawTrafik.filter(item => {
+                const visited = new Date(item.visited_at);
+                if (visited < monthStart || visited > monthEnd) return false;
+                if (siteFilter !== 'all' && item.site !== siteFilter) return false;
+                return true;
+            });
+
+            if (targets.length === 0) {
+                window.alert(`Tidak ada data trafik untuk ${MONTH_NAMES[month]} ${year}.`);
+                return;
+            }
+
+            const siteLabel = siteFilter === 'all' ? 'semua situs' : siteFilter.toUpperCase();
+            if (!window.confirm(`Hapus ${targets.length} data trafik ${siteLabel} pada ${MONTH_NAMES[month]} ${year}?`)) return;
         }
-
-        const siteLabel = siteFilter === 'all' ? 'semua situs' : siteFilter.toUpperCase();
-        if (!window.confirm(`Hapus ${targets.length} data trafik ${siteLabel} pada ${MONTH_NAMES[month]} ${year}?`)) return;
 
         setFormatting(true);
         const ids = targets.map(item => item.id);

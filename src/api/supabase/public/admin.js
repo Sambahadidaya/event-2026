@@ -44,7 +44,7 @@ export const recordTrafik = async (siteType) => {
 
 // ================= RIWAYAT PERTANYAAN (PUBLIC SUBMIT) =================
 
-export const saveChatHistory = async (pertanyaan, jawaban, site, isFaqMatched = false) => {
+export const saveChatHistory = async (pertanyaan, jawaban, site, isFaqMatched = false, token = 0) => {
     try {
         if (!pertanyaan || !jawaban || !site) {
             throw new Error('Parameter pertanyaan, jawaban, dan site wajib diisi');
@@ -54,7 +54,8 @@ export const saveChatHistory = async (pertanyaan, jawaban, site, isFaqMatched = 
             pertanyaan,
             jawaban,
             site,
-            is_faq_matched: isFaqMatched
+            is_faq_matched: isFaqMatched,
+            token: token
         }]);
 
         if (error) throw error;

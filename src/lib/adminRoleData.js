@@ -53,6 +53,8 @@ const PJ_LOMBA_ROUTES = [
   '/panitia/pj_lomba/form_register',
   '/panitia/pj_lomba/jadwal_pertandingan',
   '/panitia/pj_lomba/penilaian',
+  '/panitia/pj_lomba/form_submit',
+  '/panitia/pj_lomba/peserta_wajib',
 ];
 
 // Generate rolePermissions for each PJ Lomba role
@@ -318,6 +320,7 @@ export const getRoleHelpContext = (role) => {
 export const hasAccess = (role, path) => {
   if (!role || !rolePermissions[role]) return false;
   if (rolePermissions[role].includes('*')) return true;
+  if (path === '/panitia/panduan' || path.startsWith('/panitia/panduan/')) return true;
   return rolePermissions[role].some(allowedPath => path === allowedPath || path.startsWith(allowedPath + '/'));
 };
 
@@ -362,6 +365,107 @@ export const ALL_ROLES = Object.keys(rolePermissions).map(roleKey => ({
   value: roleKey,
   label: formatRoleLabel(roleKey),
 }));
+
+/**
+ * Defined routes for each menu section in sidebar for centralized access management.
+ */
+export const MENU_SECTION_ROUTES = {
+  dashboard: [
+    '/panitia/dashboard/trafik',
+    '/panitia/dashboard/faq',
+    '/panitia/dashboard/kontak',
+    '/panitia/panduan',
+  ],
+  pkkmb: [
+    '/panitia/pkkmb/berita',
+    '/panitia/pkkmb/team',
+    '/panitia/pkkmb/form_wajib',
+    '/panitia/pkkmb/peserta_wajib',
+    '/panitia/pkkmb/jadwal_acara',
+    '/panitia/pkkmb/materi',
+    '/panitia/pkkmb/tugas',
+  ],
+  pose: [
+    '/panitia/pose/jadwal_acara',
+    '/panitia/pose/berita',
+    '/panitia/pose/peserta',
+    '/panitia/pose/team',
+    '/panitia/pose/form_register',
+    '/panitia/pose/jadwal_pertandingan',
+    '/panitia/pose/form_wajib',
+    '/panitia/pose/peserta_wajib',
+  ],
+  form: [
+    '/panitia/form/dashboard',
+    '/panitia/form/form',
+  ],
+  kabim: [
+    '/panitia/pj_kabim/kelompok',
+  ],
+  medis: [
+    '/panitia/pj_medis/peserta',
+  ],
+  absensiPanitia: [
+    '/panitia/absensi_panitia/dashboard',
+    '/panitia/absensi_panitia/form',
+    '/panitia/absensi_panitia/absensi',
+  ],
+  pjLomba: [
+    '/panitia/pj_lomba/dashboard',
+    '/panitia/pj_lomba/form_register',
+    '/panitia/pj_lomba/jadwal_pertandingan',
+    '/panitia/pj_lomba/penilaian',
+    '/panitia/pj_lomba/form_submit',
+    '/panitia/pj_lomba/peserta_wajib',
+  ],
+  sales: [
+    '/panitia/sales/dashboard',
+    '/panitia/sales/riwayat',
+  ],
+  keuangan: [
+    '/panitia/keuangan/dashboard',
+    '/panitia/keuangan/data_peserta',
+    '/panitia/keuangan/verifikasi',
+    '/panitia/keuangan/transaksi',
+    '/panitia/keuangan/master-transaksi',
+    '/panitia/keuangan/master-akuntansi',
+    '/panitia/keuangan/metode-pembayaran',
+    '/panitia/keuangan/jurnal-entry',
+    '/panitia/keuangan/buku-besar',
+    '/panitia/keuangan/kas-masuk',
+    '/panitia/keuangan/kas-keluar',
+    '/panitia/keuangan/neraca-saldo',
+    '/panitia/keuangan/neraca-lajur',
+    '/panitia/keuangan/laporan',
+  ],
+  admin: [
+    '/panitia/admin/status',
+    '/panitia/admin/pengembang',
+  ],
+};
+
+MENU_SECTION_ROUTES.konten = [
+  ...MENU_SECTION_ROUTES.pkkmb,
+  ...MENU_SECTION_ROUTES.pose,
+];
+
+/**
+ * Helper to check if a role can access ANY of the provided routes.
+ */
+export const canAccessAny = (role, routes) => {
+  if (!role || !routes || routes.length === 0) return false;
+  if (rolePermissions[role]?.includes('*')) return true;
+  return routes.some(route => hasAccess(role, route));
+};
+
+/**
+ * Helper to check if a role can access a menu section key defined in MENU_SECTION_ROUTES.
+ */
+export const canAccessSection = (role, sectionKey) => {
+  const routes = MENU_SECTION_ROUTES[sectionKey];
+  if (!routes) return false;
+  return canAccessAny(role, routes);
+};
 
 /**
  * Export role map for reference

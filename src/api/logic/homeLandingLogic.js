@@ -20,7 +20,32 @@ import logoPart2 from '@/assets/logo_pkkmb/pecah-orang.png';
 import logoPart3 from '@/assets/logo_pkkmb/pecah-gelombang.png';
 import logoPoseUtama from '@/assets/logo_pose/logo.png';
 
-import { Calendar, Users, Building2, Bell, MessageCircle, Trophy, BookOpen, Palette, Flame } from 'lucide-react';
+// Poster assets for POSE competitions
+import posterBadminton from '@/assets/poster_pose/badminton.webp';
+import posterTarikTambang from '@/assets/poster_pose/tarik-tambang.webp';
+import posterTenisMeja from '@/assets/poster_pose/tenis-meja.webp';
+import posterMobileLegends from '@/assets/poster_pose/mobile-legends.webp';
+import posterBmc from '@/assets/poster_pose/business-model-canvas.webp';
+import posterDesainPoster from '@/assets/poster_pose/desain-poster.webp';
+import posterSoftwareDev from '@/assets/poster_pose/software-developer.webp';
+import posterDance from '@/assets/poster_pose/dance.webp';
+import posterReleaseWriting from '@/assets/poster_pose/release-writing.webp';
+import posterDigitalUmkm from '@/assets/poster_pose/digital-umkm-promotion.webp';
+
+const posterMap = {
+    'badminton': posterBadminton,
+    'tarik-tambang': posterTarikTambang,
+    'tenis-meja': posterTenisMeja,
+    'mobile-legends': posterMobileLegends,
+    'business-model-canvas': posterBmc,
+    'desain-poster': posterDesainPoster,
+    'software-developer': posterSoftwareDev,
+    'dance': posterDance,
+    'release-writing': posterReleaseWriting,
+    'digital-umkm-promotion': posterDigitalUmkm,
+};
+
+import { Calendar, Users, Building2, Bell, MessageCircle, Trophy, BookOpen, Upload, Palette, Flame } from 'lucide-react';
 import { lombaPoseList } from '@/data/lombaPose';
 import { supabaseAdmin } from '@/lib/supabase';
 
@@ -57,8 +82,13 @@ const getFeaturesConfig = (site) => {
         return [
             { iconName: 'Bell', title: 'Pemberitahuan', desc: 'Jadwal pertandingan, hasil lomba, dan pengumuman resmi POSE.', href: '/pose/pemberitahuan' },
             { iconName: 'Users', title: 'Tim', desc: 'Cek susunan tim pertandingan setiap cabang.', href: '/pose/team' },
-            { iconName: 'Trophy', title: 'Klasemen', desc: 'Cek klasemen pertandingan setiap cabang.', href: '/pose/klasemen' },
-            { iconName: 'Flame', title: 'Sertifikat', desc: 'Cek sertifikat juara lomba.', href: '/pose/sertifikat' },
+            { iconName: 'Trophy', title: 'Jadwal & Klasemen', desc: 'Cek Jadwal dan klasemen pertandingan setiap cabang.', href: '/pose/jadwal' },
+            { iconName: 'Users', title: 'Daftar Lomba', desc: 'Daftar Lomba.', href: '/pose/register' },
+            { iconName: 'Upload', title: 'Submit Karya', desc: 'Kirim karya lomba.', href: '/pose/submit' },
+            { iconName: 'Users', title: 'Nilai', desc: 'Cek Nilai Lomba.', href: '/pose/nilai' },
+            { iconName: 'Users', title: 'Sertifikat', desc: 'Cek sertifikat juara lomba.', href: '/pose/sertifikat' },
+            { iconName: 'Users', title: 'Syarat & Ketentuan', desc: 'Informasi Syarat & Ketentuan Lomba.', href: '/pose/ketentuan' },
+            { iconName: 'BookOpen', title: 'Buku Panduan', desc: 'Informasi Buku Panduan.', href: '/pose/panduan' },
             { iconName: 'MessageCircle', title: 'Kontak', desc: 'Hubungi panitia POSE untuk pendaftaran dan informasi.', href: '/pose/contact' },
         ];
     }
@@ -140,7 +170,10 @@ export async function getMascotInfo(site) {
 }
 
 export async function getLombaList() {
-    return lombaPoseList;
+    return lombaPoseList.map(item => ({
+        ...item,
+        poster: posterMap[item.id] || null
+    }));
 }
 
 export async function getLombaKategori() {

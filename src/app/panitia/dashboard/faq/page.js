@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { MessageSquare, HelpCircle, Eye, Eraser, CheckSquare, Square, Trash2 } from 'lucide-react';
+import { MessageSquare, HelpCircle, Eye, Eraser, CheckSquare, Square, Trash2, KeyRound } from 'lucide-react';
 import { getRiwayatPertanyaan, deleteMultipleRiwayat } from '@/api/supabase/admin/admin';
 import { useRouter } from 'next/navigation';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
@@ -95,6 +95,10 @@ export default function FaqDashboard() {
     const terjawabCount = filteredHistory.filter(h => h.is_faq_matched === true).length;
     const diluarFaqCount = filteredHistory.length - terjawabCount;
 
+    const totalToken = useMemo(() => {
+        return filteredHistory.reduce((acc, item) => acc + (Number(item.token) || 0), 0);
+    }, [filteredHistory]);
+
     const totalPages = Math.ceil(filteredHistory.length / ITEMS_PER_PAGE) || 1;
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     const paginatedData = filteredHistory.slice(startIndex, startIndex + ITEMS_PER_PAGE);
@@ -142,22 +146,58 @@ export default function FaqDashboard() {
 
     const formatMonthData = async () => {
         if (adminRole !== 'super_admin') return;
-        const { year, month } = calendarMonth;
-        const monthStart = new Date(year, month, 1);
-        const monthEnd = new Date(year, month + 1, 0, 23, 59, 59, 999);
 
-        const targets = history.filter(item => {
-            const d = new Date(item.created_at);
-            if (d < monthStart || d > monthEnd) return false;
-            if (siteFilter !== 'all' && item.site !== siteFilter) return false;
-            return true;
-        });
+        let targets = [];
+        if (appliedDateRange && appliedDateRange.start && appliedDateRange.end) {
+            targets = history.filter(item => {
+                const itemKey = toDateKey(item.created_at);
+                if (itemKey < appliedDateRange.start || itemKey > appliedDateRange.end) return false;
+                if (siteFilter !== 'all' && item.site !== siteFilter) return false;
+                return true;
+            });
 
-        if (targets.length === 0) {
-            window.alert(`Tidak ada data FAQ untuk ${MONTH_NAMES[month]} ${year}.`);
-            return;
+            if (targets.length === 0) {
+                window.alert(`Tidak ada data FAQ untuk rentang tanggal ${appliedDateRange.start} s/d ${appliedDateRange.end}.`);
+                return;
+            }
+
+            if (!window.confirm(`Format ${targets.length} data FAQ pada rentang ${appliedDateRange.start} s/d ${appliedDateRange.end}?`)) return;
+        } else {
+            const { year, month } = calendarMonth;
+            const monthStart = new Date(year, month, 1);
+            const monthEnd = new Date(year, month + 1, 0, 23, 59, 59, 999);
+
+            targets = history.filter(item => {
+                const d = new Date(item.created_at);
+                if (d < monthStart || d > monthEnd) return false;
+                if (siteFilter !== 'all' && item.site !== siteFilter) return false;
+                return true;
+            });
+
+            if (targets.length === 0) {
+                window.alert(`Tidak ada data FAQ untuk ${MONTH_NAMES[month]} ${year}.`);
+                return;
+            }
+
+            if (!window.confirm(`Format ${targets.length} data FAQ bulan ${MONTH_NAMES[month]} ${year}?`)) return;
         }
+
         await deleteItems(targets.map(t => t.id));
+    };
+
+    const handleCalendarDayClick = (day, dateKey, e) => {
+        if (!dateKey) return;
+        if (e?.shiftKey && draftStartDate) {
+            const start = dateKey < draftStartDate ? dateKey : draftStartDate;
+            const end = dateKey < draftStartDate ? draftStartDate : dateKey;
+            setDraftStartDate(start);
+            setDraftEndDate(end);
+            setAppliedDateRange({ start, end });
+        } else {
+            setDraftStartDate(dateKey);
+            setDraftEndDate(dateKey);
+            setAppliedDateRange({ start: dateKey, end: dateKey });
+        }
     };
 
     const applyDateRange = () => {
@@ -175,7 +215,7 @@ export default function FaqDashboard() {
     };
 
     const isSuperAdmin = adminRole === 'super_admin';
-    const colSpan = isSuperAdmin ? 7 : 6;
+    const colSpan = isSuperAdmin ? 8 : 7;
     const pageIds = paginatedData.map(item => item.id);
     const allPageSelected = pageIds.length > 0 && pageIds.every(id => selectedIds.includes(id));
 
@@ -200,6 +240,7 @@ export default function FaqDashboard() {
                     { key: 'total', label: 'Total Interaksi', value: filteredHistory.length, subtext: 'Berdasarkan filter aktif', icon: MessageSquare },
                     { key: 'faq', label: 'Sesuai FAQ', value: terjawabCount, subtext: `${filteredHistory.length > 0 ? Math.round((terjawabCount / filteredHistory.length) * 100) : 0}% dari total`, icon: HelpCircle, iconClass: 'text-emerald-500', iconBg: 'bg-emerald-50 dark:bg-emerald-900/20' },
                     { key: 'non_faq', label: 'Di Luar FAQ', value: diluarFaqCount, subtext: 'Pertanyaan umum / random', subtextClass: 'text-amber-500' },
+                    { key: 'total_token', label: 'Total Token', value: totalToken.toLocaleString('id-ID'), subtext: 'Penggunaan token AI (ms)', icon: KeyRound, iconClass: 'text-purple-500', iconBg: 'bg-purple-50 dark:bg-purple-900/20' },
                 ]}
                 dateRangeProps={{
                     startDate: draftStartDate,
@@ -223,18 +264,14 @@ export default function FaqDashboard() {
                 })}
                 dailyCounts={dailyCounts}
                 appliedDateRange={appliedDateRange}
-                onDayClick={(day, dateKey) => {
-                    setDraftStartDate(dateKey);
-                    setDraftEndDate(dateKey);
-                    setAppliedDateRange({ start: dateKey, end: dateKey });
-                }}
+                onDayClick={handleCalendarDayClick}
                 onFormatMonth={formatMonthData}
                 formatting={formatting}
                 loading={loading}
                 showFormatButton={isSuperAdmin}
                 countLabel="interaksi"
                 legendDescription="Skala biru sequential — semakin gelap, semakin banyak interaksi FAQ harian."
-                    donutChart={
+                donutChart={
                     <DashboardDonutChart
                         title="Kategori Pertanyaan"
                         labels={['Sesuai FAQ', 'Di Luar FAQ']}
@@ -276,6 +313,7 @@ export default function FaqDashboard() {
                                 <th className="px-4 py-3 font-medium">Site</th>
                                 <th className="px-4 py-3 font-medium min-w-[140px]">Pertanyaan</th>
                                 <th className="px-4 py-3 font-medium min-w-[140px]">Respons</th>
+                                <th className="px-4 py-3 font-medium w-28 text-center">Token</th>
                                 <th className="px-4 py-3 font-medium w-20 text-center">Aksi</th>
                             </tr>
                         </thead>
@@ -309,6 +347,9 @@ export default function FaqDashboard() {
                                             <span className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${item.is_faq_matched ? 'bg-blue-500' : 'bg-amber-400'}`}></span>
                                             <span className="truncate">{item.jawaban}</span>
                                         </div>
+                                    </td>
+                                    <td className="px-4 py-3 text-center text-xs font-semibold text-purple-600 dark:text-purple-400 whitespace-nowrap">
+                                        {item.token ? `${item.token.toLocaleString('id-ID')} ms` : '0 ms'}
                                     </td>
                                     <td className="px-4 py-3 text-center">
                                         <button
@@ -344,6 +385,7 @@ export default function FaqDashboard() {
                     { label: 'Pertanyaan', value: detailItem.pertanyaan, multiline: true },
                     { label: 'Jawaban', value: detailItem.jawaban, multiline: true },
                     { label: 'Site', value: detailItem.site?.toUpperCase() },
+                    { label: 'Jumlah Token', value: detailItem.token ? `${detailItem.token.toLocaleString('id-ID')} ms` : '0 ms' },
                     { label: 'Tanggal', value: formatDateTime(detailItem.created_at) },
                 ] : []}
             />

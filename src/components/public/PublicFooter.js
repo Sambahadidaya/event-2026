@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Mail, ExternalLink } from 'lucide-react';
 import { getTheme } from '@/lib/siteThemes';
+import { panduanData } from '@/data/panduanData';
 import logoPkkmb from '@/assets/logopkkmb.png';
 import logoPose from '@/assets/logopose.jpg';
 
@@ -11,6 +12,7 @@ export default function PublicFooter({ site, links }) {
     const theme = getTheme(site);
     const year = new Date().getFullYear();
     const logo = site === 'pkkmb' ? logoPkkmb : logoPose;
+    const latestVersion = panduanData[site]?.updateVersi?.[0]?.versi || 'v1.2';
 
     return (
         <footer className={`relative z-10 mt-auto ${theme.footerBg} text-white overflow-hidden`}>
@@ -93,9 +95,19 @@ export default function PublicFooter({ site, links }) {
 
                 {/* Bottom bar */}
                 <div className="mt-14 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
-                    <p className="text-xs text-white/50 font-medium text-center md:text-left">
-                        © {year} <span className="text-white/80">{site === 'pkkmb' ? 'PKKMB' : 'POSE'}</span> · Politeknik LP3I Bandung. All rights reserved
-                    </p>
+                    <div className="flex items-center gap-3">
+                        <p className="text-xs text-white/50 font-medium text-center md:text-left">
+                            © {year} <span className="text-white/80">{site === 'pkkmb' ? 'PKKMB' : 'POSE'}</span> · Politeknik LP3I Bandung. All rights reserved
+                        </p>
+                        <Link
+                            href={`/${site}/panduan#update-versi`}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-white/10 hover:bg-white/20 text-white/80 hover:text-white border border-white/15 transition-all duration-300 shadow-xs"
+                            title="Lihat Catatan Pembaruan Versi"
+                        >
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            <span>{latestVersion}</span>
+                        </Link>
+                    </div>
                     <a href='https://samba.my.id'
                         className="text-xs text-white/30 font-medium tracking-wider hover:text-white transition-colors duration-300">
                         Solo Developed by <span className="text-white/50 hover:text-white transition-colors duration-300">Samba</span>

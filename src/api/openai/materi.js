@@ -46,11 +46,11 @@ ATURAN PENTING:
         console.log("Token Usage :", data.usage);
         console.log("Status :", response.status);
         console.log("Request ID :", response.headers.get("x-request-id"));
-        console.log("Processing :", response.headers.get("openai-processing-ms"));
+        const token = parseInt(response.headers.get("openai-processing-ms") || '0', 10) || 0;
 
         const answer = data.choices[0].message.content.trim();
 
-        return { answer };
+        return { answer, token };
     } catch (error) {
         console.error("OpenAI Error:", error);
         throw error;

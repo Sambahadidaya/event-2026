@@ -140,9 +140,9 @@ export default function SamsMateriBot({ materiContext, isMobile }) {
         setIsTyping(true);
 
         try {
-            const { answer } = await generateMateriAnswer(inputanUser, materiContext);
+            const { answer, token } = await generateMateriAnswer(inputanUser, materiContext);
             setMessages([...newMessages, { sender: 'bot', text: answer }]);
-            await saveChatHistory(inputanUser, answer, 'pkkmb_materi', true);
+            await saveChatHistory(inputanUser, answer, 'pkkmb_materi', true, token);
         } catch (error) {
             console.error("OpenAI Error:", error);
             setMessages([...newMessages, { sender: 'bot', text: 'Maaf, terjadi kesalahan pada server AI.' }]);

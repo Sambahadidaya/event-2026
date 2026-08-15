@@ -12,7 +12,7 @@ import DetailModal from '@/components/panitia/DetailModal';
 import ConfirmModal from '@/components/panitia/ConfirmModal';
 import TablePagination from '@/components/panitia/TablePagination';
 import {
-    MONTH_NAMES, startOfDay, getDaysBetween,
+    MONTH_NAMES, startOfDay, getDaysBetween, toDateKey,
     buildDailyCounts, filterByDateRange, formatDateTime
 } from '@/lib/dashboardUtils';
 
@@ -193,22 +193,58 @@ export default function KontakDashboard() {
 
     const formatMonthData = async () => {
         if (adminRole !== 'super_admin') return;
-        const { year, month } = calendarMonth;
-        const monthStart = new Date(year, month, 1);
-        const monthEnd = new Date(year, month + 1, 0, 23, 59, 59, 999);
 
-        const targets = data.filter(item => {
-            const d = new Date(item.created_at);
-            if (d < monthStart || d > monthEnd) return false;
-            if (adminRole === 'super_admin' && item.site !== activeTab) return false;
-            return true;
-        });
+        let targets = [];
+        if (appliedDateRange && appliedDateRange.start && appliedDateRange.end) {
+            targets = data.filter(item => {
+                const itemKey = toDateKey(item.created_at);
+                if (itemKey < appliedDateRange.start || itemKey > appliedDateRange.end) return false;
+                if (adminRole === 'super_admin' && activeTab !== 'all' && item.site !== activeTab) return false;
+                return true;
+            });
 
-        if (targets.length === 0) {
-            window.alert(`Tidak ada data kontak untuk ${MONTH_NAMES[month]} ${year}.`);
-            return;
+            if (targets.length === 0) {
+                window.alert(`Tidak ada data kontak untuk rentang tanggal ${appliedDateRange.start} s/d ${appliedDateRange.end}.`);
+                return;
+            }
+
+            if (!window.confirm(`Format ${targets.length} data kontak pada rentang ${appliedDateRange.start} s/d ${appliedDateRange.end}?`)) return;
+        } else {
+            const { year, month } = calendarMonth;
+            const monthStart = new Date(year, month, 1);
+            const monthEnd = new Date(year, month + 1, 0, 23, 59, 59, 999);
+
+            targets = data.filter(item => {
+                const d = new Date(item.created_at);
+                if (d < monthStart || d > monthEnd) return false;
+                if (adminRole === 'super_admin' && activeTab !== 'all' && item.site !== activeTab) return false;
+                return true;
+            });
+
+            if (targets.length === 0) {
+                window.alert(`Tidak ada data kontak untuk ${MONTH_NAMES[month]} ${year}.`);
+                return;
+            }
+
+            if (!window.confirm(`Format ${targets.length} data kontak bulan ${MONTH_NAMES[month]} ${year}?`)) return;
         }
+
         await deleteItems(targets.map(t => t.id));
+    };
+
+    const handleCalendarDayClick = (day, dateKey, e) => {
+        if (!dateKey) return;
+        if (e?.shiftKey && draftStartDate) {
+            const start = dateKey < draftStartDate ? dateKey : draftStartDate;
+            const end = dateKey < draftStartDate ? draftStartDate : dateKey;
+            setDraftStartDate(start);
+            setDraftEndDate(end);
+            setAppliedDateRange({ start, end });
+        } else {
+            setDraftStartDate(dateKey);
+            setDraftEndDate(dateKey);
+            setAppliedDateRange({ start: dateKey, end: dateKey });
+        }
     };
 
     const applyDateRange = () => {
@@ -283,11 +319,7 @@ export default function KontakDashboard() {
                 })}
                 dailyCounts={dailyCounts}
                 appliedDateRange={appliedDateRange}
-                onDayClick={(day, dateKey) => {
-                    setDraftStartDate(dateKey);
-                    setDraftEndDate(dateKey);
-                    setAppliedDateRange({ start: dateKey, end: dateKey });
-                }}
+                onDayClick={handleCalendarDayClick}
                 onFormatMonth={formatMonthData}
                 formatting={formatting}
                 loading={loading}

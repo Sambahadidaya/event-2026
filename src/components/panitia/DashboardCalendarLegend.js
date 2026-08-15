@@ -41,9 +41,10 @@ export default function DashboardCalendarLegend({
     const todayKey = toDateKey(new Date());
 
     return (
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-5">
-            <div className={`bg-white dark:bg-gray-900 p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-x-auto ${donutChart ? 'xl:col-span-1' : 'xl:col-span-2'}`}>
-                <div className="flex items-center justify-between mb-4 gap-3 flex-wrap min-w-[280px]">
+        <div className="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex flex-col xl:flex-row items-stretch gap-6 divide-y xl:divide-y-0 xl:divide-x divide-gray-100 dark:divide-gray-800 overflow-hidden">
+            {/* Section 1: Calendar */}
+            <div className="flex-1 min-w-0 flex flex-col">
+                <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
                     <div className="flex items-center gap-1.5">
                         <button
                             type="button"
@@ -71,7 +72,7 @@ export default function DashboardCalendarLegend({
                             onClick={onFormatMonth}
                             disabled={formatting || loading}
                             className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-md border border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Hapus data bulan ini"
+                            title="Hapus data rentang/bulan aktif"
                         >
                             <Eraser size={14} className={formatting ? 'animate-pulse' : ''} />
                             Format
@@ -79,7 +80,7 @@ export default function DashboardCalendarLegend({
                     )}
                 </div>
 
-                <div className="flex justify-center">
+                <div className="flex justify-center flex-1 items-center overflow-x-auto">
                     <table className="border-collapse w-auto">
                         <thead>
                             <tr>
@@ -108,8 +109,8 @@ export default function DashboardCalendarLegend({
                                                 {day ? (
                                                     <button
                                                         type="button"
-                                                        onClick={() => onDayClick?.(day, dateKey)}
-                                                        title={`${day} ${MONTH_NAMES[calendarMonth.month]}: ${count} ${countLabel}`}
+                                                        onClick={(e) => onDayClick?.(day, dateKey, e)}
+                                                        title={`${day} ${MONTH_NAMES[calendarMonth.month]}: ${count} ${countLabel} (Klik + Shift untuk rentang)`}
                                                         className={`w-8 h-8 sm:w-9 sm:h-9 rounded-md border flex flex-col items-center justify-center leading-none transition-all hover:brightness-95 dark:hover:brightness-110 ${level.cell} ${
                                                             inRange ? 'ring-2 ring-blue-500 ring-offset-1 dark:ring-offset-gray-900' : ''
                                                         } ${isToday && !inRange ? 'ring-1 ring-slate-400/60 dark:ring-slate-500/60' : ''} ${
@@ -132,25 +133,29 @@ export default function DashboardCalendarLegend({
                 </div>
             </div>
 
+            {/* Section 2: Donut Chart (If present) */}
             {donutChart && (
-                <div className="xl:col-span-1 flex items-stretch">
+                <div className="w-full xl:w-80 flex-shrink-0 pt-6 xl:pt-0 xl:pl-6 flex flex-col justify-center">
                     {donutChart}
                 </div>
             )}
 
-            <div className={`bg-white dark:bg-gray-900 p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 ${donutChart ? 'xl:col-span-1' : ''}`}>
-                <h3 className="font-semibold text-sm text-gray-800 dark:text-gray-200 mb-3">{legendTitle}</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 leading-relaxed">{legendDescription}</p>
-                <ul className="space-y-2">
-                    {levels.map(level => (
-                        <li key={level.label} className="flex items-center gap-2.5">
-                            <span className={`w-6 h-6 rounded-md border border-black/5 dark:border-white/5 shrink-0 ${level.swatch}`} />
-                            <span className="text-xs text-gray-600 dark:text-gray-300">
-                                {level.label} {countLabel}
-                            </span>
-                        </li>
-                    ))}
-                </ul>
+            {/* Section 3: Legend */}
+            <div className="w-full xl:w-72 flex-shrink-0 pt-6 xl:pt-0 xl:pl-6 flex flex-col justify-between">
+                <div>
+                    <h3 className="font-semibold text-sm text-gray-800 dark:text-gray-200 mb-3">{legendTitle}</h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 leading-relaxed">{legendDescription}</p>
+                    <ul className="space-y-2">
+                        {levels.map(level => (
+                            <li key={level.label} className="flex items-center gap-2.5">
+                                <span className={`w-6 h-6 rounded-md border border-black/5 dark:border-white/5 shrink-0 ${level.swatch}`} />
+                                <span className="text-xs text-gray-600 dark:text-gray-300">
+                                    {level.label} {countLabel}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
                 {appliedDateRange && (
                     <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800">
                         <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">Rentang dipilih</p>

@@ -43,20 +43,32 @@ export default function DateRangeFilter({
     };
 
     const diff = startVal && endVal ? getDaysBetween(startVal, endVal) : 0;
-    const isValid = startVal && endVal && diff >= 0 && diff <= maxDays;
-    const hasError = startVal && endVal && (diff < 0 || diff > maxDays);
+    const isValid = Boolean(startVal && endVal && diff >= 0 && diff <= maxDays);
+    const canApply = isValid || (Boolean(appliedRange) && (!startVal || !endVal));
+    const hasError = Boolean(startVal && endVal && (diff < 0 || diff > maxDays));
+
+    const handleApplyClick = () => {
+        if (!startVal || !endVal) {
+            handleClear();
+        } else if (isValid && onApply) {
+            onApply();
+        }
+    };
 
     return (
         <div className="space-y-1.5">
             {showLabel && <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Filter Tanggal</p>}
             <div className="flex flex-col sm:flex-row items-center gap-2">
-                <div className="flex items-center gap-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-2.5 py-1.5 overflow-hidden focus-within:ring-2 focus-within:ring-blue-500/30">
+                <div className="flex items-center gap-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-2.5 py-1.5 focus-within:ring-2 focus-within:ring-blue-500/30 w-full sm:w-auto">
                     <Calendar size={15} className="text-gray-400 shrink-0" />
                     <input
                         type="date"
                         value={startVal}
                         onChange={(e) => handleStartChange(e.target.value)}
-                        className="bg-transparent border-none outline-none py-0.5 text-xs text-gray-900 dark:text-white font-medium cursor-pointer dark:[color-scheme:dark]"
+                        onClick={(e) => {
+                            try { e.target.showPicker?.(); } catch (err) {}
+                        }}
+                        className="bg-transparent border-none outline-none py-0.5 text-xs text-gray-900 dark:text-white font-medium cursor-pointer dark:[color-scheme:dark] min-w-[105px] shrink-0"
                         title="Tanggal awal"
                     />
                     <span className="text-gray-400 text-xs shrink-0">–</span>
@@ -64,14 +76,17 @@ export default function DateRangeFilter({
                         type="date"
                         value={endVal}
                         onChange={(e) => handleEndChange(e.target.value)}
-                        className="bg-transparent border-none outline-none py-0.5 text-xs text-gray-900 dark:text-white font-medium cursor-pointer dark:[color-scheme:dark]"
+                        onClick={(e) => {
+                            try { e.target.showPicker?.(); } catch (err) {}
+                        }}
+                        className="bg-transparent border-none outline-none py-0.5 text-xs text-gray-900 dark:text-white font-medium cursor-pointer dark:[color-scheme:dark] min-w-[105px] shrink-0"
                         title="Tanggal akhir"
                     />
-                    {(startVal || endVal) && (
+                    {(startVal || endVal || appliedRange) && (
                         <button
                             type="button"
                             onClick={handleClear}
-                            className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                            className="p-1 text-gray-400 hover:text-red-500 transition-colors shrink-0 ml-auto"
                             title="Reset tanggal"
                         >
                             <X size={14} />
@@ -81,9 +96,9 @@ export default function DateRangeFilter({
                 {onApply && (
                     <button
                         type="button"
-                        onClick={onApply}
-                        disabled={!isValid}
-                        className="flex items-center justify-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        onClick={handleApplyClick}
+                        disabled={!canApply}
+                        className="flex items-center justify-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed w-full sm:w-auto shrink-0"
                     >
                         <Check size={14} /> Oke
                     </button>

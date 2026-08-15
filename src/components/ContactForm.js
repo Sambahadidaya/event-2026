@@ -112,13 +112,13 @@ export default function ContactForm({ site }) {
 
     const sosmedData = {
         pkkmb: {
-            email: "mailto:pkkmb@kampus.ac.id",
-            wa: "https://wa.me/6281234567890",
-            ig: "https://instagram.com/pkkmb_kampus2026"
+            email: "#",
+            wa: "#",
+            ig: "https://www.instagram.com/pkkmbpolteklp3i?igsh=dnZsenp1eHVubG5w"
         },
         pose: {
-            email: "mailto:pose@kampus.ac.id",
-            wa: "https://wa.me/6289876543210",
+            email: "#",
+            wa: "#",
             ig: "https://instagram.com/pose_kampus2026"
         }
     };

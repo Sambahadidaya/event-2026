@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { getTheme } from '@/lib/siteThemes';
-import { Menu, X, Video, BookOpen, ChevronRight, Play, ShieldCheck } from 'lucide-react';
+import { Menu, X, Video, BookOpen, ChevronRight, Play, ShieldCheck, History, Calendar, Sparkles } from 'lucide-react';
 
 export default function PanduanPage({ site, data }) {
     const theme = getTheme(site);
@@ -23,6 +23,16 @@ export default function PanduanPage({ site, data }) {
             setSidebarOpen(false);
         }
     };
+
+    // Auto scroll if URL has hash (e.g. #update-versi from footer link)
+    useEffect(() => {
+        if (typeof window !== 'undefined' && window.location.hash) {
+            const id = window.location.hash.replace('#', '');
+            setTimeout(() => {
+                scrollToSection(id);
+            }, 300);
+        }
+    }, []);
 
     // Set up IntersectionObserver to highlight current section as user scrolls
     useEffect(() => {
@@ -57,16 +67,31 @@ export default function PanduanPage({ site, data }) {
             if (el) observer.current.observe(el);
         }
 
+        if (data.updateVersi && data.updateVersi.length > 0) {
+            const el = document.getElementById('update-versi');
+            if (el) observer.current.observe(el);
+            data.updateVersi.forEach(u => {
+                const subId = `update-${u.versi.replace(/[^a-zA-Z0-9]/g, '-')}`;
+                const subEl = document.getElementById(subId);
+                if (subEl) observer.current.observe(subEl);
+            });
+        }
+
         return () => {
             if (observer.current) {
                 observer.current.disconnect();
             }
         };
-    }, [data.sections, data.privacyPolicy]);
+    }, [data.sections, data.privacyPolicy, data.updateVersi]);
 
     // Format display title if section is a subsection or privacy policy
     const getActiveTitle = () => {
         if (activeSection === 'kebijakan-privasi') return 'Keamanan Data & Privasi';
+        if (activeSection === 'update-versi') return 'Catatan Update Versi';
+        if (activeSection.startsWith('update-')) {
+            const vItem = data.updateVersi?.find(u => `update-${u.versi.replace(/[^a-zA-Z0-9]/g, '-')}` === activeSection);
+            if (vItem) return `Update ${vItem.versi}`;
+        }
         for (const section of data.sections) {
             if (section.id === activeSection) return section.title;
             if (section.subsections) {
@@ -173,6 +198,47 @@ export default function PanduanPage({ site, data }) {
                                         </button>
                                     </div>
                                 )}
+
+                                {/* Extra Link for Update Versi in Sidebar */}
+                                {data.updateVersi && data.updateVersi.length > 0 && (
+                                    <div className="pt-1 mt-1 border-t border-gray-100 dark:border-slate-800/60 space-y-1">
+                                        <button
+                                            onClick={() => scrollToSection('update-versi')}
+                                            className={`w-full flex items-center justify-between text-left px-4 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all group ${activeSection === 'update-versi' || activeSection.startsWith('update-')
+                                                ? `bg-gradient-to-r ${theme.gradient} text-white shadow-md shadow-slate-900/5`
+                                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-55 dark:hover:bg-slate-800/40 hover:text-gray-900 dark:hover:text-white'
+                                                }`}
+                                        >
+                                            <span className="flex items-center gap-1.5">
+                                                <History size={13} className="shrink-0" />
+                                                Update Versi
+                                            </span>
+                                            <span className="shrink-0">
+                                                {data.updateVersi[0]?.versi}
+                                            </span>
+                                        </button>
+
+                                        {/* Nested UL LI for each version update */}
+                                        <ul className="pl-3 pr-1 py-1 space-y-1 border-l border-gray-200 dark:border-slate-800 ml-4 animate-in slide-in-from-top-1 duration-250">
+                                            {data.updateVersi.map((u) => {
+                                                const versionId = `update-${u.versi.replace(/[^a-zA-Z0-9]/g, '-')}`;
+                                                return (
+                                                    <li key={u.versi}>
+                                                        <button
+                                                            onClick={() => scrollToSection(versionId)}
+                                                            className={`w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all truncate block ${activeSection === versionId
+                                                                ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20'
+                                                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                                                                }`}
+                                                        >
+                                                            {u.versi} — {u.judul}
+                                                        </button>
+                                                    </li>
+                                                );
+                                            })}
+                                        </ul>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </aside>
@@ -248,6 +314,47 @@ export default function PanduanPage({ site, data }) {
                                                 </button>
                                             </div>
                                         )}
+
+                                        {/* Mobile Extra Link for Update Versi */}
+                                        {data.updateVersi && data.updateVersi.length > 0 && (
+                                            <div className="pt-1 mt-1 border-t border-gray-150 dark:border-slate-800 space-y-1">
+                                                <button
+                                                    onClick={() => scrollToSection('update-versi')}
+                                                    className={`w-full flex items-center justify-between text-left px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${activeSection === 'update-versi' || activeSection.startsWith('update-')
+                                                        ? `bg-gradient-to-r ${theme.gradient} text-white shadow-md`
+                                                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-55 dark:hover:bg-slate-800'
+                                                        }`}
+                                                >
+                                                    <span className="flex items-center">
+                                                        <History size={14} className="shrink-0" />
+                                                        Update Versi
+                                                    </span>
+                                                    <span className="shrink-0">
+                                                        {data.updateVersi[0]?.versi}
+                                                    </span>
+                                                </button>
+
+                                                {/* Mobile Nested UL LI for each version update */}
+                                                <ul className="pl-3 py-1 space-y-1 border-l border-gray-200 dark:border-slate-800 ml-4">
+                                                    {data.updateVersi.map((u) => {
+                                                        const versionId = `update-${u.versi.replace(/[^a-zA-Z0-9]/g, '-')}`;
+                                                        return (
+                                                            <li key={u.versi}>
+                                                                <button
+                                                                    onClick={() => scrollToSection(versionId)}
+                                                                    className={`w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-bold block ${activeSection === versionId
+                                                                        ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20'
+                                                                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                                                                        }`}
+                                                                >
+                                                                    {u.versi} — {u.judul}
+                                                                </button>
+                                                            </li>
+                                                        );
+                                                    })}
+                                                </ul>
+                                            </div>
+                                        )}
                                     </nav>
                                 </div>
                                 <div className="text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest pt-4 border-t border-gray-100 dark:border-slate-800 shrink-0">
@@ -317,7 +424,11 @@ export default function PanduanPage({ site, data }) {
                                                     onClick={() => setActiveVideoSectionId(section.id)}
                                                     className="absolute inset-0 w-full h-full flex items-center justify-center cursor-pointer group-hover/video:scale-105 transition-transform"
                                                 >
-                                                    {/* Thumbnail & Play Icon kamu */}
+                                                    {/* Thumbnail & Play Icon */}
+                                                    <div className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/20 shadow-2xl">
+                                                        <Play size={20} className="fill-white" />
+                                                        <span className="text-xs font-bold">Putar Video Tutorial</span>
+                                                    </div>
                                                 </button>
                                             )}
                                         </div>
@@ -360,6 +471,83 @@ export default function PanduanPage({ site, data }) {
                                 <div className="text-sm md:text-base text-gray-650 dark:text-gray-300 leading-relaxed whitespace-pre-line">
                                     {data.privacyPolicy.content}
                                 </div>
+                            </section>
+                        )}
+
+                        {/* Catatan Update Versi Section (UL/LI Format) */}
+                        {data.updateVersi && data.updateVersi.length > 0 && (
+                            <section
+                                id="update-versi"
+                                className="bg-gradient-to-br from-emerald-50/60 via-slate-50/50 to-emerald-50/30 dark:from-slate-900/80 dark:via-slate-900/50 dark:to-emerald-950/20 border border-emerald-200/50 dark:border-emerald-900/30 rounded-3xl p-6 md:p-8 shadow-xs scroll-mt-24 transition-all duration-300"
+                            >
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="p-2.5 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200/40 dark:border-emerald-500/20">
+                                        <History size={22} />
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
+                                                Catatan Update Versi Portal
+                                            </h2>
+                                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-500 text-white shadow-xs">
+                                                <Sparkles size={11} />
+                                                Terbaru
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                            Riwayat pembaruan sistem, perbaikan bug, dan peluncuran fitur baru
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* List ul li Update Versi */}
+                                <ul className="space-y-6 list-none p-0 m-0">
+                                    {data.updateVersi.map((updateItem, index) => {
+                                        const versionId = `update-${updateItem.versi.replace(/[^a-zA-Z0-9]/g, '-')}`;
+                                        return (
+                                            <li
+                                                key={updateItem.versi || index}
+                                                id={versionId}
+                                                className="bg-white dark:bg-slate-900/90 border border-gray-100 dark:border-slate-800 rounded-2xl p-5 md:p-6 shadow-xs relative overflow-hidden transition-all hover:border-emerald-300 dark:hover:border-emerald-800 scroll-mt-24"
+                                            >
+                                                <div className="flex flex-wrap items-center justify-between gap-2 mb-3 pb-3 border-b border-gray-100 dark:border-slate-800">
+                                                    <div className="flex items-center gap-2.5">
+                                                        <span className="px-3 py-1 rounded-xl text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-xs">
+                                                            {updateItem.versi}
+                                                        </span>
+                                                        <h3 className="text-base md:text-lg font-bold text-gray-900 dark:text-white">
+                                                            {updateItem.judul}
+                                                        </h3>
+                                                    </div>
+                                                    <div className="flex items-center gap-1 text-xs font-semibold text-gray-400 dark:text-gray-500">
+                                                        <Calendar size={13} />
+                                                        <span>{updateItem.tanggal}</span>
+                                                    </div>
+                                                </div>
+
+                                                <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+                                                    {updateItem.isi}
+                                                </p>
+
+                                                {/* Preview Gambar Update jika tersedia */}
+                                                {updateItem.image && (
+                                                    <div className="mt-4 space-y-2">
+                                                        <h4 className="text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                                                            Tampilan Pembaruan
+                                                        </h4>
+                                                        <div className="relative rounded-xl overflow-hidden border border-gray-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+                                                            <Image
+                                                                src={updateItem.image}
+                                                                alt={`Update ${updateItem.versi}`}
+                                                                className="w-full h-auto object-contain"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
                             </section>
                         )}
                     </div>

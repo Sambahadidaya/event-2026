@@ -268,6 +268,28 @@ export const getFormRegisterFields = async (siteType) => {
     }
 };
 
+export const getFormRegisterLanjutFields = async (siteType) => {
+    try {
+        let query = supabaseAdmin
+            .from('form_register')
+            .select('id, link_id, nama_lomba, jenis_lomba, gambar, kategori_pendaftar, jenis_kategori, keterangan, is_public')
+            .eq('is_public', false)
+            .order('created_at', { ascending: false });
+
+        if (siteType && siteType !== 'all') {
+            query = query.eq('site', siteType);
+        }
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error("Internal Log - Error fetching form register fields:", error);
+        return [];
+    }
+};
+
 export const getFormRegisterByLinkId = async (linkId) => {
     try {
         if (!linkId) throw new Error('Link ID is required');

@@ -13,28 +13,41 @@ Proyek ini menggunakan Next.js (App Router) berbasis JavaScript murni (bukan Typ
 
 ```json
 {
-  "dependencies": {
-    "@supabase/ssr": "^0.12.3",
-    "@supabase/supabase-js": "^2.108.2",
-    "chart.js": "^4.5.1",
-    "file-type": "^22.0.1",
-    "fuse.js": "^7.4.2",
-    "html5-qrcode": "^2.3.8",
-    "jsqr": "^1.4.0",
-    "lucide-react": "^1.21.0",
-    "nanoid": "^5.1.16",
-    "next": "^16.2.11",
-    "next-themes": "^0.4.6",
-    "openai": "^6.45.0",
-    "pdf-lib": "^1.17.1",
-    "puppeteer": "^25.3.0",
-    "qrcode": "^1.5.4",
-    "react": "19.2.4",
-    "react-chartjs-2": "^5.3.1",
-    "react-dom": "19.2.4",
-    "react-image-crop": "^11.1.2",
-    "xlsx": "^0.18.5"
+      "dependencies": {
+        "@sparticuz/chromium-min": "^149.0.0",
+        "@supabase/ssr": "^0.12.3",
+        "@supabase/supabase-js": "^2.108.2",
+        "canvas": "^3.2.3",
+        "chart.js": "^4.5.1",
+        "file-type": "^22.0.1",
+        "fuse.js": "^7.4.2",
+        "html5-qrcode": "^2.3.8",
+        "jsqr": "^1.4.0",
+        "lucide-react": "^1.21.0",
+        "nanoid": "^5.1.16",
+        "next": "^16.2.11",
+        "next-themes": "^0.4.6",
+        "openai": "^6.45.0",
+        "pdf-lib": "^1.17.1",
+        "puppeteer-core": "^25.4.0",
+        "qrcode": "^1.5.4",
+        "react": "19.2.4",
+        "react-chartjs-2": "^5.3.1",
+        "react-dom": "19.2.4",
+        "react-image-crop": "^11.1.2",
+        "react-markdown": "^10.1.0",
+        "react-pdf": "^10.4.1",
+        "remark-gfm": "^4.0.1",
+        "sharp": "^0.35.3",
+        "tree-node-cli": "^3.0.0",
+        "xlsx": "^0.18.5"
   },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "babel-plugin-react-compiler": "1.0.0",
+    "puppeteer": "^25.4.0",
+    "tailwindcss": "^4"
+  }
 }
 ```
 
@@ -582,6 +595,316 @@ CREATE POLICY "Enable read for all on documents"
 CREATE POLICY "Enable all for authenticated on documents" 
     ON public.documents FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
+ALTER TABLE audit_logs
+ADD COLUMN admin_nama VARCHAR(100);
+
+CREATE TABLE public.form_register_pricing (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    form_id UUID NOT NULL REFERENCES public.form_register(id) ON DELETE CASCADE,
+    kategori VARCHAR(100) NOT NULL,
+    nominal INT4 NOT NULL DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT form_register_pricing_unique UNIQUE (form_id, kategori)
+);
+ALTER TABLE public.form_register_pricing ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read pricing" ON public.form_register_pricing FOR SELECT TO public USING (true);
+CREATE POLICY "auth all pricing" ON public.form_register_pricing FOR ALL TO authenticated USING (true) WITH CHECK (true);
+```
+dan saya juga sudah menjalankan sql ini ;
+```sql
+CREATE TABLE metode_pembayaran (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    site site_type NOT NULL,
+    nama VARCHAR(100) NOT NULL,
+    tipe UUID NOT NULL REFERENCES master_account(id),
+    nomor_rekening VARCHAR(255),
+    nama_pemilik VARCHAR(255),
+    qris_image VARCHAR(255),
+    keterangan TEXT,
+    aktif BOOLEAN DEFAULT true,
+    urutan INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT metode_pembayaran_unique UNIQUE (site, nama)
+);
+ALTER TABLE public.metode_pembayaran ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read metode" ON public.metode_pembayaran FOR SELECT TO public USING (true);
+CREATE POLICY "auth all metode" ON public.metode_pembayaran FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Membuat bucket
+INSERT INTO storage.buckets (
+    id,
+    name,
+    public,
+    file_size_limit,
+    allowed_mime_types
+)
+VALUES (
+    'qris_image',
+    'qris_image',
+    true,
+    5242880, -- Maksimal 5 MB
+    ARRAY['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
+);
+-- Public dapat melihat file
+CREATE POLICY "Public read qris_image"
+ON storage.objects
+FOR SELECT
+TO public
+USING (bucket_id = 'qris_image');
+
+-- User login dapat upload
+CREATE POLICY "Authenticated upload qris_image"
+ON storage.objects
+FOR INSERT
+TO authenticated
+WITH CHECK (bucket_id = 'qris_image');
+
+-- User login dapat update
+CREATE POLICY "Authenticated update qris_image"
+ON storage.objects
+FOR UPDATE
+TO authenticated
+USING (bucket_id = 'qris_image')
+WITH CHECK (bucket_id = 'qris_image');
+
+-- User login dapat menghapus
+CREATE POLICY "Authenticated delete qris_image"
+ON storage.objects
+FOR DELETE
+TO authenticated
+USING (bucket_id = 'qris_image');
+
+alter TABLE form_register_pricing
+ADD COLUMN maks_anggota INT4 NOT NULL DEFAULT 1,
+ADD COLUMN maks_team INT4 NOT NULL DEFAULT 1,
+ADD COLUMN individu BOOLEAN NOT NULL DEFAULT TRUE;
+
+alter table jadwal_pertandingan
+ADD COLUMN urutan INT4 default 0;
+
+-- penilaian
+CREATE TABLE form_nilai_lomba (
+    id UUID PRIMARY KEY NOT NULL DEFAULT uuid_generate_v4(),
+    nama_juri VARCHAR(100) NOT NULL,
+    link_id VARCHAR(100) NOT NULL UNIQUE,
+    jenis_lomba VARCHAR(100) NOT NULL,
+    nama_lomba VARCHAR(100) NOT NULL,
+    judul_nilai VARCHAR(200),
+    bobot_nilai VARCHAR(200),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE nilai_lomba (
+    id UUID PRIMARY KEY NOT NULL DEFAULT uuid_generate_v4(),
+    team_id UUID REFERENCES team(id) ON DELETE CASCADE,
+    form_nilai_lomba_id UUID REFERENCES form_nilai_lomba(id) ON DELETE CASCADE,
+    kritik TEXT,
+    saran TEXT,
+    nilai_akhir DECIMAL(5,2),
+    status_public boolean DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE detail_nilai_lomba (
+    id UUID PRIMARY KEY NOT NULL DEFAULT uuid_generate_v4(),
+    nilai_lomba_id UUID REFERENCES nilai_lomba(id) ON DELETE CASCADE,
+    form_nilai_lomba_id UUID REFERENCES form_nilai_lomba(id) ON DELETE CASCADE,
+    judul_nilai VARCHAR(100),
+    bobot_nilai VARCHAR(100),
+    nilai INT4,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE form_nilai_lomba ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read form_nilai_lomba" ON form_nilai_lomba FOR SELECT TO public USING (true);
+CREATE POLICY "auth all form_nilai_lomba" ON form_nilai_lomba FOR ALL TO authenticated USING (true) WITH CHECK (true);
+ALTER TABLE nilai_lomba ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read nilai_lomba" ON nilai_lomba FOR SELECT TO public USING (true);
+CREATE POLICY "auth all nilai_lomba" ON nilai_lomba FOR ALL TO authenticated USING (true) WITH CHECK (true);
+ALTER TABLE detail_nilai_lomba ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read detail_nilai_lomba" ON detail_nilai_lomba FOR SELECT TO public USING (true);
+CREATE POLICY "auth all detail_nilai_lomba" ON detail_nilai_lomba FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+alter table admins
+add column type site_type default 'pkkmb';
+
+UPDATE admins
+SET type = 'pose'
+WHERE role = 'admin_pose';
+
+CREATE TABLE form_absen_panitia (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    site site_type NOT NULL,
+    judul_absen VARCHAR(200),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE data_absen_panitia(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    form_id UUID REFERENCES form_absen_panitia(id) ON DELETE CASCADE,
+    nama_panitia VARCHAR(200) NOT NULL,
+    type_absen VARCHAR(10) NOT NULL CHECK (type_absen IN ('Alpha', 'Sakit','Izin','Hadir')),
+    keterangan_absen VARCHAR(200),
+    create_by VARCHAR(100),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE form_absen_panitia ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth all form_absen_panitia" ON form_absen_panitia FOR ALL TO authenticated USING (true) WITH CHECK (true);
+ALTER TABLE data_absen_panitia ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth all data_absen_panitia" ON data_absen_panitia FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+
+create table total_absen_panitia(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    panitia_id UUID REFERENCES admins(id) ON DELETE CASCADE,
+    data_absen_id UUID REFERENCES data_absen_panitia(id) ON DELETE CASCADE
+);
+
+ALTER TABLE total_absen_panitia ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth all total_absen_panitia" ON total_absen_panitia FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+CREATE TABLE sales_pose(
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  sumber VARCHAR(100) NOT NULL,
+  nama_nim VARCHAR(100),
+  nominal INT4,
+  form_register_id UUID REFERENCES form_register(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE sales_pose ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth all sales_pose" ON sales_pose FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+alter table transaction_finance
+ADD COLUMN potongan_sales int4 default 0,
+ADD COLUMN nama_nim_sales_id UUID REFERENCES sales_pose(id) ON DELETE CASCADE;
+
+alter table form_register_pricing
+ADD COLUMN komisi_sales_lvl1 INT4 default 0,
+ADD COLUMN komisi_sales_lvl2 INT4 default 0,
+ADD COLUMN komisi_sales_lvl3 INT4 default 0;
+
+
+INSERT INTO master_account (kode_id, kode_akun, nama_akun, akun_type, site)
+VALUES
+  ('MA013', '2002', 'Utang Komisi Sales','Liability','pose'),
+  ('MA014', '5005', 'Beban Komisi Sales','Expense','pose')
+  ON CONFLICT (kode_akun) DO NOTHING;
+
+ALTER TABLE sales_pose ADD COLUMN target_nim VARCHAR(100);
+
+alter table team_members add column id_ml varchar(20);
+
+CREATE TABLE public.form_register_kampus_quota (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    pricing_id UUID NOT NULL REFERENCES public.form_register_pricing(id) ON DELETE CASCADE,
+    nama_kampus VARCHAR(255) NOT NULL,
+    maks_team INT4 NOT NULL DEFAULT 1,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT form_register_kampus_quota_unique UNIQUE (pricing_id, nama_kampus)
+);
+ALTER TABLE public.form_register_kampus_quota ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read kampus_quota" ON public.form_register_kampus_quota FOR SELECT TO public USING (true);
+CREATE POLICY "auth all kampus_quota" ON public.form_register_kampus_quota FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.form_register_pricing 
+ADD COLUMN IF NOT EXISTS umum_type VARCHAR(30) DEFAULT 'keduanya';
+
+ALTER TABLE team
+ADD COLUMN jenis_kategori VARCHAR(15);
+ALTER TABLE form_register
+ADD COLUMN jenis_kategori VARCHAR(15),
+ADD COLUMN is_public BOOLEAN default true;
+
+CREATE TABLE kelompok (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    urutan INT4 DEFAULT 0,
+    nama_kelompok VARCHAR(100) NOT NULL,
+    nama_kabim VARCHAR(100) NOT NULL,
+    link_instagram VARCHAR(255),
+    foto_kelompok VARCHAR(255),
+    keterangan TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE kelompok_members (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    kelompok_id UUID NOT NULL REFERENCES kelompok(id) ON DELETE CASCADE,
+    nama_anggota VARCHAR(100) NOT NULL,
+    nim_anggota VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.kelompok ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read kelompok" ON public.kelompok FOR SELECT TO public USING (true);
+CREATE POLICY "auth all kelompok" ON public.kelompok FOR ALL TO authenticated USING (true) WITH CHECK (true);
+ALTER TABLE public.kelompok_members ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read kelompok_members" ON public.kelompok_members FOR SELECT TO public USING (true);
+CREATE POLICY "auth all kelompok_members" ON public.kelompok_members FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+CREATE TABLE data_medis_pkkmb (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    users UUID NOT NULL REFERENCES peserta(id) ON DELETE CASCADE,
+    riwayat_penyakit VARCHAR(255),
+    penanganan VARCHAR(255),
+    alergi VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE data_tambahan_pkkmb (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    users UUID NOT NULL REFERENCES peserta(id) ON DELETE CASCADE,
+    nama_ortu_wali VARCHAR(100),
+    no_wa_ortu_wali VARCHAR(20),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.data_medis_pkkmb ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read data_medis_pkkmb" ON public.data_medis_pkkmb FOR SELECT TO public USING (true);
+CREATE POLICY "auth all data_medis_pkkmb" ON public.data_medis_pkkmb FOR ALL TO authenticated USING (true) WITH CHECK (true);
+ALTER TABLE public.data_tambahan_pkkmb ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read data_tambahan_pkkmb" ON public.data_tambahan_pkkmb FOR SELECT TO public USING (true);
+CREATE POLICY "auth all data_tambahan_pkkmb" ON public.data_tambahan_pkkmb FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+CREATE TABLE pengembangan (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    kunci BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.pengembangan ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read pengembangan" ON public.pengembangan FOR SELECT TO public USING (true);
+CREATE POLICY "auth all pengembangan" ON public.pengembangan FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+
+CREATE TABLE public.form_wajib_pricing (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    form_id UUID NOT NULL REFERENCES public.form_wajib(id) ON DELETE CASCADE,
+    kelas VARCHAR(50) NOT NULL,
+    nominal INT4 NOT NULL DEFAULT 0,
+    jenis_tahapan VARCHAR (20),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.form_wajib_pricing ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read pricing" ON public.form_wajib_pricing FOR SELECT TO public USING (true);
+CREATE POLICY "auth all pricing" ON public.form_wajib_pricing FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+
+CREATE TABLE public.pembayaran_pkkmb (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    nim_user VARCHAR(50) NOT NULL,
+    jenis_bayar VARCHAR(50) NOT NULL,
+    tahapan VARCHAR(50) NOT NULL,
+    nominal INT4 NOT NULL DEFAULT 0,
+    status_pembayaran VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.pembayaran_pkkmb ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read pricing" ON public.pembayaran_pkkmb FOR SELECT TO public USING (true);
+CREATE POLICY "auth all pricing" ON public.pembayaran_pkkmb FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+INSERT INTO master_account (kode_id, kode_akun, nama_akun, akun_type, site)
+VALUES
+  ('MA015', '1005', 'Piutang','Asset','pkkmb')
+  ON CONFLICT (kode_akun) DO NOTHING;
+
 ```
 
 ---
@@ -593,32 +916,54 @@ CREATE POLICY "Enable all for authenticated on documents"
 ├── src/
 │   ├── proxy.js
 │   ├── api/
-│   │   ├── finance/
-│   │   │   └── pdf/
-│   │   │       └── route.js
+│   │   ├── excel/
+│   │   │   └── sales.js
+│   │   ├── logic/
+│   │   │   ├── homeLandingLogic.js
+│   │   │   ├── ketentuanLogic.js
+│   │   │   └── panduanLogic.js
+│   │   ├── pdf/
+│   │   │   └── route.js
 │   │   ├── supabase/
 │   │   │   ├── admin/
+│   │   │   │   ├── absensi.js
 │   │   │   │   ├── admin.js
 │   │   │   │   ├── audit.js
 │   │   │   │   ├── auth.js
 │   │   │   │   ├── berita.js
 │   │   │   │   ├── finance.js
 │   │   │   │   ├── jadwal.js
+│   │   │   │   ├── kelompok.js
 │   │   │   │   ├── materi.js
+│   │   │   │   ├── medis.jsjs
+│   │   │   │   ├── pdf.js
+│   │   │   │   ├── pembayaran_pkkmb.js
+│   │   │   │   ├── pengembang.jsjs
+│   │   │   │   ├── penilaian.js
 │   │   │   │   ├── peserta.js
+│   │   │   │   ├── sales.jsjs
 │   │   │   │   ├── submission.js
 │   │   │   │   └── team.js
 │   │   │   ├── public/
 │   │   │   │   ├── admin.js
 │   │   │   │   ├── berita.js
 │   │   │   │   ├── jadwal.js
+│   │   │   │   ├── kelompok.jsjs
 │   │   │   │   ├── materi.js
+│   │   │   │   ├── medis.jsjs
+│   │   │   │   ├── pdf.js
+│   │   │   │   ├── pembayaran_pkkmb.js
+│   │   │   │   ├── pengembang.js
+│   │   │   │   ├── penilaian.js
 │   │   │   │   ├── peserta.js
+│   │   │   │   ├── sales.jsjs
 │   │   │   │   ├── submission.js
 │   │   │   │   └── team.js
-│   │   │   └── storage.js
+│   │   │   ├── storage.js
+│   │   │   └── time.js
 │   │   └── openai/
 │   │       ├── chat.js
+│   │       ├── chatAdmin.js
 │   │       └── materi.js
 │   ├── app/
 │   │   ├── layout.js
@@ -629,7 +974,16 @@ CREATE POLICY "Enable all for authenticated on documents"
 │   │   ├── panitia/
 │   │   │   ├── layout.js
 │   │   │   ├── page.js
+│   │   │   ├── absensi_panitia/
+│   │   │   │   ├── absensi/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── dashboard/
+│   │   │   │   │   └── page.js
+│   │   │   │   └── form/
+│   │   │   │       └── page.js
 │   │   │   ├── admin/
+│   │   │   │   ├── pengembang/
+│   │   │   │   │   └── page.js
 │   │   │   │   └── status/
 │   │   │   │       └── page.js
 │   │   │   ├── dashboard/
@@ -649,6 +1003,8 @@ CREATE POLICY "Enable all for authenticated on documents"
 │   │   │   │   │   └── page.js
 │   │   │   │   ├── dashboard/
 │   │   │   │   │   └── page.js
+│   │   │   │   ├── data_peserta/
+│   │   │   │   │   └── page.js
 │   │   │   │   ├── jurnal-entry/
 │   │   │   │   │   └── page.js
 │   │   │   │   ├── kas-keluar/
@@ -661,6 +1017,8 @@ CREATE POLICY "Enable all for authenticated on documents"
 │   │   │   │   │   └── page.js
 │   │   │   │   ├── master-transaksi/
 │   │   │   │   │   └── page.js
+│   │   │   │   ├── metode-pembayaran/
+│   │   │   │   │   └── page.js
 │   │   │   │   ├── neraca-saldo/
 │   │   │   │   │   └── page.js
 │   │   │   │   ├── transaksi/
@@ -669,10 +1027,24 @@ CREATE POLICY "Enable all for authenticated on documents"
 │   │   │   │       └── page.js
 │   │   │   ├── login/
 │   │   │   │   └── page.js
+│   │   │   ├── pj_kabim/
+│   │   │   │   └── kelompok/
+│   │   │   │       └── page.js
 │   │   │   ├── pj_lomba/
 │   │   │   │   ├── dashboard/
 │   │   │   │   │   └── page.js
-│   │   │   │   └── form_register/
+│   │   │   │   ├── form_register/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── form_submit/
+│   │   │   │   │   └── page.js 
+│   │   │   │   ├── jadwal_pertandingan/
+│   │   │   │   │   └── page.js 
+│   │   │   │   ├── penilaian/
+│   │   │   │   │   └── page.js 
+│   │   │   │   └── peserta_wajib/
+│   │   │   │       └── page.js
+│   │   │   ├── pj_medis/
+│   │   │   │   └── peserta/
 │   │   │   │       └── page.js
 │   │   │   ├── pkkmb/
 │   │   │   │   ├── berita/
@@ -689,24 +1061,29 @@ CREATE POLICY "Enable all for authenticated on documents"
 │   │   │   │   │   └── page.js
 │   │   │   │   └── tugas/
 │   │   │   │       └── page.js
-│   │   │   └── pose/
-│   │   │       ├── berita/
+│   │   │   ├── pose/
+│   │   │   │   ├── berita/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── form_register/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── form_wajib/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── jadwal_acara/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── jadwal_pertandingan/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── peserta/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── peserta_wajib/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── register/
+│   │   │   │   │   └── page.js
+│   │   │   │   └── team/
+│   │   │   │       └── page.js
+│   │   │   └── sales/
+│   │   │       ├── dashboard/
 │   │   │       │   └── page.js
-│   │   │       ├── form_register/
-│   │   │       │   └── page.js
-│   │   │       ├── form_wajib/
-│   │   │       │   └── page.js
-│   │   │       ├── jadwal_acara/
-│   │   │       │   └── page.js
-│   │   │       ├── jadwal_pertandingan/
-│   │   │       │   └── page.js
-│   │   │       ├── peserta/
-│   │   │       │   └── page.js
-│   │   │       ├── peserta_wajib/
-│   │   │       │   └── page.js
-│   │   │       ├── register/
-│   │   │       │   └── page.js
-│   │   │       └── team/
+│   │   │       └── riwayat/
 │   │   │           └── page.js
 │   │   ├── pkkmb/
 │   │   │   ├── layout.js
@@ -720,12 +1097,16 @@ CREATE POLICY "Enable all for authenticated on documents"
 │   │   │   │   └── page.js
 │   │   │   ├── kelompok/
 │   │   │   │   └── page.js
+│   │   │   ├── ketentuan/
+│   │   │   │   └── page.js
 │   │   │   ├── materi/
 │   │   │   │   └── [id]
 │   │   │   │       └── page.js
 │   │   │   ├── pdf/
 │   │   │   │   └── [id]
 │   │   │   │       └── page.js
+│   │   │   ├── panduan/
+│   │   │   │   └── page.js
 │   │   │   └── pemberitahuan/
 │   │   │       └── page.js
 │   │   └── pose/
@@ -738,6 +1119,14 @@ CREATE POLICY "Enable all for authenticated on documents"
 │   │       │       └── page.js
 │   │       ├── jadwal/
 │   │       │   └── page.js
+│   │       ├── ketentuan/
+│   │       │   └── page.js
+│   │       ├── nilai/
+│   │       │   ├── [link]
+│   │       │   │   └── page.js
+│   │       │   └── page.js
+│   │       ├── panduan/
+│   │       │   └── page.js
 │   │       ├── pdf/
 │   │       │   └── [id]
 │   │       │       └── page.js
@@ -747,24 +1136,38 @@ CREATE POLICY "Enable all for authenticated on documents"
 │   │       │   └── [id]
 │   │       │       └── page.js
 │   │       ├── submission/
-│   │       │   └── [id]
-│   │       │       └── page.js
+│   │       │   ├── [id]
+│   │       │   │   └── page.js
+│   │       │   └── page.js
 │   │       └── team/
 │   │           └── page.js
 │   ├── assets/
 │   │   ├── logo_pkkmb/
-│   │   │   ├── icon-logo.png
+│   │   │   ├── gagal/
+│   │   │   │   ├── icon-logo.png
+│   │   │   │   ├── logo.png
+│   │   │   │   ├── pecah-gelombang handap lagu.png
+│   │   │   │   ├── pecah-lagu.png
+│   │   │   │   ├── pecah-matahari.png
+│   │   │   │   ├── pecah-motif.png
+│   │   │   │   └── pecah-titik+gelombang.png
+│   │   │   ├── ikon-logo.png
 │   │   │   ├── logo.png
-│   │   │   ├── pecah-gelombang handap lagu.png
-│   │   │   ├── pecah-lagu.png
+│   │   │   ├── logo2.png
+│   │   │   ├── pecah-gelombang.png
 │   │   │   ├── pecah-matahari.png
-│   │   │   ├── pecah-motif.png
-│   │   │   └── pecah-titik+gelombang.png
+│   │   │   └── pecah-orang.png
 │   │   ├── logo_pose/
 │   │   │   ├── icon-logo.png
 │   │   │   ├── icon-logo2.png
 │   │   │   ├── logo.png
 │   │   │   └── maskot.png
+│   │   ├── panduan_pkkmb/
+│   │   │   ├── lendingpage.png
+│   │   │   └── pemberitahuan.png
+│   │   ├── panduan_pose/
+│   │   │   ├── lendingpage.png
+│   │   │   └── pemberitahuan.png
 │   │   ├── icon-poltek.png
 │   │   ├── logopkkmb.png
 │   │   ├── logopoltek.png
@@ -776,6 +1179,7 @@ CREATE POLICY "Enable all for authenticated on documents"
 │   │   ├── ClientTracker.js
 │   │   ├── DynamicFavicon.js
 │   │   ├── PublicHeader.js
+│   │   ├── SamsAsisten.js
 │   │   ├── SamsChatbot.js
 │   │   ├── SamsMateriBot.js
 │   │   ├── ThemeToggle.js
@@ -783,14 +1187,25 @@ CREATE POLICY "Enable all for authenticated on documents"
 │   │   │   ├── AnnouncementTimeline.js
 │   │   │   ├── Carousel.js
 │   │   │   ├── FormPengumpulan.js
+│   │   │   ├── FormRegister.js
 │   │   │   ├── FormRegistration.js
+│   │   │   ├── FormWajib.js
 │   │   │   ├── HomeLanding.js
+│   │   │   ├── KetentuanPage.js
 │   │   │   ├── PageHero.js
+│   │   │   ├── PanduanPage.js
+│   │   │   ├── PengembangBarrier.js
 │   │   │   ├── PublicFooter.js
 │   │   │   ├── ScheduleBarrier.js
 │   │   │   ├── SiteBackground.js
 │   │   │   └── WaveDivider.js
 │   │   └── panitia/
+│   │       ├── absensi/
+│   │       │   ├── AbsensiDashboardCharts.js
+│   │       │   ├── AbsensiFormModal.js
+│   │       │   ├── AbsensiRekapTable.js
+│   │       │   ├── FormAbsenModal.jsjs
+│   │       │   └── SearchableDropdown.js
 │   │       ├── finance/
 │   │       │   ├── BuktiPreviewModal.js
 │   │       │   ├── BukuBesarTable.js
@@ -805,6 +1220,7 @@ CREATE POLICY "Enable all for authenticated on documents"
 │   │       │   ├── MasterAkunTable.js
 │   │       │   ├── MasterKategoriFormModal.js
 │   │       │   ├── MasterKategoriTable.js
+│   │       │   ├── NeracaLajurTable.js
 │   │       │   ├── NeracaSaldoTable.js
 │   │       │   ├── PemasukanFormModal.js
 │   │       │   ├── PengeluaranFormModal.js
@@ -814,7 +1230,11 @@ CREATE POLICY "Enable all for authenticated on documents"
 │   │       ├── AdminFormPengumpulan.js
 │   │       ├── AdminFormRegister.js
 │   │       ├── AdminFormWajib.js
+│   │       ├── AdminJadwalPertandinganPJ.js
+│   │       ├── AdminKelompokManager.js
 │   │       ├── AdminKeuanganDashboard.js
+│   │       ├── AdminPenilaianPJ.js
+│   │       ├── AdminPesertaMedis.jsjs
 │   │       ├── AdminPesertaPengumpulan.js
 │   │       ├── AdminPesertaRegister.js
 │   │       ├── AdminPesertaWajib.js
@@ -831,25 +1251,40 @@ CREATE POLICY "Enable all for authenticated on documents"
 │   │       ├── DashboardHeaderFilters.js
 │   │       ├── DashboardDonutChart.js
 │   │       ├── LoginContent.js
+│   │       ├── SalesChart.js
+│   │       ├── SalesRiwayatTable.js
 │   │       ├── DashboardCalendarLegend.js
 │   │       └── ConfirmModal.js
+│   ├── data/
+│   │   ├── ketentuanData.js
+│   │   ├── lombaPose.js
+│   │   └── panduanData.js
 │   ├── docs/
 │   │   ├── supabase/
 │   │   └── openai/
 │   │
 │   └── lib/
 │       ├── excel/
+│       │   ├── medis.js
 │       │   └── xlsx.js
 │       ├── pdf/
+│       │   ├── absensi.js
+│       │   ├── browser.js
 │       │   ├── certificate.js
 │       │   ├── invoice.js
+│       │   ├── medis.js
+│       │   ├── penilaian.js
 │       │   ├── report.js
+│       │   ├── sales.js
+│       │   ├── teamReport.js
 │       │   └── template.jsjs
 │       ├── qr/
 │       │   └── qrcode.js
 │       ├── adminRoleData.js
 │       ├── dashboardUtils.js
+│       ├── dateUtils.js
 │       ├── faqData.js
+│       ├── faqDataAdmin.js
 │       ├── kodeFormUtils.js
 │       ├── lombaData.js
 │       ├── openai.js

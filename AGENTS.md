@@ -921,6 +921,7 @@ VALUES
 │   │   ├── logic/
 │   │   │   ├── homeLandingLogic.js
 │   │   │   ├── ketentuanLogic.js
+│   │   │   ├── panduan_admin.js
 │   │   │   └── panduanLogic.js
 │   │   ├── pdf/
 │   │   │   └── route.js
@@ -1026,6 +1027,8 @@ VALUES
 │   │   │   │   └── verifikasi/
 │   │   │   │       └── page.js
 │   │   │   ├── login/
+│   │   │   │   └── page.js
+│   │   │   ├── panduan/
 │   │   │   │   └── page.js
 │   │   │   ├── pj_kabim/
 │   │   │   │   └── kelompok/
@@ -1133,8 +1136,13 @@ VALUES
 │   │       ├── pemberitahuan/
 │   │       │   └── page.js
 │   │       ├── register/
-│   │       │   └── [id]
-│   │       │       └── page.js
+│   │       │   ├── [id]
+│   │       │   │   └── page.js
+│   │       │   ├── dashboard
+│   │       │   │   └── page.js
+│   │       │   ├── lanjut
+│   │       │   │   └── page.js
+│   │       │   └── page.js
 │   │       ├── submission/
 │   │       │   ├── [id]
 │   │       │   │   └── page.js
@@ -1162,12 +1170,54 @@ VALUES
 │   │   │   ├── icon-logo2.png
 │   │   │   ├── logo.png
 │   │   │   └── maskot.png
+│   │   ├── panduan_admin_pose/
+│   │   │   ├── bendahara/
+│   │   │   │   └── 
+│   │   │   ├── pj_lomba/
+│   │   │   │   └── 
+│   │   │   └── sekretaris/
+│   │   │       └── 
+│   │   ├── panduan_admin_pkkmb/
+│   │   │   ├── bendahara/
+│   │   │   │   └── 
+│   │   │   ├── kabim/
+│   │   │   │   └── 
+│   │   │   ├── medis/
+│   │   │   │   └── 
+│   │   │   ├── mulmed/
+│   │   │   │   └── 
+│   │   │   ├── sekretaris/
+│   │   │   │   └── 
+│   │   │   └── tatib/
+│   │   │       └── 
+│   │   ├── update/
+│   │   │   ├── admin_pkkmb/
+│   │   │   │   └── 
+│   │   │   ├── admin_pose/
+│   │   │   │   └── 
+│   │   │   ├── pkkmb/
+│   │   │   │   └── 
+│   │   │   └── pose/
+│   │   │       └── 
 │   │   ├── panduan_pkkmb/
 │   │   │   ├── lendingpage.png
+│   │   │   ├── 
 │   │   │   └── pemberitahuan.png
 │   │   ├── panduan_pose/
 │   │   │   ├── lendingpage.png
+│   │   │   ├── 
 │   │   │   └── pemberitahuan.png
+│   │   ├── poster_pose/
+│   │   │   ├── badminton.webp
+│   │   │   ├── business-model-canvas.webp
+│   │   │   ├── dance.webp
+│   │   │   ├── desain-poster.webp
+│   │   │   ├── digital-umkm-promotion.webp
+│   │   │   ├── mobile-legends.webp
+│   │   │   ├── release-writing.webp
+│   │   │   ├── software-developer.webp
+│   │   │   ├── tarik-tambang.webp
+│   │   │   └── tenis-meja.webp
 │   │   ├── icon-poltek.png
 │   │   ├── logopkkmb.png
 │   │   ├── logopoltek.png
@@ -1251,6 +1301,7 @@ VALUES
 │   │       ├── DashboardHeaderFilters.js
 │   │       ├── DashboardDonutChart.js
 │   │       ├── LoginContent.js
+│   │       ├── PanduanAdminPage.js
 │   │       ├── SalesChart.js
 │   │       ├── SalesRiwayatTable.js
 │   │       ├── DashboardCalendarLegend.js
@@ -1258,6 +1309,7 @@ VALUES
 │   ├── data/
 │   │   ├── ketentuanData.js
 │   │   ├── lombaPose.js
+│   │   ├── panduan_admin.js
 │   │   └── panduanData.js
 │   ├── docs/
 │   │   ├── supabase/

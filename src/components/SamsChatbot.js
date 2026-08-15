@@ -177,11 +177,11 @@ export default function SamsChatbot() {
         setIsTyping(true);
 
         try {
-            const { answer, isFaqMatched } = await generateAnswer(inputanUser, faqData, siteType);
+            const { answer, isFaqMatched, token } = await generateAnswer(inputanUser, faqData, siteType);
 
             setMessages([...newMessages, { sender: 'bot', text: answer }]);
 
-            await saveChatHistory(inputanUser, answer, siteType, isFaqMatched);
+            await saveChatHistory(inputanUser, answer, siteType, isFaqMatched, token);
         } catch (error) {
             console.error("OpenAI Error:", error);
             setMessages([...newMessages, { sender: 'bot', text: 'Maaf, terjadi kesalahan pada server AI. Silakan coba lagi ya! 🙏' }]);
