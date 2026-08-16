@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import { formatWibDateTime } from '@/lib/dashboardUtils';
 
 /**
  * Export data array to an Excel (.xlsx) file and trigger browser download
@@ -21,7 +22,10 @@ export function exportToExcel(data = [], columns = [], filename = 'export-keuang
                 if (item.isSummaryRow) {
                     const row = { No: item.noLabel !== undefined ? item.noLabel : '' };
                     columns.forEach(col => {
-                        const val = item[col.key];
+                        let val = item[col.key];
+                        if (col.format === 'date' || col.format === 'datetime' || ['created_at', 'tanggal_transaksi', 'journal_date', 'tanggal', 'visited_at'].includes(col.key)) {
+                            val = formatWibDateTime(val);
+                        }
                         if (val === undefined || val === null || val === 0 || val === '') {
                             row[col.label] = '';
                         } else {
@@ -33,7 +37,11 @@ export function exportToExcel(data = [], columns = [], filename = 'export-keuang
 
                 const row = { No: index + 1 };
                 columns.forEach(col => {
-                    row[col.label] = item[col.key] !== undefined && item[col.key] !== null ? item[col.key] : '-';
+                    let val = item[col.key];
+                    if (col.format === 'date' || col.format === 'datetime' || ['created_at', 'tanggal_transaksi', 'journal_date', 'tanggal', 'visited_at'].includes(col.key)) {
+                        val = formatWibDateTime(val);
+                    }
+                    row[col.label] = val !== undefined && val !== null ? val : '-';
                 });
                 return row;
             }
@@ -91,7 +99,11 @@ export function exportToExcelMultiSheet(sheets = [], filename = 'laporan-keuanga
                 if (columns && columns.length > 0) {
                     const row = { No: index + 1 };
                     columns.forEach(col => {
-                        row[col.label] = item[col.key] !== undefined && item[col.key] !== null ? item[col.key] : '-';
+                        let val = item[col.key];
+                        if (col.format === 'date' || col.format === 'datetime' || ['created_at', 'tanggal_transaksi', 'journal_date', 'tanggal', 'visited_at'].includes(col.key)) {
+                            val = formatWibDateTime(val);
+                        }
+                        row[col.label] = val !== undefined && val !== null ? val : '-';
                     });
                     return row;
                 }

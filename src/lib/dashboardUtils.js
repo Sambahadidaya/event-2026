@@ -77,12 +77,56 @@ export function getCalendarCells(year, month) {
     return cells;
 }
 
+export function formatWibDateTime(dateInput) {
+    if (!dateInput) return '-';
+    try {
+        if (typeof dateInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateInput.trim())) {
+            const [y, m, dayStr] = dateInput.trim().split('-').map(Number);
+            const months = [
+                'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+            ];
+            const formattedDay = String(dayStr).padStart(2, '0');
+            const monthName = months[m - 1] || '';
+            return `${formattedDay} ${monthName} ${y}`;
+        }
+
+        const d = new Date(dateInput);
+        if (isNaN(d.getTime())) return String(dateInput);
+
+        const options = {
+            timeZone: 'Asia/Jakarta',
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        };
+
+        const formatter = new Intl.DateTimeFormat('id-ID', options);
+        const parts = formatter.formatToParts(d);
+
+        let day = '', month = '', year = '', hour = '', minute = '';
+        for (const p of parts) {
+            if (p.type === 'day') day = p.value;
+            if (p.type === 'month') month = p.value;
+            if (p.type === 'year') year = p.value;
+            if (p.type === 'hour') hour = p.value;
+            if (p.type === 'minute') minute = p.value;
+        }
+
+        if (hour && minute && (hour !== '00' || minute !== '00')) {
+            return `${day} ${month} ${year} Pukul ${hour}.${minute} WIB`;
+        }
+        return `${day} ${month} ${year}`;
+    } catch (e) {
+        return String(dateInput);
+    }
+}
+
 export function formatDateTime(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('id-ID', {
-        year: 'numeric', month: 'long', day: 'numeric',
-        hour: '2-digit', minute: '2-digit'
-    }) + ' WIB';
+    return formatWibDateTime(dateString);
 }
 
 export function formatSyncTime(timestamp) {

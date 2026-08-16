@@ -56,9 +56,9 @@ export default function KeuanganDashboardHeader({ transactions = [], pesertaLuna
       });
     } else {
       pesertaLunas.forEach(peserta => {
-        let nominal = 0;
-        if (peserta.kode_form) {
-          const kodeForm = peserta.kode_form.slice(0, -4);
+        let nominal = peserta.nominal || peserta.nominal_pembayaran || 0;
+        if (!nominal && peserta.kode_form) {
+          const kodeForm = peserta.kode_form.length > 4 ? peserta.kode_form.slice(0, -4) : peserta.kode_form;
           if (peserta.jenis_form === 'wajib' && formWajibMap[kodeForm]) {
             nominal = formWajibMap[kodeForm].nominal || 0;
           } else if (peserta.jenis_form === 'register' && formRegisterMap[kodeForm]) {

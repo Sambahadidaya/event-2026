@@ -66,13 +66,20 @@ export default function KeuanganTabelVerifikasi({
   };
 
   const getNominal = (peserta) => {
-    if (!peserta.kode_form) return 0;
-    const kodeForm = peserta.kode_form.slice(0, -4);
-    if (peserta.jenis_form === 'wajib' && formWajibMap[kodeForm]) {
-      return formWajibMap[kodeForm].nominal || 0;
+    if (peserta.nominal || peserta.nominal_pembayaran) {
+      return peserta.nominal || peserta.nominal_pembayaran || 0;
     }
-    if (peserta.jenis_form === 'register' && formRegisterMap[kodeForm]) {
-      return formRegisterMap[kodeForm].nominal || 0;
+    if (!peserta.kode_form) return 0;
+    const kodeFormFull = peserta.kode_form;
+    const kodeFormBase = peserta.kode_form.length > 4 ? peserta.kode_form.slice(0, -4) : peserta.kode_form;
+    
+    if (peserta.jenis_form === 'wajib') {
+      const match = formWajibMap[kodeFormFull] || formWajibMap[kodeFormBase];
+      if (match) return match.nominal || 0;
+    }
+    if (peserta.jenis_form === 'register') {
+      const match = formRegisterMap[kodeFormFull] || formRegisterMap[kodeFormBase];
+      if (match) return match.nominal || 0;
     }
     return 0;
   };

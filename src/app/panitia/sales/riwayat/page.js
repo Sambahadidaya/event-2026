@@ -5,6 +5,7 @@ import { ClipboardList, Search, Trophy, TrendingUp, Users, DollarSign, FileText,
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
 import DashboardSelect from '@/components/panitia/DashboardSelect';
 import SalesRiwayatTable from '@/components/panitia/SalesRiwayatTable';
+import TombolCetak from '@/components/panitia/TombolCetak';
 import { getSalesSummary, deleteSalesEntry, getSalesRiwayatDetail, getSalesAllDetail } from '@/api/supabase/admin/sales';
 import { generatePdfAction } from '@/api/pdf/route';
 import { generateSalesExcelAction } from '@/api/excel/sales';
@@ -170,41 +171,31 @@ export default function SalesRiwayatPage() {
                 options={allLombaList}
             />
 
-            {/* Export Dropdown */}
-            <div className="relative" ref={exportDropdownRef}>
-                <button
-                    onClick={() => setShowExportDropdown(prev => !prev)}
-                    disabled={exportLoading}
-                    className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-all shadow-sm"
-                >
-                    {exportLoading ? (
-                        <Loader2 size={15} className="animate-spin" />
-                    ) : (
-                        <FileText size={15} />
-                    )}
-                    Cetak
-                    <ChevronDown size={14} className={`transition-transform ${showExportDropdown ? 'rotate-180' : ''}`} />
-                </button>
-
-                {showExportDropdown && !exportLoading && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden">
-                        <button
-                            onClick={handleExportPDF}
-                            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                        >
-                            <FileText size={16} className="text-red-500" />
-                            Cetak PDF
-                        </button>
-                        <button
-                            onClick={handleExportExcel}
-                            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-t border-gray-100 dark:border-gray-800"
-                        >
-                            <FileSpreadsheet size={16} className="text-emerald-500" />
-                            Cetak Excel
-                        </button>
-                    </div>
-                )}
-            </div>
+            {/* Integrated TombolCetak */}
+            <TombolCetak
+                label="Cetak / Export"
+                pdfTitle="Laporan Riwayat Sales POSE 2026"
+                pdfSite="pose"
+                pdfData={salesSummary}
+                pdfDocumentType="sales_report"
+                pdfExtraProps={{
+                    summaryData: salesSummary,
+                    detailData: salesSummary,
+                    namaLombaFilter: lombaFilter
+                }}
+                excelData={salesSummary.map((row, idx) => ({
+                    'No': idx + 1,
+                    'Sumber': row.sumber || '-',
+                    'Nama / NIM': row.nama_nim || '-',
+                    'Total Nominal Komisi (Rp)': row.total_nominal || 0
+                }))}
+                excelColumns={[
+                    { key: 'Sumber', label: 'Sumber' },
+                    { key: 'Nama / NIM', label: 'Nama / NIM' },
+                    { key: 'Total Nominal Komisi (Rp)', label: 'Total Nominal Komisi (Rp)', align: 'right', format: 'currency' }
+                ]}
+                excelFilename="Laporan-Sales-POSE-2026"
+            />
         </div>
     );
 

@@ -6,8 +6,7 @@ import { getJournalEntry } from '@/api/supabase/admin/finance';
 import DashboardHeaderFilters, { SITE_OPTIONS_FINANCE } from '@/components/panitia/DashboardHeaderFilters';
 import TablePagination from '@/components/panitia/TablePagination';
 import DateRangeFilter from '@/components/panitia/DateRangeFilter';
-import PrintPDFButton from './PrintPDFButton';
-import ExportExcelButton from './ExportExcelButton';
+import TombolCetak from '@/components/panitia/TombolCetak';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -154,28 +153,27 @@ export default function JurnalEntryTable({ siteType = 'all', adminRole = '' }) {
                     />
 
                     <div className="flex flex-wrap items-center gap-2">
-                        <ExportExcelButton
-                            data={filteredData}
-                            columns={[
+                        <TombolCetak
+                            label="Cetak / Export"
+                            pdfTitle="Laporan Jurnal Umum (Journal Entries)"
+                            pdfSite={currentSite}
+                            pdfData={filteredData}
+                            pdfColumns={[
                                 { key: 'kode_id', label: 'Kode Jurnal' },
-                                { key: 'journal_date', label: 'Tanggal' },
-                                { key: 'description', label: 'Deskripsi' },
-                                { key: 'debit', label: 'Debit' },
-                                { key: 'credit', label: 'Kredit' }
-                            ]}
-                            filename={`Jurnal_Entry_${currentSite}`}
-                        />
-                        <PrintPDFButton
-                            title="Laporan Jurnal Umum (Journal Entries)"
-                            site={currentSite}
-                            data={filteredData}
-                            columns={[
-                                { key: 'kode_id', label: 'Kode Jurnal' },
-                                { key: 'journal_date', label: 'Tanggal' },
+                                { key: 'journal_date', label: 'Tanggal', format: 'datetime' },
                                 { key: 'description', label: 'Deskripsi' },
                                 { key: 'debit', label: 'Debit', align: 'right', format: 'currency' },
                                 { key: 'credit', label: 'Kredit', align: 'right', format: 'currency' }
                             ]}
+                            excelData={filteredData}
+                            excelColumns={[
+                                { key: 'kode_id', label: 'Kode Jurnal' },
+                                { key: 'journal_date', label: 'Tanggal', format: 'datetime' },
+                                { key: 'description', label: 'Deskripsi' },
+                                { key: 'debit', label: 'Debit' },
+                                { key: 'credit', label: 'Kredit' }
+                            ]}
+                            excelFilename={`Jurnal_Entry_${currentSite}`}
                         />
                     </div>
                 </div>

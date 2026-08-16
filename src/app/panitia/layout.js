@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import ThemeToggle from '@/components/ThemeToggle';
 import { User, LayoutDashboard, FileText, ChevronDown, ChevronRight, LogOut, ShieldAlert, Menu, BarChart3, MessageCircle, Mail, Newspaper, Users, Monitor, Lock, Calendar, Settings, BookOpen, FileCheck, ClipboardList, Trophy, Wallet, Receipt, Tags, BookMarked, ArrowLeftRight, BookOpenCheck, TrendingUp, TrendingDown, Scale, Table2, PieChart, CreditCard, UserCheck } from 'lucide-react';
 import { logoutAdmin, getCurrentAdmin } from '@/api/supabase/admin/auth';
+import { setAdminOffline, logoutPanitiaAction } from '@/api/logic/panitiaAuthLogic';
 import { updateAdminStatus } from '@/api/supabase/admin/admin';
 import { hasAccess, rolePermissions, canAccessSection } from '@/lib/adminRoleData';
 import SamsAsisten from '@/components/SamsAsisten';
@@ -27,8 +28,8 @@ export default function PanitiaLayout({ children }) {
     const handleLogoutRef = useRef(null);
     const userIdRef = useRef(null);
 
-    // Activity tracking for auto logout (5 minutes = 300,000 ms)
-    const INACTIVITY_LIMIT = 300000;
+    // Activity tracking for auto logout (1 hour = 3,600,000 ms)
+    const INACTIVITY_LIMIT = 3600000;
 
     const resetActivityTimer = () => {
         if (activityTimer.current) clearTimeout(activityTimer.current);
@@ -85,30 +86,59 @@ export default function PanitiaLayout({ children }) {
 
         fetchAdminData();
 
+        // Listener saat browser/tab ditutup atau tab hidden
+        const handleUnloadOrClose = () => {
+            const userId = userIdRef.current;
+            if (userId) {
+                setAdminOffline(userId);
+            }
+        };
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'hidden') {
+                const userId = userIdRef.current;
+                if (userId) {
+                    setAdminOffline(userId);
+                }
+                if (handleLogoutRef.current) {
+                    handleLogoutRef.current();
+                }
+            }
+        };
+
+        window.addEventListener('beforeunload', handleUnloadOrClose);
+        window.addEventListener('pagehide', handleUnloadOrClose);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
         // Setup activity listeners
         window.addEventListener('mousemove', resetActivityTimer);
         window.addEventListener('keydown', resetActivityTimer);
         window.addEventListener('scroll', resetActivityTimer);
         window.addEventListener('click', resetActivityTimer);
+        window.addEventListener('touchstart', resetActivityTimer);
 
         resetActivityTimer();
 
         return () => {
             if (activityTimer.current) clearTimeout(activityTimer.current);
             if (heartbeatInterval.current) clearInterval(heartbeatInterval.current);
+            window.removeEventListener('beforeunload', handleUnloadOrClose);
+            window.removeEventListener('pagehide', handleUnloadOrClose);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
             window.removeEventListener('mousemove', resetActivityTimer);
             window.removeEventListener('keydown', resetActivityTimer);
             window.removeEventListener('scroll', resetActivityTimer);
             window.removeEventListener('click', resetActivityTimer);
+            window.removeEventListener('touchstart', resetActivityTimer);
         };
     }, [pathname]);
 
     const handleLogout = async () => {
         const userId = adminData?.user_id || userIdRef.current;
         if (userId) {
-            await logoutAdmin(userId);
+            await logoutPanitiaAction(userId);
         } else {
-            await logoutAdmin();
+            await logoutPanitiaAction();
         }
         document.cookie = "sb-access-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
         setAdminData(null);

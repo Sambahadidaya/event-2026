@@ -8,8 +8,7 @@ import TablePagination from '@/components/panitia/TablePagination';
 import DateRangeFilter from '@/components/panitia/DateRangeFilter';
 import TransaksiDetailModal from './TransaksiDetailModal';
 import PemasukanFormModal from './PemasukanFormModal';
-import PrintPDFButton from './PrintPDFButton';
-import ExportExcelButton from './ExportExcelButton';
+import TombolCetak from '@/components/panitia/TombolCetak';
 import KwitansiPrintButton from './KwitansiPrintButton';
 import BuktiPreviewModal from './BuktiPreviewModal';
 import { PlusCircle } from 'lucide-react';
@@ -176,9 +175,22 @@ export default function KasMasukTable({ siteType = 'all', adminRole = '' }) {
                     />
 
                     <div className="flex flex-wrap items-center gap-2">
-                        <ExportExcelButton
-                            data={filteredData}
-                            columns={[
+                        <TombolCetak
+                            label="Cetak / Export"
+                            pdfTitle="Laporan Kas Masuk"
+                            pdfSite={currentSite}
+                            pdfData={filteredData}
+                            pdfColumns={[
+                                { key: 'kode_id', label: 'Kode ID' },
+                                { key: 'tanggal_transaksi', label: 'Tanggal', format: 'datetime' },
+                                { key: 'site', label: 'Site' },
+                                { key: 'nama_payer', label: 'Pembayar' },
+                                { key: 'metode_pembayaran', label: 'Metode' },
+                                { key: 'nominal', label: 'Nominal', align: 'right', format: 'currency' },
+                                { key: 'keterangan', label: 'Keterangan' }
+                            ]}
+                            excelData={filteredData}
+                            excelColumns={[
                                 { key: 'kode_id', label: 'Kode ID' },
                                 { key: 'site', label: 'Site' },
                                 { key: 'tanggal_transaksi', label: 'Tanggal' },
@@ -187,20 +199,7 @@ export default function KasMasukTable({ siteType = 'all', adminRole = '' }) {
                                 { key: 'nominal', label: 'Nominal' },
                                 { key: 'keterangan', label: 'Keterangan' }
                             ]}
-                            filename={`Kas_Masuk_${currentSite}`}
-                        />
-                        <PrintPDFButton
-                            title="Laporan Kas Masuk"
-                            site={currentSite}
-                            data={filteredData}
-                            columns={[
-                                { key: 'kode_id', label: 'Kode ID' },
-                                { key: 'site', label: 'Site' },
-                                { key: 'nama_payer', label: 'Pembayar' },
-                                { key: 'metode_pembayaran', label: 'Metode' },
-                                { key: 'nominal', label: 'Nominal', align: 'right', format: 'currency' },
-                                { key: 'keterangan', label: 'Keterangan' }
-                            ]}
+                            excelFilename={`Kas_Masuk_${currentSite}`}
                         />
                         <button
                             type="button"

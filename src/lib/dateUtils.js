@@ -1,30 +1,12 @@
+import { formatWibDateTime } from './dashboardUtils';
+
 /**
- * Utility: Format date to Indonesian style "4 agustus 2026 08.00WIB"
+ * Utility: Format date to Indonesian style "04 Agustus 2026 Pukul 08.00 WIB"
  * @param {string|Date} dateStr
  * @returns {string}
  */
 export function formatIndoDate(dateStr) {
-    if (!dateStr) return '-';
-    try {
-        const d = new Date(dateStr);
-        if (isNaN(d.getTime())) return '-';
-
-        const day = d.getDate();
-        const months = [
-            'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-        ];
-        const month = months[d.getMonth()];
-        const year = d.getFullYear();
-
-        const pad = (num) => String(num).padStart(2, '0');
-        const hours = pad(d.getHours());
-        const minutes = pad(d.getMinutes());
-
-        return `${day} ${month} ${year}, ${hours}.${minutes} WIB`;
-    } catch (e) {
-        return '-';
-    }
+    return formatWibDateTime(dateStr);
 }
 
 /**

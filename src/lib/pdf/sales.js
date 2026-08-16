@@ -77,7 +77,7 @@ export async function generateSalesPDF({
                 <td class="text-right">Rp ${(det.nominal || 0).toLocaleString('id-ID')}</td>
                 <td class="text-center">${det.persen_komisi || 0}%</td>
                 <td>${det.nama_lomba || '-'}</td>
-                <td>${det.tanggal_transaksi || '-'}</td>
+                <td>${formatIndoDate(det.tanggal_transaksi)}</td>
             </tr>
         `).join('');
 

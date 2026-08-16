@@ -6,7 +6,7 @@ import {
     BarChart2, X, CreditCard, AlertTriangle, RefreshCw
 } from 'lucide-react';
 import { getDataPesertaRekapPkkmb } from '@/api/supabase/admin/pembayaran_pkkmb';
-import ExportExcelButton from '@/components/panitia/finance/ExportExcelButton';
+import TombolCetak from '@/components/panitia/TombolCetak';
 
 const ITEMS_PER_PAGE = 15;
 
@@ -134,26 +134,69 @@ export default function DataPesertaPkkmbPage() {
                 </button>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                {[
-                    { label: 'Total Peserta', value: data.length, color: 'blue', icon: Users },
-                    { label: 'Lunas', value: stats.totalLunas, color: 'emerald', icon: CheckCircle2 },
-                    { label: 'Pending', value: stats.totalPending, color: 'amber', icon: Clock },
-                    { label: 'Total Dibayar', value: `Rp ${stats.totalDibayar.toLocaleString('id-ID')}`, color: 'indigo', icon: CreditCard },
-                    { label: 'Total Tunggakan', value: `Rp ${stats.totalTunggakan.toLocaleString('id-ID')}`, color: 'rose', icon: AlertTriangle }
-                ].map(card => {
-                    const Icon = card.icon;
-                    return (
-                        <div key={card.label} className={`bg-${card.color}-50 dark:bg-${card.color}-900/20 border border-${card.color}-200/60 dark:border-${card.color}-800/30 rounded-2xl p-4`}>
-                            <div className="flex items-center gap-2 mb-1">
-                                <Icon size={14} className={`text-${card.color}-500`} />
-                                <p className={`text-xs font-semibold text-${card.color}-700 dark:text-${card.color}-300`}>{card.label}</p>
-                            </div>
-                            <p className={`text-lg font-extrabold text-${card.color}-800 dark:text-${card.color}-200`}>{card.value}</p>
+            {/* Stats Cards (2 Rows, 3 Cards per Row, Menyatu) */}
+            <div className="space-y-3">
+                {/* Row 1: Total Peserta, Total Dibayar, Total Tunggakan */}
+                <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-100 dark:divide-gray-800">
+                    <div className="p-4 flex items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                            <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1 truncate">Total Peserta</p>
+                            <h3 className="text-lg sm:text-xl font-extrabold text-blue-800 dark:text-blue-200">{data.length}</h3>
                         </div>
-                    );
-                })}
+                        <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-500 flex items-center justify-center shrink-0">
+                            <Users size={20} />
+                        </div>
+                    </div>
+                    <div className="p-4 flex items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                            <p className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 mb-1 truncate">Total Dibayar</p>
+                            <h3 className="text-lg sm:text-xl font-extrabold text-indigo-800 dark:text-indigo-200">Rp {stats.totalDibayar.toLocaleString('id-ID')}</h3>
+                        </div>
+                        <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 flex items-center justify-center shrink-0">
+                            <CreditCard size={20} />
+                        </div>
+                    </div>
+                    <div className="p-4 flex items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                            <p className="text-xs font-semibold text-rose-700 dark:text-rose-300 mb-1 truncate">Total Tunggakan</p>
+                            <h3 className="text-lg sm:text-xl font-extrabold text-rose-800 dark:text-rose-200">Rp {stats.totalTunggakan.toLocaleString('id-ID')}</h3>
+                        </div>
+                        <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-500 flex items-center justify-center shrink-0">
+                            <AlertTriangle size={20} />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Row 2: Total Lunas, Total Ditolak, Total Pending */}
+                <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-100 dark:divide-gray-800">
+                    <div className="p-4 flex items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                            <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 mb-1 truncate">Total Lunas</p>
+                            <h3 className="text-lg sm:text-xl font-extrabold text-emerald-800 dark:text-emerald-200">{stats.totalLunas}</h3>
+                        </div>
+                        <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 flex items-center justify-center shrink-0">
+                            <CheckCircle2 size={20} />
+                        </div>
+                    </div>
+                    <div className="p-4 flex items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                            <p className="text-xs font-semibold text-rose-700 dark:text-rose-300 mb-1 truncate">Total Ditolak</p>
+                            <h3 className="text-lg sm:text-xl font-extrabold text-rose-800 dark:text-rose-200">{stats.totalDitolak}</h3>
+                        </div>
+                        <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-500 flex items-center justify-center shrink-0">
+                            <XCircle size={20} />
+                        </div>
+                    </div>
+                    <div className="p-4 flex items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                            <p className="text-xs font-semibold text-amber-700 dark:text-amber-300 mb-1 truncate">Total Pending</p>
+                            <h3 className="text-lg sm:text-xl font-extrabold text-amber-800 dark:text-amber-200">{stats.totalPending}</h3>
+                        </div>
+                        <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-500 flex items-center justify-center shrink-0">
+                            <Clock size={20} />
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Filters & Search */}
@@ -188,10 +231,12 @@ export default function DataPesertaPkkmbPage() {
                     <option value="NonReguler">Non Reguler</option>
                     <option value="KIP">KIP</option>
                 </select>
-                <ExportExcelButton
-                    data={excelData}
-                    filename="Rekap_Peserta_PKKMB"
-                    columns={[
+                <TombolCetak
+                    label="Export Excel"
+                    disablePdf={true}
+                    excelData={excelData}
+                    excelFilename="Rekap_Peserta_PKKMB"
+                    excelColumns={[
                         { key: 'No', label: 'No' },
                         { key: 'Nama', label: 'Nama' },
                         { key: 'NIM', label: 'NIM' },
@@ -261,7 +306,9 @@ export default function DataPesertaPkkmbPage() {
                                             {d.total_tagihan ? `Rp ${d.total_tagihan.toLocaleString('id-ID')}` : '-'}
                                         </td>
                                         <td className="px-4 py-3">
-                                            {d.sisa_tunggakan > 0 ? (
+                                            {d.status_pembayaran?.toLowerCase() === 'ditolak' ? (
+                                                <span className="text-xs font-bold text-rose-600 dark:text-rose-400">Ditolak</span>
+                                            ) : d.sisa_tunggakan > 0 ? (
                                                 <span className="text-xs font-bold text-rose-600 dark:text-rose-400">
                                                     Rp {d.sisa_tunggakan.toLocaleString('id-ID')}
                                                 </span>
@@ -335,7 +382,13 @@ export default function DataPesertaPkkmbPage() {
                                 {[
                                     { label: 'Total Tagihan', value: `Rp ${(selectedPeserta.total_tagihan || 0).toLocaleString('id-ID')}`, color: 'blue' },
                                     { label: 'Sudah Dibayar', value: `Rp ${(selectedPeserta.total_dibayar || 0).toLocaleString('id-ID')}`, color: 'emerald' },
-                                    { label: 'Sisa Tunggakan', value: selectedPeserta.sisa_tunggakan > 0 ? `Rp ${selectedPeserta.sisa_tunggakan.toLocaleString('id-ID')}` : 'Lunas', color: selectedPeserta.sisa_tunggakan > 0 ? 'rose' : 'emerald' }
+                                    { 
+                                        label: 'Sisa Tunggakan', 
+                                        value: selectedPeserta.status_pembayaran?.toLowerCase() === 'ditolak' 
+                                            ? 'Ditolak' 
+                                            : (selectedPeserta.sisa_tunggakan > 0 ? `Rp ${selectedPeserta.sisa_tunggakan.toLocaleString('id-ID')}` : 'Lunas'), 
+                                        color: selectedPeserta.status_pembayaran?.toLowerCase() === 'ditolak' || selectedPeserta.sisa_tunggakan > 0 ? 'rose' : 'emerald' 
+                                    }
                                 ].map(s => (
                                     <div key={s.label} className={`p-3 rounded-xl bg-${s.color}-50 dark:bg-${s.color}-900/20 border border-${s.color}-100 dark:border-${s.color}-800/30`}>
                                         <p className={`text-[10px] font-semibold text-${s.color}-600 dark:text-${s.color}-400 mb-0.5`}>{s.label}</p>

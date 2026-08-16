@@ -5,8 +5,7 @@ import { useRouter } from 'next/navigation';
 import { UserCheck, Plus, Edit, Trash2, Search, Printer, FileDown, AlertCircle } from 'lucide-react';
 import { getCurrentAdmin } from '@/api/supabase/admin/auth';
 import { getFormAbsen, getAdminsBySite, getDataAbsen, createDataAbsen, updateDataAbsen, deleteDataAbsen } from '@/api/supabase/admin/absensi';
-import { generatePdfAction } from '@/api/pdf/route';
-import { exportToExcel } from '@/lib/excel/xlsx';
+import TombolCetak from '@/components/panitia/TombolCetak';
 import { hasAccess } from '@/lib/adminRoleData';
 import { formatIndoDate, getAbsensiDisplayDate } from '@/lib/dateUtils';
 import AbsensiFormModal from '@/components/panitia/absensi/AbsensiFormModal';
@@ -446,26 +445,47 @@ export default function AbsensiPanitiaPage() {
                         </select>
 
                         {/* Export actions */}
-                        <button
-                            onClick={handleExportExcel}
-                            disabled={filteredHistory.length === 0}
-                            className="p-2 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-emerald-600 border border-slate-200 dark:border-slate-800 rounded-xl transition-all disabled:opacity-50"
-                            title="Export Excel"
-                        >
-                            <FileDown size={16} />
-                        </button>
-                        <button
-                            onClick={handleExportPDF}
-                            disabled={filteredHistory.length === 0 || exportingPdf}
-                            className="p-2 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-blue-600 border border-slate-200 dark:border-slate-800 rounded-xl transition-all disabled:opacity-50"
-                            title="Cetak PDF"
-                        >
-                            {exportingPdf ? (
-                                <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                            ) : (
-                                <Printer size={16} />
-                            )}
-                        </button>
+                        <TombolCetak
+                            label="Cetak / Export"
+                            pdfTitle={`Laporan Kehadiran Panitia - ${forms.find(f => f.id === selectedFormId)?.judul_absen || 'Sesi'}`}
+                            pdfSite={site}
+                            pdfData={filteredHistory.map(item => {
+                                const displayDate = item.updated_at && new Date(item.updated_at).getTime() - new Date(item.created_at).getTime() > 1000
+                                    ? item.updated_at
+                                    : item.created_at;
+                                return {
+                                    ...item,
+                                    tanggal_input: displayDate,
+                                    create_by: item.create_by ? item.create_by.replace('_', ' ') : '-'
+                                };
+                            })}
+                            pdfColumns={[
+                                { key: 'nama_panitia', label: 'Nama Panitia' },
+                                { key: 'type_absen', label: 'Jenis Absen', align: 'center' },
+                                { key: 'keterangan_absen', label: 'Keterangan' },
+                                { key: 'create_by', label: 'Diinput Oleh', align: 'center' },
+                                { key: 'tanggal_input', label: 'Tanggal Input', align: 'center', format: 'datetime' }
+                            ]}
+                            pdfDocumentType="absensi_report"
+                            excelData={filteredHistory.map(item => {
+                                const displayDate = item.updated_at && new Date(item.updated_at).getTime() - new Date(item.created_at).getTime() > 1000
+                                    ? item.updated_at
+                                    : item.created_at;
+                                return {
+                                    ...item,
+                                    tanggal_input: displayDate,
+                                    create_by: item.create_by ? item.create_by.replace('_', ' ') : '-'
+                                };
+                            })}
+                            excelColumns={[
+                                { key: 'nama_panitia', label: 'Nama Panitia' },
+                                { key: 'type_absen', label: 'Jenis Absen' },
+                                { key: 'keterangan_absen', label: 'Keterangan Absen' },
+                                { key: 'create_by', label: 'Diinput Oleh' },
+                                { key: 'tanggal_input', label: 'Tanggal Input', format: 'datetime' }
+                            ]}
+                            excelFilename={`absen-${forms.find(f => f.id === selectedFormId)?.judul_absen?.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'rekap'}-${site}`}
+                        />
                     </div>
                 )}
             </div>

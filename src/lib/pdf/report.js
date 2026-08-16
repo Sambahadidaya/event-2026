@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { generateQRCodeBase64, generateVerifyUrl } from '@/lib/qr/qrcode';
 import { PDF_STYLES } from './template';
+import { formatWibDateTime } from '@/lib/dashboardUtils';
 
 function getLogoBase64(site = 'pose') {
     try {
@@ -810,7 +811,16 @@ export async function generateVerifikasiPDF({
         let tablesHtml = '';
         let totalRecords = 0;
 
-        for (const dataSet of dataSets) {
+        // Defensive normalization: if dataSets is passed as flat array of items or single dataSet
+        let actualDataSets = dataSets;
+        if (!Array.isArray(dataSets)) {
+            actualDataSets = [];
+        } else if (dataSets.length > 0 && !dataSets[0].data) {
+            actualDataSets = [{ title, data: dataSets }];
+        }
+
+        for (const dataSet of actualDataSets) {
+            if (!dataSet || !Array.isArray(dataSet.data)) continue;
             let dataRowCounter = 0;
             const rowsHtml = dataSet.data.map((item) => {
                 dataRowCounter++;
@@ -819,8 +829,8 @@ export async function generateVerifikasiPDF({
                     let val = item[col.key];
                     if (col.format === 'currency') {
                         val = typeof val === 'number' && val > 0 ? `Rp ${val.toLocaleString('id-ID')}` : (val && val !== 0 && val !== '-' ? val : '-');
-                    } else if (col.format === 'date') {
-                        val = val ? new Date(val).toLocaleDateString('id-ID') : '-';
+                    } else if (col.format === 'date' || col.format === 'datetime' || ['created_at', 'tanggal_transaksi', 'journal_date', 'tanggal', 'visited_at'].includes(col.key)) {
+                        val = formatWibDateTime(val);
                     }
                     const alignClass = col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : '';
                     return `<td class="${alignClass}">${val !== undefined && val !== null ? val : '-'}</td>`;

@@ -708,6 +708,30 @@ export const autoCreateTransactionFromPeserta = async (peserta, userEmail = 'sys
                             site: site
                         }
                     ]);
+                } else {
+                    // Tahapan 'full' / Langsung: Debit Kas, Credit Revenue (2 entries)
+                    await supabaseAdmin.from('journal_entry').insert([
+                        {
+                            kode_id: je1_kode,
+                            transaction_id: tf.id,
+                            account_id: assetAccount.id, // DEBIT Asset (Kas/QRIS/Seabank)
+                            debit: pkkmbNominal || nominal,
+                            credit: 0,
+                            description: `Penerimaan ${keterangan} via ${paymentMethod}`,
+                            journal_date: new Date().toISOString().split('T')[0],
+                            site: site
+                        },
+                        {
+                            kode_id: je2_kode,
+                            transaction_id: tf.id,
+                            account_id: revenueAccount.id, // CREDIT Revenue (Pendapatan)
+                            debit: 0,
+                            credit: pkkmbNominal || nominal,
+                            description: `Pendapatan ${keterangan}`,
+                            journal_date: new Date().toISOString().split('T')[0],
+                            site: site
+                        }
+                    ]);
                 }
             } else if (salesEntry && salesEntry.nominal > 0 && utangAccount && bebanAccount) {
                 // 4 Entries: Asset, Revenue, Beban Komisi (5005), Utang Komisi (2002)

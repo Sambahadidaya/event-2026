@@ -5,6 +5,7 @@ import { Search, Download, FileText, Activity, Heart, AlertTriangle } from 'luci
 import { getDataMedisAll } from '@/api/supabase/admin/medis';
 import { exportMedisToExcel } from '@/lib/excel/medis';
 import { generatePdfAction } from '@/api/pdf/route';
+import TombolCetak from '@/components/panitia/TombolCetak';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
 import TablePagination from '@/components/panitia/TablePagination';
 
@@ -125,19 +126,44 @@ export default function AdminPesertaMedis() {
                 </div>
 
                 <div className="flex flex-wrap w-full md:w-auto gap-2">
-                    <button
-                        onClick={handleExportExcel}
-                        className="flex-1 md:flex-none px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
-                    >
-                        <Download size={16} /> Excel
-                    </button>
-                    <button
-                        onClick={handleExportPdf}
-                        disabled={exportingPdf}
-                        className="flex-1 md:flex-none px-4 py-2.5 bg-red-600 hover:bg-red-700 disabled:bg-red-600/55 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
-                    >
-                        <FileText size={16} /> {exportingPdf ? 'Membuat PDF...' : 'Unduh PDF'}
-                    </button>
+                    <TombolCetak
+                        label="Cetak / Export"
+                        pdfTitle="LAPORAN DATA MEDIS PESERTA PKKMB 2026"
+                        pdfSite="pkkmb"
+                        pdfData={filteredData}
+                        pdfDocumentType="medis"
+                        excelData={filteredData.map(item => ({
+                            'Nama Lengkap': item.nama || '-',
+                            'NIM': item.nim || '-',
+                            'Prodi': item.prodi || '-',
+                            'Email/WA': item.email_wa || '-',
+                            'Kelompok': item.nama_kelompok || '-',
+                            'Kabim': item.nama_kabim || '-',
+                            'Status Verifikasi': item.status_pembayaran || '-',
+                            'Riwayat Penyakit': item.riwayat_penyakit || '-',
+                            'Penanganan Medis': item.penanganan || '-',
+                            'Alergi': item.alergi || '-',
+                            'Nama Orang Tua/Wali': item.nama_ortu_wali || '-',
+                            'WA Orang Tua/Wali': item.no_wa_ortu_wali || '-',
+                            'Tanggal Input': item.created_at
+                        }))}
+                        excelColumns={[
+                            { key: 'Nama Lengkap', label: 'Nama Lengkap' },
+                            { key: 'NIM', label: 'NIM' },
+                            { key: 'Prodi', label: 'Prodi' },
+                            { key: 'Email/WA', label: 'Email/WA' },
+                            { key: 'Kelompok', label: 'Kelompok' },
+                            { key: 'Kabim', label: 'Kabim' },
+                            { key: 'Status Verifikasi', label: 'Status Verifikasi' },
+                            { key: 'Riwayat Penyakit', label: 'Riwayat Penyakit' },
+                            { key: 'Penanganan Medis', label: 'Penanganan Medis' },
+                            { key: 'Alergi', label: 'Alergi' },
+                            { key: 'Nama Orang Tua/Wali', label: 'Nama Orang Tua/Wali' },
+                            { key: 'WA Orang Tua/Wali', label: 'WA Orang Tua/Wali' },
+                            { key: 'Tanggal Input', label: 'Tanggal Input', format: 'datetime' }
+                        ]}
+                        excelFilename={`laporan-medis-pkkmb_${new Date().toISOString().split('T')[0]}`}
+                    />
                 </div>
             </div>
 

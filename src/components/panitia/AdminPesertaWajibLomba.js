@@ -13,6 +13,7 @@ import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters'
 import DashboardOverviewCards from '@/components/panitia/DashboardOverviewCards';
 import TablePagination from '@/components/panitia/TablePagination';
 import { exportToExcel } from '@/lib/excel/xlsx';
+import TombolCetak from '@/components/panitia/TombolCetak';
 import { KAMPUS_DATA } from '@/lib/lombaData';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
@@ -349,15 +350,47 @@ export default function AdminPesertaWajibLomba() {
                     </div>
                 </div>
 
-                {/* Export */}
-                <button
-                    type="button"
-                    onClick={handleExportExcel}
-                    className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm"
-                >
-                    <Download size={15} />
-                    Export Excel
-                </button>
+                {/* Integrated TombolCetak */}
+                <TombolCetak
+                    label="Cetak / Export"
+                    pdfTitle="Laporan Peserta Wajib & Lomba POSE 2026"
+                    pdfSite="pose"
+                    pdfData={filteredData.map(p => ({
+                        ...p,
+                        lomba_text: (p.lomba_diikuti || []).join(', ') || '-'
+                    }))}
+                    pdfColumns={[
+                        { key: 'nim', label: 'NIM' },
+                        { key: 'nama', label: 'Nama' },
+                        { key: 'kampus', label: 'Kampus' },
+                        { key: 'prodi', label: 'Prodi' },
+                        { key: 'created_at', label: 'Tanggal Input', format: 'datetime' },
+                        { key: 'status_pembayaran', label: 'Status Bayar' },
+                        { key: 'total_lomba', label: 'Total Lomba', align: 'center' },
+                        { key: 'lomba_text', label: 'Lomba Diikuti' }
+                    ]}
+                    excelData={filteredData.map(p => ({
+                        'NIM': p.nim || '-',
+                        'Nama': p.nama || '-',
+                        'Kampus': p.kampus || '-',
+                        'Prodi': p.prodi || '-',
+                        'Tanggal Input': p.created_at,
+                        'Status Bayar': p.status_pembayaran || '-',
+                        'Total Lomba': p.total_lomba || 0,
+                        'Lomba Diikuti': (p.lomba_diikuti || []).join(', ') || '-'
+                    }))}
+                    excelColumns={[
+                        { key: 'NIM', label: 'NIM' },
+                        { key: 'Nama', label: 'Nama' },
+                        { key: 'Kampus', label: 'Kampus' },
+                        { key: 'Prodi', label: 'Prodi' },
+                        { key: 'Tanggal Input', label: 'Tanggal Input', format: 'datetime' },
+                        { key: 'Status Bayar', label: 'Status Bayar' },
+                        { key: 'Total Lomba', label: 'Total Lomba' },
+                        { key: 'Lomba Diikuti', label: 'Lomba Diikuti' }
+                    ]}
+                    excelFilename="Peserta_Wajib_Lomba_POSE2026"
+                />
             </div>
 
             {/* Table */}

@@ -922,7 +922,8 @@ VALUES
 │   │   │   ├── homeLandingLogic.js
 │   │   │   ├── ketentuanLogic.js
 │   │   │   ├── panduan_admin.js
-│   │   │   └── panduanLogic.js
+│   │   │   ├── panduanLogic.js
+│   │   │   └── panitiaAuthLogic.js
 │   │   ├── pdf/
 │   │   │   └── route.js
 │   │   ├── supabase/
@@ -1305,6 +1306,7 @@ VALUES
 │   │       ├── SalesChart.js
 │   │       ├── SalesRiwayatTable.js
 │   │       ├── DashboardCalendarLegend.js
+│   │       ├── TombolCetak.js
 │   │       └── ConfirmModal.js
 │   ├── data/
 │   │   ├── ketentuanData.js

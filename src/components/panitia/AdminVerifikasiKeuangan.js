@@ -3,14 +3,13 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import {
     FileCheck, Search, Eye, CheckCircle2, XCircle, Clock,
-    FileText, UserCheck, Filter, X, FileImage, ExternalLink
+    FileText, UserCheck, Filter, X, FileImage, ExternalLink, MonitorPlay
 } from 'lucide-react';
 import { getPesertaKeuangan, updateStatusPembayaranPeserta } from '@/api/supabase/admin/peserta';
 import { getPembayaranPkkmbKeuangan, updateStatusPembayaranPkkmb } from '@/api/supabase/admin/pembayaran_pkkmb';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
 import TablePagination from '@/components/panitia/TablePagination';
-import ExportExcelButton from '@/components/panitia/finance/ExportExcelButton';
-import PrintPDFButton from '@/components/panitia/finance/PrintPDFButton';
+import TombolCetak from '@/components/panitia/TombolCetak';
 import { formatDateTime } from '@/lib/dashboardUtils';
 
 const ITEMS_PER_PAGE = 10;
@@ -24,7 +23,22 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
     const [lastSyncedAt, setLastSyncedAt] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
 
+    // Site selection state
+    const isSuperAdmin = !adminRole || adminRole === 'super_admin';
     const isPkkmbAdmin = Boolean(adminRole && adminRole.includes('pkkmb'));
+    const isPoseAdmin = Boolean(adminRole && adminRole.includes('pose'));
+
+    const initialSite = isSuperAdmin 
+        ? 'pkkmb' 
+        : (siteType === 'all' ? (isPkkmbAdmin ? 'pkkmb' : isPoseAdmin ? 'pose' : 'pkkmb') : siteType);
+
+    const [activeSite, setActiveSite] = useState(initialSite);
+
+    // Sub-filter states
+    const [kelasFilter, setKelasFilter] = useState('semua');
+    const [jenisBayarFilter, setJenisBayarFilter] = useState('semua');
+    const [kategoriFilter, setKategoriFilter] = useState('semua');
+    const [kampusFilter, setKampusFilter] = useState('semua');
 
     useEffect(() => {
         if (isPkkmbAdmin) {
@@ -44,14 +58,14 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
 
     const fetchData = useCallback(async () => {
         setLoading(true);
-        if (siteType === 'pkkmb') {
+        if (activeSite === 'pkkmb') {
             const pkkmbData = await getPembayaranPkkmbKeuangan();
             if (pkkmbData) {
-                setData(pkkmbData.map(d => ({...d, jenis_form: 'wajib', site_type: 'pkkmb'})));
+                setData(pkkmbData.map(d => ({ ...d, jenis_form: 'wajib', site_type: 'pkkmb' })));
                 setLastSyncedAt(Date.now());
             }
-        } else if (siteType === 'pose') {
-            const pesertaData = await getPesertaKeuangan(siteType);
+        } else if (activeSite === 'pose') {
+            const pesertaData = await getPesertaKeuangan('pose');
             if (pesertaData) {
                 setData(pesertaData);
                 setLastSyncedAt(Date.now());
@@ -63,7 +77,7 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
             ]);
             
             const merged = [
-                ...(pkkmbData ? pkkmbData.map(d => ({...d, jenis_form: 'wajib', site_type: 'pkkmb'})) : []),
+                ...(pkkmbData ? pkkmbData.map(d => ({ ...d, jenis_form: 'wajib', site_type: 'pkkmb' })) : []),
                 ...(pesertaData ? pesertaData.filter(d => !(d.site_type === 'pkkmb' && d.jenis_form === 'wajib')) : [])
             ];
             
@@ -71,11 +85,30 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
             setLastSyncedAt(Date.now());
         }
         setLoading(false);
-    }, [siteType]);
+    }, [activeSite]);
 
     useEffect(() => {
         fetchData();
     }, [fetchData]);
+
+    // Extract unique filter lists from data
+    const uniqueKelasList = useMemo(() => {
+        const setList = new Set();
+        data.forEach(item => { if (item.kelas) setList.add(item.kelas); });
+        return Array.from(setList);
+    }, [data]);
+
+    const uniqueKampusList = useMemo(() => {
+        const setList = new Set();
+        data.forEach(item => { if (item.kampus) setList.add(item.kampus); });
+        return Array.from(setList);
+    }, [data]);
+
+    const uniqueKategoriList = useMemo(() => {
+        const setList = new Set();
+        data.forEach(item => { if (item.kategori) setList.add(item.kategori); });
+        return Array.from(setList);
+    }, [data]);
 
     // Calculate header summary statistics
     const stats = useMemo(() => {
@@ -88,8 +121,7 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
         return { totalWajib, totalRegister, totalLunas, totalDitolak, totalPending };
     }, [data]);
 
-    // Filter data by active tab (jenis_form), search query, and status filter
-    // Filter data Form Wajib by search query and status filter
+    // Filter data Form Wajib
     const filteredWajib = useMemo(() => {
         return data.filter(item => {
             if (item.jenis_form !== 'wajib') return false;
@@ -99,6 +131,15 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
             if (statusFilter === 'ditolak' && item.status_pembayaran?.toLowerCase() !== 'ditolak') return false;
             if (statusFilter === 'pending' && (item.status_pembayaran && item.status_pembayaran?.toLowerCase() !== 'pending')) return false;
 
+            // Site-specific filters
+            if (activeSite === 'pkkmb') {
+                if (kelasFilter !== 'semua' && item.kelas !== kelasFilter) return false;
+                if (jenisBayarFilter !== 'semua' && item.jenis_bayar !== jenisBayarFilter) return false;
+            } else if (activeSite === 'pose') {
+                if (kategoriFilter !== 'semua' && item.kategori !== kategoriFilter) return false;
+                if (kampusFilter !== 'semua' && item.kampus !== kampusFilter) return false;
+            }
+
             // Search query filter
             if (searchQuery.trim()) {
                 const searchLower = searchQuery.toLowerCase();
@@ -107,14 +148,15 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
                 const matchKampus = item.kampus && item.kampus.toLowerCase().includes(searchLower);
                 const matchEmailWa = item.email_wa && item.email_wa.toLowerCase().includes(searchLower);
                 const matchKategori = item.kategori && item.kategori.toLowerCase().includes(searchLower);
-                return matchNama || matchNim || matchKampus || matchEmailWa || matchKategori;
+                const matchKelas = item.kelas && item.kelas.toLowerCase().includes(searchLower);
+                return matchNama || matchNim || matchKampus || matchEmailWa || matchKategori || matchKelas;
             }
 
             return true;
         });
-    }, [data, statusFilter, searchQuery]);
+    }, [data, statusFilter, activeSite, kelasFilter, jenisBayarFilter, kategoriFilter, kampusFilter, searchQuery]);
 
-    // Filter data Form Register by search query and status filter
+    // Filter data Form Register
     const filteredRegister = useMemo(() => {
         return data.filter(item => {
             if (item.jenis_form !== 'register') return false;
@@ -124,6 +166,10 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
             if (statusFilter === 'ditolak' && item.status_pembayaran?.toLowerCase() !== 'ditolak') return false;
             if (statusFilter === 'pending' && (item.status_pembayaran && item.status_pembayaran?.toLowerCase() !== 'pending')) return false;
 
+            // Site-specific filters (POSE)
+            if (kategoriFilter !== 'semua' && item.kategori !== kategoriFilter) return false;
+            if (kampusFilter !== 'semua' && item.kampus !== kampusFilter) return false;
+
             // Search query filter
             if (searchQuery.trim()) {
                 const searchLower = searchQuery.toLowerCase();
@@ -137,7 +183,7 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
 
             return true;
         });
-    }, [data, statusFilter, searchQuery]);
+    }, [data, statusFilter, kategoriFilter, kampusFilter, searchQuery]);
 
     // Active filtered data for displaying in table
     const filteredData = useMemo(() => {
@@ -150,29 +196,46 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchQuery, statusFilter, activeTab]);
+    }, [searchQuery, statusFilter, activeTab, activeSite, kelasFilter, jenisBayarFilter, kategoriFilter, kampusFilter]);
 
-    // Formatted sheets for Excel multi-sheet export
+    // Format Columns and Data for TombolCetak (PDF & Excel)
+    const isPkkmbWajibTable = activeSite === 'pkkmb' && activeTab === 'wajib';
+
+    const pkkmbCols = [
+        { key: 'nama', label: 'Nama Peserta' },
+        { key: 'nim', label: 'NIM' },
+        { key: 'kampus', label: 'Kampus' },
+        { key: 'email_wa', label: 'Email/WA' },
+        { key: 'kelas', label: 'Kelas' },
+        { key: 'jenis_bayar', label: 'Jenis Pembayaran' },
+        { key: 'tahapan', label: 'Tahapan' },
+        { key: 'created_at', label: 'Tanggal', format: 'datetime' },
+        { key: 'status_pembayaran', label: 'Status Pembayaran' }
+    ];
+
+    const standardCols = [
+        { key: 'nama', label: 'Nama Peserta' },
+        { key: 'kampus', label: 'Kampus' },
+        { key: 'nim', label: 'NIM' },
+        { key: 'prodi', label: 'Prodi' },
+        { key: 'kategori', label: 'Kategori' },
+        { key: 'email_wa', label: 'Email/WA' },
+        { key: 'jenis_form', label: 'Jenis Form' },
+        { key: 'kode_form', label: 'Kode Form' },
+        { key: 'created_at', label: 'Tanggal', format: 'datetime' },
+        { key: 'status_pembayaran', label: 'Status Pembayaran' },
+        { key: 'metode_pembayaran', label: 'Metode' }
+    ];
+
+    const activeColumns = isPkkmbWajibTable ? pkkmbCols : standardCols;
+
     const excelSheets = useMemo(() => {
-        const cols = [
-            { key: 'nama', label: 'Nama Peserta' },
-            { key: 'kampus', label: 'Kampus' },
-            { key: 'nim', label: 'NIM' },
-            { key: 'prodi', label: 'Prodi' },
-            { key: 'kategori', label: 'Kategori' },
-            { key: 'email_wa', label: 'Email/WA' },
-            { key: 'jenis_form', label: 'Jenis Form' },
-            { key: 'kode_form', label: 'Kode Form' },
-            { key: 'status_pembayaran', label: 'Status Pembayaran' },
-            { key: 'metode_pembayaran', label: 'Metode' }
-        ];
         return [
-            { sheetName: 'Form Wajib', data: filteredWajib, columns: cols },
-            { sheetName: 'Form Register', data: filteredRegister, columns: cols }
+            { sheetName: 'Form Wajib', data: filteredWajib, columns: isPkkmbWajibTable ? pkkmbCols : standardCols },
+            { sheetName: 'Form Register', data: filteredRegister, columns: standardCols }
         ];
-    }, [filteredWajib, filteredRegister]);
+    }, [filteredWajib, filteredRegister, isPkkmbWajibTable]);
 
-    // Formatted dataSets for PDF multi-table generation
     const pdfDataSets = useMemo(() => {
         return [
             { title: 'Form Wajib', data: filteredWajib },
@@ -186,16 +249,15 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
 
         let res;
         if (verifikasiItem.tahapan !== undefined || (verifikasiItem.site_type === 'pkkmb' && verifikasiItem.jenis_form === 'wajib')) {
-            // For PKKMB: update pembayaran_pkkmb and auto-update peserta if fully paid
             res = await updateStatusPembayaranPkkmb(verifikasiItem.id, status, verifikasiItem);
         } else {
             res = await updateStatusPembayaranPeserta(verifikasiItem.id, status);
         }
 
         if (res.success) {
-            setData(prev => prev.map(d => d.id === verifikasiItem.id ? { ...d, status_pembayaran: status } : d));
             setVerifikasiModalOpen(false);
             setVerifikasiItem(null);
+            await fetchData();
         } else {
             window.alert('Gagal mengupdate status pembayaran.');
         }
@@ -213,21 +275,45 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
         setVerifikasiModalOpen(true);
     };
 
+    const tableColSpan = isPkkmbWajibTable ? 11 : 9;
+
     return (
         <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-500">
             {/* Header / Title bar */}
             <DashboardHeaderFilters
                 title="Verifikasi Pembayaran"
                 subtitle={
-                    siteType === 'all'
+                    activeSite === 'all'
                         ? 'Pusat verifikasi seluruh pendaftaran (PKKMB & POSE)'
-                        : `Pusat verifikasi pendaftaran site ${siteType.toUpperCase()}`
+                        : `Pusat verifikasi pendaftaran site ${activeSite.toUpperCase()}`
                 }
                 icon={FileCheck}
                 showSiteFilter={false}
                 onRefresh={fetchData}
                 loading={loading}
                 lastSyncedAt={lastSyncedAt}
+                extraFilters={
+                    isSuperAdmin && (
+                        <div className="flex items-center gap-2 shrink-0">
+                            <MonitorPlay size={16} className="text-gray-400" />
+                            <select
+                                value={activeSite}
+                                onChange={(e) => {
+                                    setActiveSite(e.target.value);
+                                    setActiveTab('wajib');
+                                    setKelasFilter('semua');
+                                    setJenisBayarFilter('semua');
+                                    setKategoriFilter('semua');
+                                    setKampusFilter('semua');
+                                }}
+                                className="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs sm:text-sm font-bold text-gray-800 dark:text-white cursor-pointer shadow-xs focus:ring-2 focus:ring-emerald-500/30"
+                            >
+                                <option value="pkkmb">PKKMB</option>
+                                <option value="pose">POSE</option>
+                            </select>
+                        </div>
+                    )
+                }
             />
 
             {/* 5 Header Stat Cards */}
@@ -295,7 +381,7 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
 
             {/* Main Table Card */}
             <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
-                {/* Header Controls: Switch Tab + Search + Status Filter */}
+                {/* Header Controls: Switch Tab + Filters + Search + TombolCetak */}
                 <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
                     {/* Switch Toggle (Form Wajib vs Form Register) */}
                     <div className="flex items-center bg-gray-200/80 dark:bg-gray-800 p-1 rounded-xl shrink-0 self-start lg:self-auto">
@@ -315,10 +401,10 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
                         </button>
                         <button
                             type="button"
-                            onClick={() => !isPkkmbAdmin && setActiveTab('register')}
-                            disabled={isPkkmbAdmin}
-                            title={isPkkmbAdmin ? "Form Register tidak tersedia untuk role Admin PKKMB" : ""}
-                            className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${isPkkmbAdmin
+                            onClick={() => !(isPkkmbAdmin && activeSite === 'pkkmb') && setActiveTab('register')}
+                            disabled={isPkkmbAdmin && activeSite === 'pkkmb'}
+                            title={(isPkkmbAdmin && activeSite === 'pkkmb') ? "Form Register tidak tersedia untuk role Admin PKKMB" : ""}
+                            className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${(isPkkmbAdmin && activeSite === 'pkkmb')
                                 ? 'opacity-40 cursor-not-allowed text-gray-400 dark:text-gray-500'
                                 : activeTab === 'register'
                                     ? 'bg-white dark:bg-gray-900 text-violet-600 dark:text-violet-400 shadow-sm'
@@ -333,10 +419,76 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
                         </button>
                     </div>
 
-                    {/* Search & Filter Dropdown */}
-                    <div className="flex flex-col sm:flex-row items-center gap-3 flex-1 max-w-xl">
+                    {/* Filter Dropdowns + Search + TombolCetak */}
+                    <div className="flex flex-col sm:flex-row flex-wrap items-center gap-3 flex-1">
+                        {/* Site Specific Filters (Left of Search) */}
+                        {activeSite === 'pkkmb' ? (
+                            <>
+                                {/* Filter Kelas */}
+                                <div className="relative w-full sm:w-36 shrink-0">
+                                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                                    <select
+                                        value={kelasFilter}
+                                        onChange={(e) => setKelasFilter(e.target.value)}
+                                        className="w-full pl-9 pr-7 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500/30 text-gray-900 dark:text-white appearance-none cursor-pointer font-medium"
+                                    >
+                                        <option value="semua">Semua Kelas</option>
+                                        {uniqueKelasList.map(k => (
+                                            <option key={k} value={k}>{k}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Filter Jenis Pembayaran */}
+                                <div className="relative w-full sm:w-40 shrink-0">
+                                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                                    <select
+                                        value={jenisBayarFilter}
+                                        onChange={(e) => setJenisBayarFilter(e.target.value)}
+                                        className="w-full pl-9 pr-7 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500/30 text-gray-900 dark:text-white appearance-none cursor-pointer font-medium capitalize"
+                                    >
+                                        <option value="semua">Semua Jenis Bayar</option>
+                                        <option value="langsung">Langsung</option>
+                                        <option value="bertahap">Bertahap</option>
+                                    </select>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                {/* Filter Kategori */}
+                                <div className="relative w-full sm:w-40 shrink-0">
+                                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                                    <select
+                                        value={kategoriFilter}
+                                        onChange={(e) => setKategoriFilter(e.target.value)}
+                                        className="w-full pl-9 pr-7 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500/30 text-gray-900 dark:text-white appearance-none cursor-pointer font-medium"
+                                    >
+                                        <option value="semua">Semua Kategori</option>
+                                        {uniqueKategoriList.map(kat => (
+                                            <option key={kat} value={kat}>{kat}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Filter Kampus */}
+                                <div className="relative w-full sm:w-36 shrink-0">
+                                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                                    <select
+                                        value={kampusFilter}
+                                        onChange={(e) => setKampusFilter(e.target.value)}
+                                        className="w-full pl-9 pr-7 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500/30 text-gray-900 dark:text-white appearance-none cursor-pointer font-medium"
+                                    >
+                                        <option value="semua">Semua Kampus</option>
+                                        {uniqueKampusList.map(kmp => (
+                                            <option key={kmp} value={kmp}>{kmp}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </>
+                        )}
+
                         {/* Search Input */}
-                        <div className="relative w-full flex-1">
+                        <div className="relative w-full flex-1 min-w-[180px]">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                             <input
                                 type="text"
@@ -348,12 +500,12 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
                         </div>
 
                         {/* Dropdown Filter Status */}
-                        <div className="relative w-full sm:w-48 shrink-0">
+                        <div className="relative w-full sm:w-36 shrink-0">
                             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
                             <select
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value)}
-                                className="w-full pl-9 pr-8 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:ring-2 focus:ring-emerald-500/30 text-gray-900 dark:text-white appearance-none cursor-pointer font-medium"
+                                className="w-full pl-9 pr-7 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500/30 text-gray-900 dark:text-white appearance-none cursor-pointer font-medium"
                             >
                                 <option value="semua">Semua Status</option>
                                 <option value="pending">Pending</option>
@@ -362,69 +514,20 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
                             </select>
                         </div>
 
-                        {/* Export Buttons */}
-                        <div className="flex items-center gap-2 shrink-0">
-                            {siteType === 'pose' ? (
-                                <ExportExcelButton
-                                    sheets={excelSheets}
-                                    filename={`Verifikasi_Peserta_POSE`}
-                                />
-                            ) : (
-                                <ExportExcelButton
-                                    data={filteredData}
-                                    columns={[
-                                        { key: 'nama', label: 'Nama Peserta' },
-                                        { key: 'kampus', label: 'Kampus' },
-                                        { key: 'nim', label: 'NIM' },
-                                        { key: 'prodi', label: 'Prodi' },
-                                        { key: 'kategori', label: 'Kategori' },
-                                        { key: 'email_wa', label: 'Email/WA' },
-                                        { key: 'jenis_form', label: 'Jenis Form' },
-                                        { key: 'kode_form', label: 'Kode Form' },
-                                        { key: 'status_pembayaran', label: 'Status Pembayaran' },
-                                        { key: 'metode_pembayaran', label: 'Metode' }
-                                    ]}
-                                    filename={`Verifikasi_Peserta_${activeTab}_${siteType}`}
-                                />
-                            )}
-                            {siteType === 'pose' ? (
-                                <PrintPDFButton
-                                    title="Laporan Verifikasi Pendaftaran POSE"
-                                    site={siteType}
-                                    data={pdfDataSets}
-                                    documentType="verifikasi_report"
-                                    columns={[
-                                        { key: 'nama', label: 'Nama Peserta' },
-                                        { key: 'kampus', label: 'Kampus' },
-                                        { key: 'nim', label: 'NIM' },
-                                        { key: 'prodi', label: 'Prodi' },
-                                        { key: 'kategori', label: 'Kategori' },
-                                        { key: 'email_wa', label: 'Email/WA' },
-                                        { key: 'jenis_form', label: 'Jenis Form' },
-                                        { key: 'kode_form', label: 'Kode Form' },
-                                        { key: 'metode_pembayaran', label: 'Metode' },
-                                        { key: 'status_pembayaran', label: 'Status Pembayaran' }
-                                    ]}
-                                />
-                            ) : (
-                                <PrintPDFButton
-                                    title={`Laporan Verifikasi Pendaftaran (${activeTab.toUpperCase()})`}
-                                    site={siteType}
-                                    data={filteredData}
-                                    columns={[
-                                        { key: 'nama', label: 'Nama Peserta' },
-                                        { key: 'kampus', label: 'Kampus' },
-                                        { key: 'nim', label: 'NIM' },
-                                        { key: 'prodi', label: 'Prodi' },
-                                        { key: 'kategori', label: 'Kategori' },
-                                        { key: 'email_wa', label: 'Email/WA' },
-                                        { key: 'jenis_form', label: 'Jenis Form' },
-                                        { key: 'kode_form', label: 'Kode Form' },
-                                        { key: 'metode_pembayaran', label: 'Metode' },
-                                        { key: 'status_pembayaran', label: 'Status Pembayaran' }
-                                    ]}
-                                />
-                            )}
+                        {/* Integrated Dropdown TombolCetak */}
+                        <div className="shrink-0">
+                            <TombolCetak
+                                label="Cetak / Export"
+                                pdfTitle={`Laporan Verifikasi Pendaftaran (${activeSite.toUpperCase()} - ${activeTab.toUpperCase()})`}
+                                pdfSite={activeSite}
+                                pdfData={activeSite === 'pose' ? pdfDataSets : [{ title: `Form ${activeTab.toUpperCase()}`, data: filteredData }]}
+                                pdfColumns={activeColumns}
+                                pdfDocumentType="verifikasi_report"
+                                excelData={filteredData}
+                                excelColumns={activeColumns}
+                                excelSheets={activeSite === 'pose' ? excelSheets : null}
+                                excelFilename={`Verifikasi_Peserta_${activeSite.toUpperCase()}_${activeTab}`}
+                            />
                         </div>
                     </div>
                 </div>
@@ -436,10 +539,17 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
                             <tr>
                                 <th className="px-4 py-3.5 font-semibold text-center w-12">No</th>
                                 <th className="px-4 py-3.5 font-semibold">Nama</th>
-                                <th className="px-4 py-3.5 font-semibold">Kategori</th>
+                                {!isPkkmbWajibTable && <th className="px-4 py-3.5 font-semibold">Kategori</th>}
                                 <th className="px-4 py-3.5 font-semibold">NIM</th>
                                 <th className="px-4 py-3.5 font-semibold">Kampus</th>
                                 <th className="px-4 py-3.5 font-semibold">Email / WA</th>
+                                {isPkkmbWajibTable && (
+                                    <>
+                                        <th className="px-4 py-3.5 font-semibold">Kelas</th>
+                                        <th className="px-4 py-3.5 font-semibold">Jenis Pembayaran</th>
+                                        <th className="px-4 py-3.5 font-semibold">Tahapan</th>
+                                    </>
+                                )}
                                 <th className="px-4 py-3.5 font-semibold text-center">Bukti Pembayaran</th>
                                 <th className="px-4 py-3.5 font-semibold">Tanggal</th>
                                 <th className="px-4 py-3.5 font-semibold text-center w-36">Verifikasi</th>
@@ -449,14 +559,14 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
                             {loading ? (
                                 Array.from({ length: 5 }).map((_, i) => (
                                     <tr key={`skeleton-${i}`} className="animate-pulse">
-                                        <td colSpan={9} className="px-4 py-4">
+                                        <td colSpan={tableColSpan} className="px-4 py-4">
                                             <div className="h-6 bg-gray-100 dark:bg-gray-800 rounded-lg w-full"></div>
                                         </td>
                                     </tr>
                                 ))
                             ) : paginatedData.length === 0 ? (
                                 <tr>
-                                    <td colSpan={9} className="px-6 py-16 text-center text-gray-500 dark:text-gray-400">
+                                    <td colSpan={tableColSpan} className="px-6 py-16 text-center text-gray-500 dark:text-gray-400">
                                         <p className="font-semibold text-base mb-1">Tidak ada data ditemukan</p>
                                         <p className="text-xs">Coba sesuaikan pencarian atau filter status yang Anda gunakan.</p>
                                     </td>
@@ -481,12 +591,14 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
                                                 )}
                                             </td>
 
-                                            {/* Kategori */}
-                                            <td className="px-4 py-3">
-                                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
-                                                    {item.kategori || '-'}
-                                                </span>
-                                            </td>
+                                            {/* Kategori (hanya jika bukan PKKMB Wajib) */}
+                                            {!isPkkmbWajibTable && (
+                                                <td className="px-4 py-3">
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                                                        {item.kategori || '-'}
+                                                    </span>
+                                                </td>
+                                            )}
 
                                             {/* NIM */}
                                             <td className="px-4 py-3 text-gray-600 dark:text-gray-300 font-mono text-xs">
@@ -502,6 +614,25 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
                                             <td className="px-4 py-3 text-gray-600 dark:text-gray-300 text-xs">
                                                 {item.email_wa || '-'}
                                             </td>
+
+                                            {/* Kolom Khusus PKKMB Wajib: Kelas, Jenis Pembayaran, Tahapan */}
+                                            {isPkkmbWajibTable && (
+                                                <>
+                                                    <td className="px-4 py-3 font-medium text-gray-800 dark:text-gray-200">
+                                                        {item.kelas || '-'}
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium capitalize bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                                            {item.jenis_bayar || '-'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold capitalize bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/50">
+                                                            {item.tahapan || '-'}
+                                                        </span>
+                                                    </td>
+                                                </>
+                                            )}
 
                                             {/* Bukti Pembayaran */}
                                             <td className="px-4 py-3 text-center">
@@ -565,13 +696,13 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
                     totalItems={filteredData.length}
                     itemsPerPage={ITEMS_PER_PAGE}
                     onPageChange={setCurrentPage}
-                    colSpan={9}
+                    colSpan={tableColSpan}
                 />
             </div>
 
-            {/* ================= MODAL BUKTI PEMBAYARAN (POP UP INLINE) ================= */}
+            {/* ================= MODAL BUKTI PEMBAYARAN (z-[200] agar di atas modal verifikasi) ================= */}
             {buktiModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
                     <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden border border-gray-100 dark:border-gray-800 max-h-[90vh]">
                         {/* Header Modal */}
                         <div className="p-4 sm:p-5 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
@@ -685,7 +816,7 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
                                         {verifikasiItem.status_pembayaran || 'pending'}
                                     </span>
                                 </div>
-                                {siteType === 'pkkmb' && (
+                                {activeSite === 'pkkmb' && (
                                     <>
                                         <div className="flex justify-between items-start text-xs sm:text-sm">
                                             <span className="text-gray-500 font-medium">Kelas</span>
@@ -755,3 +886,4 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
         </div>
     );
 }
+

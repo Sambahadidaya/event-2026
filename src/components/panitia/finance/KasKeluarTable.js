@@ -11,8 +11,7 @@ import TablePagination from '@/components/panitia/TablePagination';
 import DateRangeFilter from '@/components/panitia/DateRangeFilter';
 import TransaksiDetailModal from './TransaksiDetailModal';
 import PengeluaranFormModal from './PengeluaranFormModal';
-import PrintPDFButton from './PrintPDFButton';
-import ExportExcelButton from './ExportExcelButton';
+import TombolCetak from '@/components/panitia/TombolCetak';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -175,9 +174,22 @@ export default function KasKeluarTable({ siteType = 'all', adminRole = '' }) {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
-                        <ExportExcelButton
-                            data={filteredData}
-                            columns={[
+                        <TombolCetak
+                            label="Cetak / Export"
+                            pdfTitle="Laporan Kas Keluar (Pengeluaran)"
+                            pdfSite={currentSite}
+                            pdfData={filteredData}
+                            pdfColumns={[
+                                { key: 'kode_id', label: 'Kode ID' },
+                                { key: 'tanggal_transaksi', label: 'Tanggal', format: 'datetime' },
+                                { key: 'site', label: 'Site' },
+                                { key: 'nama_payer', label: 'Vendor / Panitia' },
+                                { key: 'metode_pembayaran', label: 'Metode' },
+                                { key: 'nominal', label: 'Nominal', align: 'right', format: 'currency' },
+                                { key: 'keterangan', label: 'Keterangan' }
+                            ]}
+                            excelData={filteredData}
+                            excelColumns={[
                                 { key: 'kode_id', label: 'Kode ID' },
                                 { key: 'site', label: 'Site' },
                                 { key: 'tanggal_transaksi', label: 'Tanggal' },
@@ -186,20 +198,7 @@ export default function KasKeluarTable({ siteType = 'all', adminRole = '' }) {
                                 { key: 'nominal', label: 'Nominal' },
                                 { key: 'keterangan', label: 'Keterangan' }
                             ]}
-                            filename={`Kas_Keluar_${currentSite}`}
-                        />
-                        <PrintPDFButton
-                            title="Laporan Kas Keluar (Pengeluaran)"
-                            site={currentSite}
-                            data={filteredData}
-                            columns={[
-                                { key: 'kode_id', label: 'Kode ID' },
-                                { key: 'site', label: 'Site' },
-                                { key: 'nama_payer', label: 'Vendor / Panitia' },
-                                { key: 'metode_pembayaran', label: 'Metode' },
-                                { key: 'nominal', label: 'Nominal', align: 'right', format: 'currency' },
-                                { key: 'keterangan', label: 'Keterangan' }
-                            ]}
+                            excelFilename={`Kas_Keluar_${currentSite}`}
                         />
                         <button
                             type="button"

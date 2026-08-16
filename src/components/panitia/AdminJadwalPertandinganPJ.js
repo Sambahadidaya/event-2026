@@ -7,8 +7,8 @@ import { getJadwalPertandingan } from '@/api/supabase/public/jadwal';
 import { upsertJadwalPertandingan, deleteJadwalPertandingan } from '@/api/supabase/admin/jadwal';
 import { getCurrentAdmin } from '@/api/supabase/admin/auth';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
-import DashboardSelect from '@/components/panitia/DashboardSelect';
-import ConfirmModal from '@/components/panitia/ConfirmModal';
+import TombolCetak from '@/components/panitia/TombolCetak';
+import { formatWibDateTime } from '@/lib/dashboardUtils';
 import { JENIS_LOMBA, NAMA_LOMBA } from '@/lib/lombaData';
 import { getLombaFilter } from '@/lib/adminRoleData';
 
@@ -260,13 +260,56 @@ export default function AdminJadwalPertandinganPJ() {
                     <span>Total Jadwal: <strong className="text-violet-600 dark:text-violet-400">{filteredJadwal.length}</strong></span>
                 </div>
 
-                <button
-                    onClick={handleOpenCreateModal}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-semibold text-sm rounded-xl shadow-md shadow-violet-500/20 transition-all active:scale-95"
-                >
-                    <Plus size={18} />
-                    <span>Tambah Jadwal</span>
-                </button>
+                <div className="flex items-center gap-2">
+                    <TombolCetak
+                        label="Cetak / Export"
+                        pdfTitle="Laporan Jadwal Pertandingan Lomba POSE 2026"
+                        pdfSite="pose"
+                        pdfData={filteredJadwal.map(item => ({
+                            urutan: item.urutan || '-',
+                            nama_lomba: item.nama_lomba || '-',
+                            pertandingan: item.jenis_lomba === 'Kreativitas'
+                                ? (item.team1?.title || '-')
+                                : `${item.team1?.title || 'TBD'} VS ${item.team2?.title || 'TBD'}`,
+                            waktu: item.waktu,
+                            status: item.status || 'Belum Mulai'
+                        }))}
+                        pdfColumns={[
+                            { key: 'urutan', label: 'Urutan', align: 'center' },
+                            { key: 'nama_lomba', label: 'Lomba' },
+                            { key: 'pertandingan', label: 'Tim / Pertandingan' },
+                            { key: 'waktu', label: 'Waktu Pertandingan', format: 'datetime' },
+                            { key: 'status', label: 'Status', align: 'center' }
+                        ]}
+                        excelData={filteredJadwal.map(item => ({
+                            'Urutan': item.urutan || '-',
+                            'Nama Lomba': item.nama_lomba || '-',
+                            'Jenis Lomba': item.jenis_lomba || '-',
+                            'Pertandingan': item.jenis_lomba === 'Kreativitas'
+                                ? (item.team1?.title || '-')
+                                : `${item.team1?.title || 'TBD'} VS ${item.team2?.title || 'TBD'}`,
+                            'Waktu': item.waktu,
+                            'Status': item.status || 'Belum Mulai'
+                        }))}
+                        excelColumns={[
+                            { key: 'Urutan', label: 'Urutan' },
+                            { key: 'Nama Lomba', label: 'Nama Lomba' },
+                            { key: 'Jenis Lomba', label: 'Jenis Lomba' },
+                            { key: 'Pertandingan', label: 'Pertandingan' },
+                            { key: 'Waktu', label: 'Waktu', format: 'datetime' },
+                            { key: 'Status', label: 'Status' }
+                        ]}
+                        excelFilename="Jadwal_Pertandingan_POSE2026"
+                    />
+
+                    <button
+                        onClick={handleOpenCreateModal}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-semibold text-sm rounded-xl shadow-md shadow-violet-500/20 transition-all active:scale-95"
+                    >
+                        <Plus size={18} />
+                        <span>Tambah Jadwal</span>
+                    </button>
+                </div>
             </div>
 
             {/* Table Jadwal */}
@@ -332,10 +375,7 @@ export default function AdminJadwalPertandinganPJ() {
                                                 )}
                                             </td>
                                             <td className="px-4 py-4 text-gray-600 dark:text-gray-300 text-xs">
-                                                {item.waktu ? new Date(item.waktu).toLocaleString('id-ID', {
-                                                    day: 'numeric', month: 'short', year: 'numeric',
-                                                    hour: '2-digit', minute: '2-digit'
-                                                }) : '-'}
+                                                {formatWibDateTime(item.waktu)}
                                             </td>
                                             <td className="px-4 py-4 text-center">
                                                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${

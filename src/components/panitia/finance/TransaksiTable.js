@@ -15,8 +15,7 @@ import DateRangeFilter from '@/components/panitia/DateRangeFilter';
 import TransaksiDetailModal from './TransaksiDetailModal';
 import PengeluaranFormModal from './PengeluaranFormModal';
 import PemasukanFormModal from './PemasukanFormModal';
-import PrintPDFButton from './PrintPDFButton';
-import ExportExcelButton from './ExportExcelButton';
+import TombolCetak from '@/components/panitia/TombolCetak';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -240,32 +239,33 @@ export default function TransaksiTable({ siteType = 'all', adminRole = '' }) {
                         />
                     </div>
 
-                    {/* Tombol Aksi (Export Excel, Print PDF, Input Pemasukan & Pengeluaran) */}
+                    {/* Tombol Aksi (TombolCetak, Input Pemasukan & Pengeluaran) */}
                     <div className="flex flex-wrap items-center gap-2">
-                        <ExportExcelButton
-                            data={filteredData}
-                            columns={[
+                        <TombolCetak
+                            label="Cetak / Export"
+                            pdfTitle="Riwayat Transaksi Keuangan"
+                            pdfSite={currentSite}
+                            pdfData={filteredData}
+                            pdfColumns={[
                                 { key: 'kode_id', label: 'Kode ID' },
-                                { key: 'site', label: 'Site' },
-                                { key: 'nama_payer', label: 'Pembayar / Vendor' },
-                                { key: 'metode_pembayaran', label: 'Metode' },
-                                { key: 'nominal', label: 'Nominal' },
-                                { key: 'keterangan', label: 'Keterangan' }
-                            ]}
-                            filename={`Riwayat_Transaksi_${currentSite}`}
-                        />
-                        <PrintPDFButton
-                            title="Riwayat Transaksi Keuangan"
-                            site={currentSite}
-                            data={filteredData}
-                            columns={[
-                                { key: 'kode_id', label: 'Kode ID' },
+                                { key: 'tanggal_transaksi', label: 'Tanggal Transaksi', format: 'datetime' },
                                 { key: 'site', label: 'Site' },
                                 { key: 'nama_payer', label: 'Pembayar / Vendor' },
                                 { key: 'metode_pembayaran', label: 'Metode' },
                                 { key: 'nominal', label: 'Nominal', align: 'right', format: 'currency' },
                                 { key: 'keterangan', label: 'Keterangan' }
                             ]}
+                            excelData={filteredData}
+                            excelColumns={[
+                                { key: 'kode_id', label: 'Kode ID' },
+                                { key: 'tanggal_transaksi', label: 'Tanggal Transaksi', format: 'datetime' },
+                                { key: 'site', label: 'Site' },
+                                { key: 'nama_payer', label: 'Pembayar / Vendor' },
+                                { key: 'metode_pembayaran', label: 'Metode' },
+                                { key: 'nominal', label: 'Nominal' },
+                                { key: 'keterangan', label: 'Keterangan' }
+                            ]}
+                            excelFilename={`Riwayat_Transaksi_${currentSite}`}
                         />
                         <button
                             type="button"

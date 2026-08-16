@@ -8,8 +8,7 @@ import {
 import { getTransactionFinance, getJournalEntry, getMasterAccount } from '@/api/supabase/admin/finance';
 import DashboardHeaderFilters, { SITE_OPTIONS_FINANCE } from '@/components/panitia/DashboardHeaderFilters';
 import DateRangeFilter from '@/components/panitia/DateRangeFilter';
-import PrintPDFButton from './PrintPDFButton';
-import ExportExcelButton from './ExportExcelButton';
+import TombolCetak from '@/components/panitia/TombolCetak';
 
 export default function LaporanKeuangan({ siteType = 'all', adminRole = '' }) {
     const [transactions, setTransactions] = useState([]);
@@ -335,17 +334,16 @@ export default function LaporanKeuangan({ siteType = 'all', adminRole = '' }) {
                 />
 
                 <div className="flex items-center gap-2">
-                    <ExportExcelButton
-                        filename={`Laporan_Keuangan_${activeTab}_${currentSite}`}
-                        sheets={excelSheets}
-                    />
-                    <PrintPDFButton
-                        title={`Laporan Keuangan - ${activeTab.replace(/_/g, ' ').toUpperCase()}`}
-                        site={currentSite}
-                        documentType="financial_report"
-                        tabType={activeTab}
-                        metrics={metrics}
-                        data={transactions}
+                    <TombolCetak
+                        label="Cetak / Export"
+                        pdfTitle={`Laporan Keuangan - ${activeTab.replace(/_/g, ' ').toUpperCase()}`}
+                        pdfSite={currentSite}
+                        pdfData={transactions}
+                        pdfDocumentType="financial_report"
+                        pdfTabType={activeTab}
+                        pdfMetrics={metrics}
+                        excelSheets={excelSheets}
+                        excelFilename={`Laporan_Keuangan_${activeTab}_${currentSite}`}
                     />
                 </div>
             </div>

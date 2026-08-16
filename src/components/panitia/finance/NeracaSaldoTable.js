@@ -5,8 +5,7 @@ import { Scale, Search, CheckCircle2, AlertTriangle, Printer } from 'lucide-reac
 import { getJournalEntry, getMasterAccount } from '@/api/supabase/admin/finance';
 import DashboardHeaderFilters, { SITE_OPTIONS_FINANCE } from '@/components/panitia/DashboardHeaderFilters';
 import DateRangeFilter from '@/components/panitia/DateRangeFilter';
-import PrintPDFButton from './PrintPDFButton';
-import ExportExcelButton from './ExportExcelButton';
+import TombolCetak from '@/components/panitia/TombolCetak';
 
 export default function NeracaSaldoTable({ siteType = 'all', adminRole = '' }) {
     const [journals, setJournals] = useState([]);
@@ -222,28 +221,27 @@ export default function NeracaSaldoTable({ siteType = 'all', adminRole = '' }) {
                         onFilterChange={(s, e) => setDateRange({ startDate: s, endDate: e })}
                     />
 
-                    <ExportExcelButton
-                        data={formattedTrialBalanceData}
-                        columns={[
-                            { key: 'kode_akun', label: 'Kode Akun' },
-                            { key: 'nama_akun', label: 'Nama Akun' },
-                            { key: 'akun_type', label: 'Tipe' },
-                            { key: 'totalDebit', label: 'Debit' },
-                            { key: 'totalCredit', label: 'Kredit' }
-                        ]}
-                        filename={`Neraca_Saldo_${currentSite}`}
-                    />
-                    <PrintPDFButton
-                        title="Laporan Neraca Saldo (Trial Balance)"
-                        site={currentSite}
-                        data={formattedTrialBalanceData}
-                        columns={[
+                    <TombolCetak
+                        label="Cetak / Export"
+                        pdfTitle="Laporan Neraca Saldo (Trial Balance)"
+                        pdfSite={currentSite}
+                        pdfData={formattedTrialBalanceData}
+                        pdfColumns={[
                             { key: 'kode_akun', label: 'Kode Akun' },
                             { key: 'nama_akun', label: 'Nama Akun' },
                             { key: 'akun_type', label: 'Tipe' },
                             { key: 'totalDebit', label: 'Debit', align: 'right', format: 'currency' },
                             { key: 'totalCredit', label: 'Kredit', align: 'right', format: 'currency' }
                         ]}
+                        excelData={formattedTrialBalanceData}
+                        excelColumns={[
+                            { key: 'kode_akun', label: 'Kode Akun' },
+                            { key: 'nama_akun', label: 'Nama Akun' },
+                            { key: 'akun_type', label: 'Tipe' },
+                            { key: 'totalDebit', label: 'Debit' },
+                            { key: 'totalCredit', label: 'Kredit' }
+                        ]}
+                        excelFilename={`Neraca_Saldo_${currentSite}`}
                     />
                 </div>
             </div>

@@ -68,6 +68,74 @@ export const getPembayaranPkkmbKeuangan = async () => {
     }
 };
 
+// Fetch lunas pembayaran_pkkmb for dashboard calculations
+export const getPembayaranPkkmbLunas = async () => {
+    try {
+        const { error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        const { data: pembayaranData, error: pembError } = await supabaseAdmin
+            .from('pembayaran_pkkmb')
+            .select('id, nim_user, jenis_bayar, tahapan, nominal, status_pembayaran, created_at')
+            .in('status_pembayaran', ['Lunas', 'lunas'])
+            .order('created_at', { ascending: false });
+
+        if (pembError) throw pembError;
+        if (!pembayaranData || pembayaranData.length === 0) return [];
+
+        const nims = pembayaranData.map(p => p.nim_user);
+        const { data: pesertaData, error: pesErr } = await supabaseAdmin
+            .from('peserta')
+            .select('id, nama, nim, email_wa, prodi, angkatan, semester, kelas, kampus, bukti_bayar, metode_pembayaran, kode_form, created_at')
+            .eq('site_type', 'pkkmb')
+            .eq('jenis_form', 'wajib')
+            .in('nim', nims)
+            .order('created_at', { ascending: true });
+
+        if (pesErr) throw pesErr;
+
+        return pembayaranData.map(p => {
+            const matchingPesertas = (pesertaData || []).filter(pRecord => pRecord.nim === p.nim_user);
+            let matchingPeserta = null;
+            if (p.tahapan === 'tahap 2' && matchingPesertas.length > 1) {
+                matchingPeserta = matchingPesertas[1];
+            } else {
+                matchingPeserta = matchingPesertas[0];
+            }
+
+            return {
+                id: p.id,
+                nim_user: p.nim_user,
+                nim: p.nim_user,
+                jenis_bayar: p.jenis_bayar,
+                tahapan: p.tahapan,
+                nominal: p.nominal,
+                nominal_pembayaran: p.nominal,
+                status_pembayaran: p.status_pembayaran,
+                created_at: p.created_at,
+                jenis_form: 'wajib',
+                site_type: 'pkkmb',
+                peserta_id: matchingPeserta?.id || null,
+                nama: matchingPeserta?.nama || 'Tidak Dikenal',
+                email_wa: matchingPeserta?.email_wa || '',
+                prodi: matchingPeserta?.prodi || '',
+                angkatan: matchingPeserta?.angkatan || '',
+                semester: matchingPeserta?.semester || '',
+                kelas: matchingPeserta?.kelas || '',
+                kampus: matchingPeserta?.kampus || '',
+                bukti_bayar: matchingPeserta?.bukti_bayar || '',
+                metode_pembayaran: matchingPeserta?.metode_pembayaran || '',
+                kode_form: matchingPeserta?.kode_form || '',
+                peserta: matchingPeserta || null
+            };
+        });
+    } catch (error) {
+        console.error("Internal Log - Error fetching lunas pembayaran pkkmb:", error);
+        return [];
+    }
+};
+
+
 // Fetch grouped per-NIM recap for data peserta page
 export const getDataPesertaRekapPkkmb = async () => {
     try {
@@ -120,6 +188,8 @@ export const getDataPesertaRekapPkkmb = async () => {
                 .filter(p => p.status_pembayaran === 'lunas')
                 .reduce((sum, p) => sum + (p.nominal || 0), 0);
 
+            const isDitolak = (firstPeserta?.status_pembayaran || '').toLowerCase() === 'ditolak';
+
             byNim[nim] = {
                 nim,
                 nama: firstPeserta?.nama || 'Tidak Dikenal',
@@ -128,9 +198,9 @@ export const getDataPesertaRekapPkkmb = async () => {
                 kelas: kelas || '',
                 prodi: firstPeserta?.prodi || '',
                 status_pembayaran: firstPeserta?.status_pembayaran || 'pending',
-                total_tagihan: totalTagihan,
-                total_dibayar: totalDibayar,
-                sisa_tunggakan: Math.max(0, totalTagihan - totalDibayar),
+                total_tagihan: isDitolak ? 0 : totalTagihan,
+                total_dibayar: isDitolak ? 0 : totalDibayar,
+                sisa_tunggakan: isDitolak ? 0 : Math.max(0, totalTagihan - totalDibayar),
                 tahapan_detail: payments.map(p => ({
                     id: p.id,
                     tahapan: p.tahapan,
@@ -244,8 +314,19 @@ export const updateStatusPembayaranPkkmb = async (id, status) => {
                 shouldBeLunas = true;
             }
 
-            // Update status of the first peserta record to lunas if conditions met
-            if (shouldBeLunas) {
+            // Update status of the peserta record
+            if (status === 'ditolak') {
+                await supabaseAdmin
+                    .from('peserta')
+                    .update({ status_pembayaran: 'ditolak' })
+                    .eq('nim', currentPayment.nim_user)
+                    .eq('site_type', 'pkkmb');
+
+                await supabaseAdmin
+                    .from('pembayaran_pkkmb')
+                    .update({ status_pembayaran: 'ditolak' })
+                    .eq('nim_user', currentPayment.nim_user);
+            } else if (shouldBeLunas) {
                 await supabaseAdmin
                     .from('peserta')
                     .update({ status_pembayaran: 'lunas' })

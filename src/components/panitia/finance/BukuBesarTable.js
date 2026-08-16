@@ -5,8 +5,7 @@ import { BookOpenCheck, Search, Filter, ArrowUpRight, ArrowDownLeft, DollarSign 
 import { getJournalEntry, getMasterAccount } from '@/api/supabase/admin/finance';
 import DashboardHeaderFilters, { SITE_OPTIONS_FINANCE } from '@/components/panitia/DashboardHeaderFilters';
 import DateRangeFilter from '@/components/panitia/DateRangeFilter';
-import PrintPDFButton from './PrintPDFButton';
-import ExportExcelButton from './ExportExcelButton';
+import TombolCetak from '@/components/panitia/TombolCetak';
 
 export default function BukuBesarTable({ siteType = 'all', adminRole = '' }) {
     const [journals, setJournals] = useState([]);
@@ -224,23 +223,22 @@ export default function BukuBesarTable({ siteType = 'all', adminRole = '' }) {
                 />
 
                 <div className="flex flex-wrap items-center gap-2">
-                    <ExportExcelButton
-                        sheets={ledgerSheets.length > 0 ? ledgerSheets : null}
-                        data={journals}
-                        columns={[
+                    <TombolCetak
+                        label="Cetak / Export"
+                        pdfTitle="Laporan Buku Besar (General Ledger)"
+                        pdfSite={currentSite}
+                        pdfData={ledgerPDFData}
+                        pdfDocumentType="ledger"
+                        excelSheets={ledgerSheets.length > 0 ? ledgerSheets : null}
+                        excelData={journals}
+                        excelColumns={[
                             { key: 'kode_id', label: 'Kode Jurnal' },
-                            { key: 'journal_date', label: 'Tanggal' },
+                            { key: 'journal_date', label: 'Tanggal', format: 'datetime' },
                             { key: 'description', label: 'Deskripsi' },
                             { key: 'debit', label: 'Debit' },
                             { key: 'credit', label: 'Kredit' }
                         ]}
-                        filename={`Buku_Besar_${currentSite}`}
-                    />
-                    <PrintPDFButton
-                        title="Laporan Buku Besar (General Ledger)"
-                        site={currentSite}
-                        documentType="ledger"
-                        data={ledgerPDFData}
+                        excelFilename={`Buku_Besar_${currentSite}`}
                     />
                 </div>
             </div>

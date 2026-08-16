@@ -6,8 +6,7 @@ import { getMasterAccount, deleteMasterAccount } from '@/api/supabase/admin/fina
 import DashboardHeaderFilters, { SITE_OPTIONS_FINANCE } from '@/components/panitia/DashboardHeaderFilters';
 import TablePagination from '@/components/panitia/TablePagination';
 import MasterAkunFormModal from './MasterAkunFormModal';
-import PrintPDFButton from './PrintPDFButton';
-import ExportExcelButton from './ExportExcelButton';
+import TombolCetak from '@/components/panitia/TombolCetak';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -159,28 +158,29 @@ export default function MasterAkunTable({ siteType = 'all', adminRole = '' }) {
 
                     {/* Action Buttons */}
                     <div className="flex flex-wrap items-center gap-2">
-                        <ExportExcelButton
-                            data={filteredData}
-                            columns={[
+                        <TombolCetak
+                            label="Cetak / Export"
+                            pdfTitle="Master Akuntansi (Chart of Accounts)"
+                            pdfSite={currentSite}
+                            pdfData={filteredData}
+                            pdfColumns={[
                                 { key: 'kode_id', label: 'Kode ID' },
                                 { key: 'site', label: 'Site' },
                                 { key: 'kode_akun', label: 'Kode Akun' },
                                 { key: 'nama_akun', label: 'Nama Akun' },
-                                { key: 'akun_type', label: 'Tipe Akun' }
+                                { key: 'akun_type', label: 'Tipe Akun' },
+                                { key: 'created_at', label: 'Tanggal Dibuat', format: 'datetime' }
                             ]}
-                            filename={`Master_Akun_${currentSite}`}
-                        />
-                        <PrintPDFButton
-                            title="Master Akuntansi (Chart of Accounts)"
-                            site={currentSite}
-                            data={filteredData}
-                            columns={[
+                            excelData={filteredData}
+                            excelColumns={[
                                 { key: 'kode_id', label: 'Kode ID' },
                                 { key: 'site', label: 'Site' },
                                 { key: 'kode_akun', label: 'Kode Akun' },
                                 { key: 'nama_akun', label: 'Nama Akun' },
-                                { key: 'akun_type', label: 'Tipe Akun' }
+                                { key: 'akun_type', label: 'Tipe Akun' },
+                                { key: 'created_at', label: 'Tanggal Dibuat', format: 'datetime' }
                             ]}
+                            excelFilename={`Master_Akun_${currentSite}`}
                         />
                         <button
                             type="button"

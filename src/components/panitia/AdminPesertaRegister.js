@@ -8,8 +8,7 @@ import { getPeserta } from '@/api/supabase/admin/peserta';
 import { getCurrentAdmin } from '@/api/supabase/admin/auth';
 import { getFormRegisterAll } from '@/api/supabase/admin/peserta';
 import { getFormPengumpulan, getPengumpulanLomba } from '@/api/supabase/admin/submission';
-import { generatePdfAction } from '@/api/pdf/route';
-import { exportToExcel } from '@/lib/excel/xlsx';
+import TombolCetak from '@/components/panitia/TombolCetak';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
 import DashboardSelect from '@/components/panitia/DashboardSelect';
 import DetailModal from '@/components/panitia/DetailModal';
@@ -839,47 +838,32 @@ export default function AdminPesertaRegister() {
                 ]}
             />
 
-            {/* Export Dropdown */}
-            <div className="relative inline-block text-left w-full sm:w-auto" id="export-dropdown-wrapper">
-                <button
-                    type="button"
-                    onClick={() => setShowExportDropdown(!showExportDropdown)}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2.5 rounded-xl text-sm font-medium transition-colors w-full sm:w-auto justify-center shadow-sm"
-                >
-                    <Printer size={16} />
-                    <span>Cetak / Export</span>
-                    <ChevronDown size={14} />
-                </button>
-                {showExportDropdown && (
-                    <div className="absolute right-0 mt-2 w-48 rounded-xl bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black/5 dark:ring-white/10 z-[110] overflow-hidden">
-                        <div className="py-1">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setShowExportDropdown(false);
-                                    handlePrintPDF();
-                                }}
-                                disabled={pdfLoading}
-                                className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
-                            >
-                                <Printer size={14} />
-                                <span>{pdfLoading ? 'Memproses...' : 'Cetak PDF'}</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setShowExportDropdown(false);
-                                    handleExportExcel();
-                                }}
-                                className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                            >
-                                <FileSpreadsheet size={14} />
-                                <span>Export Excel</span>
-                            </button>
-                        </div>
-                    </div>
-                )}
-            </div>
+            {/* Integrated TombolCetak */}
+            <TombolCetak
+                label="Cetak / Export"
+                pdfTitle={activeTab === 'pendaftar' ? 'Laporan Registrasi Tim Lomba' : 'Laporan Pengumpulan Tim Lomba'}
+                pdfSite="pose"
+                pdfData={filteredData.map(item => ({
+                    ...item,
+                    kode_form: item.kode_form || item.kode || item.peserta?.[0]?.kode_form,
+                    hasSubmitted: (pengumpulanList || []).some(sub => sub.team_id === item.id),
+                    jenis_kategori: item.jenis_kategori || '-'
+                }))}
+                pdfDocumentType="team_report"
+                pdfExtraProps={{
+                    lombaName: currentLombaName || 'Semua Lomba',
+                    activeTab,
+                    pengumpulanData: pengumpulanList
+                }}
+                excelData={filteredData}
+                excelColumns={[
+                    { key: 'title', label: 'Nama Team' },
+                    { key: 'jenis_kategori', label: 'Kategori' },
+                    { key: 'kode_form', label: 'Kode Team' },
+                    { key: 'created_at', label: 'Tanggal Daftar', format: 'datetime' }
+                ]}
+                excelFilename={`laporan_tim_${activeTab}_${(currentLombaName || 'semua_lomba').toLowerCase().replace(/[^a-z0-9]/g, '_')}`}
+            />
         </>
     );
 

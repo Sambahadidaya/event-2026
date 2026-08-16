@@ -3,6 +3,7 @@
 import { useState, Fragment } from 'react';
 import { Trash2, Tag } from 'lucide-react';
 import { getSalesRiwayatDetail } from '@/api/supabase/admin/sales';
+import { formatWibDateTime } from '@/lib/dashboardUtils';
 
 export default function SalesRiwayatTable({ data = [], onDelete, namaLombaFilter = 'all', searchQuery = '' }) {
     const [expandedRow, setExpandedRow] = useState(null);
@@ -128,7 +129,7 @@ export default function SalesRiwayatTable({ data = [], onDelete, namaLombaFilter
                                                                                 <td className="px-4 py-2 text-right">Rp {det.nominal.toLocaleString('id-ID')}</td>
                                                                                 <td className="px-4 py-2">{det.persen_komisi}%</td>
                                                                                 <td className="px-4 py-2">{det.nama_lomba}</td>
-                                                                                <td className="px-4 py-2">{det.tanggal_transaksi}</td>
+                                                                                <td className="px-4 py-2">{formatWibDateTime(det.tanggal_transaksi)}</td>
                                                                             </tr>
                                                                         ))}
                                                                         <tr className="bg-gray-50/50 dark:bg-gray-800/50 font-bold text-gray-900 dark:text-white border-t border-gray-200 dark:border-gray-700">

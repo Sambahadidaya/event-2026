@@ -5,8 +5,7 @@ import { Table2, Search, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { getJournalEntry, getMasterAccount } from '@/api/supabase/admin/finance';
 import DashboardHeaderFilters, { SITE_OPTIONS_FINANCE } from '@/components/panitia/DashboardHeaderFilters';
 import DateRangeFilter from '@/components/panitia/DateRangeFilter';
-import PrintPDFButton from './PrintPDFButton';
-import ExportExcelButton from './ExportExcelButton';
+import TombolCetak from '@/components/panitia/TombolCetak';
 
 export default function NeracaLajurTable({ siteType = 'all', adminRole = '' }) {
     const [journals, setJournals] = useState([]);
@@ -356,16 +355,15 @@ export default function NeracaLajurTable({ siteType = 'all', adminRole = '' }) {
                         onFilterChange={(s, e) => setDateRange({ startDate: s, endDate: e })}
                     />
 
-                    <ExportExcelButton
-                        data={formattedExportData}
-                        columns={exportColumns}
-                        filename={`Neraca_Lajur_${currentSite}`}
-                    />
-                    <PrintPDFButton
-                        title="Laporan Neraca Lajur (Worksheet)"
-                        site={currentSite}
-                        data={formattedExportData}
-                        columns={exportColumns}
+                    <TombolCetak
+                        label="Cetak / Export"
+                        pdfTitle="Laporan Neraca Lajur (Worksheet)"
+                        pdfSite={currentSite}
+                        pdfData={formattedExportData}
+                        pdfColumns={exportColumns}
+                        excelData={formattedExportData}
+                        excelColumns={exportColumns}
+                        excelFilename={`Neraca_Lajur_${currentSite}`}
                     />
                 </div>
             </div>

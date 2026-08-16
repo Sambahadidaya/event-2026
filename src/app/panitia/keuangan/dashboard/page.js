@@ -5,7 +5,7 @@ import { getCurrentAdmin } from '@/api/supabase/admin/auth';
 import AdminKeuanganDashboard from '@/components/panitia/AdminKeuanganDashboard';
 
 export default function KeuanganDashboardPage() {
-    const [siteType, setSiteType] = useState('all');
+    const [siteType, setSiteType] = useState('pkkmb');
     const [adminRole, setAdminRole] = useState('');
     const [loading, setLoading] = useState(true);
 
@@ -16,13 +16,13 @@ export default function KeuanganDashboardPage() {
                 setAdminRole(admin.role);
                 const role = admin.role;
                 if (role === 'super_admin') {
-                    setSiteType('all');
+                    setSiteType('pkkmb');
                 } else if (role.includes('pkkmb')) {
                     setSiteType('pkkmb');
                 } else if (role.includes('pose')) {
                     setSiteType('pose');
                 } else {
-                    setSiteType('all');
+                    setSiteType('pkkmb');
                 }
             }
             setLoading(false);

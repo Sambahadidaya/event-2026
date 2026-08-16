@@ -2,6 +2,7 @@
 
 import { checkAdminAuth } from '@/api/supabase/admin/audit';
 import * as XLSX from 'xlsx';
+import { formatWibDateTime } from '@/lib/dashboardUtils';
 
 /**
  * Server action untuk generate Excel laporan sales.
@@ -48,7 +49,7 @@ export async function generateSalesExcelAction(payload = {}) {
             'Nominal (Rp)': det.nominal || 0,
             '% Komisi': det.persen_komisi || 0,
             'Nama Lomba': det.nama_lomba || '-',
-            'Tanggal Transaksi': det.tanggal_transaksi || '-',
+            'Tanggal Transaksi': formatWibDateTime(det.tanggal_transaksi),
         }));
 
         const ws2 = XLSX.utils.json_to_sheet(detailRows);

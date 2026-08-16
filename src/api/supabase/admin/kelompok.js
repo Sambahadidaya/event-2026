@@ -194,7 +194,7 @@ export const getPesertaPkkmbWajib = async () => {
 
         const { data: pesertaData, error } = await supabaseAdmin
             .from('peserta')
-            .select('id, nama, nim')
+            .select('id, nama, nim, prodi, kelas, kampus, email_wa')
             .eq('site_type', 'pkkmb')
             .eq('jenis_form', 'wajib')
             .eq('status_pembayaran', 'lunas')

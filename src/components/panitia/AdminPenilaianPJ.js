@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Trophy, Plus, Edit2, Trash2, Link as LinkIcon, Copy, Check, Eye, Filter, RefreshCw, FileText, UserCheck, Star, Sparkles, FileDown, Sheet } from 'lucide-react';
 import { generatePdfAction } from '@/api/pdf/route';
+import TombolCetak from '@/components/panitia/TombolCetak';
 import { getTeams } from '@/api/supabase/public/team';
 import { getCurrentAdmin } from '@/api/supabase/admin/auth';
 import { getFormNilaiLomba, upsertFormNilaiLomba, deleteFormNilaiLomba, getNilaiLomba, upsertNilaiLomba, deleteNilaiLomba } from '@/api/supabase/admin/penilaian';
@@ -670,24 +671,40 @@ export default function AdminPenilaianPJ() {
                         )}
 
                         <div className="flex items-center gap-1.5">
-                            <button
-                                onClick={handleExportExcel}
-                                disabled={exportingExcel || filteredNilai.length === 0}
-                                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-green-600 hover:bg-green-700 text-white rounded-xl shadow transition-all disabled:opacity-50"
-                                title="Export ke Excel"
-                            >
-                                <Sheet size={14} />
-                                <span>{exportingExcel ? 'Exporting...' : 'Excel'}</span>
-                            </button>
-                            <button
-                                onClick={handlePrintPdf}
-                                disabled={printingPdf || filteredNilai.length === 0}
-                                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-red-600 hover:bg-red-700 text-white rounded-xl shadow transition-all disabled:opacity-50"
-                                title="Cetak PDF"
-                            >
-                                <FileDown size={14} />
-                                <span>{printingPdf ? 'Mencetak...' : 'PDF'}</span>
-                            </button>
+                            <TombolCetak
+                                label="Cetak / Export"
+                                pdfTitle={`Rekapitulasi Penilaian - ${namaLombaFilter === 'all' ? 'Semua Lomba Kreativitas' : namaLombaFilter}`}
+                                pdfSite="pose"
+                                pdfData={filteredNilai}
+                                pdfDocumentType="penilaian_report"
+                                pdfExtraProps={{
+                                    lombaName: namaLombaFilter === 'all' ? 'Semua Lomba Kreativitas' : namaLombaFilter,
+                                    juriName: activeFormDetail ? activeFormDetail.nama_juri : 'Semua Juri',
+                                    criteria: parsedCriteria
+                                }}
+                                excelSheets={filteredNilai && filteredNilai.length > 0 ? [{
+                                    sheetName: 'Rekap Penilaian',
+                                    data: filteredNilai.map((item, idx) => {
+                                        const row = {
+                                            No: idx + 1,
+                                            'Nama Tim': item.team?.title || '-',
+                                            'Juri': item.form_nilai_lomba?.nama_juri || '-',
+                                            'Lomba': item.team?.nama_lomba || '-',
+                                        };
+                                        parsedCriteria.forEach(c => {
+                                            const detail = (item.detail_nilai_lomba || []).find(d => d.judul_nilai?.trim() === c.judul.trim());
+                                            row[`${c.judul} (${c.bobot}%)`] = detail ? detail.nilai : '-';
+                                        });
+                                        row['Nilai Akhir'] = item.nilai_akhir !== null ? Number(item.nilai_akhir).toFixed(2) : '-';
+                                        row['Kritik'] = item.kritik || '-';
+                                        row['Saran'] = item.saran || '-';
+                                        row['created_at'] = item.created_at;
+                                        return row;
+                                    }),
+                                    columns: []
+                                }] : null}
+                                excelFilename={`rekapitulasi_penilaian_${(namaLombaFilter === 'all' ? 'semua_lomba' : namaLombaFilter).toLowerCase().replace(/[^a-z0-9]/g, '_')}`}
+                            />
                         </div>
                     </div>
                 </div>

@@ -5,8 +5,7 @@ import { useRouter } from 'next/navigation';
 import { BarChart3, Search, RefreshCw, FileDown, Printer, ShieldAlert } from 'lucide-react';
 import { getCurrentAdmin } from '@/api/supabase/admin/auth';
 import { getDashboardStats } from '@/api/supabase/admin/absensi';
-import { generatePdfAction } from '@/api/pdf/route';
-import { exportToExcel } from '@/lib/excel/xlsx';
+import TombolCetak from '@/components/panitia/TombolCetak';
 import { hasAccess } from '@/lib/adminRoleData';
 import AbsensiDashboardCharts from '@/components/panitia/absensi/AbsensiDashboardCharts';
 import AbsensiRekapTable from '@/components/panitia/absensi/AbsensiRekapTable';
@@ -203,28 +202,30 @@ export default function AbsensiDashboard() {
                         <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
                     </button>
 
-                    {/* Export Actions */}
-                    <button
-                        onClick={handleExportExcel}
-                        disabled={loading || stats.length === 0}
-                        className="flex items-center gap-2 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm hover:shadow-md transition-all active:scale-95 disabled:opacity-50"
-                    >
-                        <FileDown size={14} />
-                        <span>Export Excel</span>
-                    </button>
-
-                    <button
-                        onClick={handleExportPDF}
-                        disabled={loading || exportingPdf || stats.length === 0}
-                        className="flex items-center gap-2 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm hover:shadow-md transition-all active:scale-95 disabled:opacity-50"
-                    >
-                        {exportingPdf ? (
-                            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        ) : (
-                            <Printer size={14} />
-                        )}
-                        <span>{exportingPdf ? 'Memuat PDF...' : 'Cetak PDF'}</span>
-                    </button>
+                    {/* Integrated TombolCetak */}
+                    <TombolCetak
+                        label="Cetak / Export"
+                        pdfTitle={`Rekapitulasi Kehadiran Panitia ${site.toUpperCase()}`}
+                        pdfSite={site}
+                        pdfData={stats}
+                        pdfColumns={[
+                            { key: 'nama', label: 'Nama Panitia' },
+                            { key: 'hadir', label: 'Hadir', align: 'center' },
+                            { key: 'izin', label: 'Izin', align: 'center' },
+                            { key: 'sakit', label: 'Sakit', align: 'center' },
+                            { key: 'alpha', label: 'Alpha', align: 'center' }
+                        ]}
+                        pdfDocumentType="absensi_report"
+                        excelData={stats}
+                        excelColumns={[
+                            { key: 'nama', label: 'Nama Panitia' },
+                            { key: 'hadir', label: 'Total Hadir' },
+                            { key: 'izin', label: 'Total Izin' },
+                            { key: 'sakit', label: 'Total Sakit' },
+                            { key: 'alpha', label: 'Total Alpha' }
+                        ]}
+                        excelFilename={`rekap-absen-panitia-${site}`}
+                    />
                 </div>
             </div>
 

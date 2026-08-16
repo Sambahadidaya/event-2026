@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { FileText, Search, Link as LinkIcon, Check, X, Download, Trash2 } from 'lucide-react';
 import { getPengumpulanLomba, updateStatusPengumpulan, deletePengumpulanLomba } from '@/api/supabase/admin/submission';
 import TablePagination from '@/components/panitia/TablePagination';
+import TombolCetak from '@/components/panitia/TombolCetak';
 import { formatDateTime } from '@/lib/dashboardUtils';
 
 const ITEMS_PER_PAGE = 10;
@@ -83,6 +84,47 @@ export default function AdminPesertaPengumpulan({ refreshTrigger = 0, lockedLomb
                             />
                             <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
                         </div>
+                        <TombolCetak
+                            label="Cetak / Export"
+                            pdfTitle="Laporan Pengumpulan Lomba POSE 2026"
+                            pdfSite="pose"
+                            pdfData={filteredData.map(item => ({
+                                nama_team: item.team?.title || '-',
+                                kode_form: item.team?.kode_form || '-',
+                                nama_lomba: item.form_pengumpulan?.form_register?.nama_lomba || '-',
+                                jenis_lomba: item.form_pengumpulan?.form_register?.jenis_lomba || '-',
+                                file_link: item.file_link || '-',
+                                keterangan: item.keterangan || '-',
+                                created_at: item.created_at
+                            }))}
+                            pdfColumns={[
+                                { key: 'nama_team', label: 'Nama Tim' },
+                                { key: 'kode_form', label: 'Kode Form' },
+                                { key: 'nama_lomba', label: 'Nama Lomba' },
+                                { key: 'file_link', label: 'Link Karya' },
+                                { key: 'keterangan', label: 'Keterangan' },
+                                { key: 'created_at', label: 'Tanggal Submit', format: 'datetime' }
+                            ]}
+                            excelData={filteredData.map(item => ({
+                                'Nama Tim': item.team?.title || '-',
+                                'Kode Form': item.team?.kode_form || '-',
+                                'Nama Lomba': item.form_pengumpulan?.form_register?.nama_lomba || '-',
+                                'Jenis Lomba': item.form_pengumpulan?.form_register?.jenis_lomba || '-',
+                                'Link Karya': item.file_link || '-',
+                                'Keterangan': item.keterangan || '-',
+                                'Tanggal Submit': item.created_at
+                            }))}
+                            excelColumns={[
+                                { key: 'Nama Tim', label: 'Nama Tim' },
+                                { key: 'Kode Form', label: 'Kode Form' },
+                                { key: 'Nama Lomba', label: 'Nama Lomba' },
+                                { key: 'Jenis Lomba', label: 'Jenis Lomba' },
+                                { key: 'Link Karya', label: 'Link Karya' },
+                                { key: 'Keterangan', label: 'Keterangan' },
+                                { key: 'Tanggal Submit', label: 'Tanggal Submit', format: 'datetime' }
+                            ]}
+                            excelFilename="Hasil_Pengumpulan_Lomba_POSE2026"
+                        />
                     </div>
                 )}
 

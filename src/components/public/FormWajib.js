@@ -331,6 +331,9 @@ export default function FormWajib({ formConfig }) {
                 }
                 if (formConfig?.site === 'pkkmb') {
                     const regexMedis = /^[a-zA-Z\s-,]*$/;
+                    if (!riwayatPenyakit.trim() || !penanganan.trim() || !alergi.trim()) {
+                        return window.alert("Input Data Medis (Riwayat Penyakit, Penanganan, dan Alergi) wajib diisi. Isi '-' jika tidak ada.");
+                    }
                     if (!regexMedis.test(riwayatPenyakit) || !regexMedis.test(alergi) || !regexMedis.test(penanganan)) {
                         return window.alert("Input Data Medis hanya boleh diisi huruf, spasi, dan tanda hubung (-).");
                     }
@@ -571,7 +574,19 @@ export default function FormWajib({ formConfig }) {
                 </div>
             )}
 
-            <form onSubmit={handleSubmit} className="p-6 sm:p-10 space-y-8">
+            <form onSubmit={handleSubmit} className="p-6 sm:p-10 relative">
+                
+                {/* Form Overlay pas Submit */}
+                {submitting && (
+                    <div className="absolute inset-0 z-50 bg-slate-900/40 backdrop-blur-sm rounded-3xl flex items-center justify-center pointer-events-auto">
+                        <div className="flex flex-col items-center gap-4 bg-white dark:bg-slate-800 px-8 py-6 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700">
+                            <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                            <span className="text-base font-bold text-slate-800 dark:text-white">Memproses Pendaftaran...</span>
+                        </div>
+                    </div>
+                )}
+                
+                <fieldset disabled={submitting} className="space-y-8">
 
                 {/* Switch Kategori */}
                 {/* <div className="p-6 rounded-3xl bg-gray-50/50 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-800">
@@ -1185,6 +1200,7 @@ export default function FormWajib({ formConfig }) {
                         )}
                     </button>
                 </div>
+                </fieldset>
             </form>
         </div>
     );

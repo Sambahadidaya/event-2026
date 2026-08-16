@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { RefreshCcw, LayoutDashboard } from 'lucide-react';
 import DashboardSelect from '@/components/panitia/DashboardSelect';
 import { getPesertaLunas, getFormWajibAll, getFormRegisterAll } from '@/api/supabase/admin/peserta';
+import { getPembayaranPkkmbLunas } from '@/api/supabase/admin/pembayaran_pkkmb';
 import { getTransactionFinance } from '@/api/supabase/admin/finance';
 import KeuanganDashboardHeader from '@/components/panitia/KeuanganDashboardHeader';
 import KeuanganAreaChart from '@/components/panitia/KeuanganAreaChart';
@@ -11,7 +12,7 @@ import KeuanganDonutChart from '@/components/panitia/KeuanganDonutChart';
 import KeuanganTabelVerifikasi from '@/components/panitia/KeuanganTabelVerifikasi';
 import { formatDateTime } from '@/lib/dashboardUtils';
 
-export default function AdminKeuanganDashboard({ siteType = 'all', adminRole = '' }) {
+export default function AdminKeuanganDashboard({ siteType = 'pkkmb', adminRole = '' }) {
     const [activeSite, setActiveSite] = useState(siteType);
     const [dataPesertaLunas, setDataPesertaLunas] = useState([]);
     const [transactions, setTransactions] = useState([]);
@@ -22,19 +23,29 @@ export default function AdminKeuanganDashboard({ siteType = 'all', adminRole = '
 
     const isSuperAdmin = adminRole === 'super_admin';
 
-    // If siteType from props changes (unlikely unless role changes), update activeSite
+    // Update activeSite if siteType prop changes
     useEffect(() => {
-        if (!isSuperAdmin) {
-            setActiveSite(siteType);
-        }
-    }, [siteType, isSuperAdmin]);
+        setActiveSite(siteType);
+    }, [siteType]);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
+            let fetchPesertaPromise;
+            if (activeSite === 'pkkmb') {
+                fetchPesertaPromise = getPembayaranPkkmbLunas();
+            } else if (activeSite === 'pose') {
+                fetchPesertaPromise = getPesertaLunas('pose');
+            } else {
+                fetchPesertaPromise = Promise.all([
+                    getPembayaranPkkmbLunas(),
+                    getPesertaLunas('pose')
+                ]).then(([pkkmb, pose]) => [...(pkkmb || []), ...(pose || [])]);
+            }
+
             // Fetch participants, transactions & forms
             const [peserta, txData, formWajib, formRegister] = await Promise.all([
-                getPesertaLunas(activeSite),
+                fetchPesertaPromise,
                 getTransactionFinance(activeSite),
                 getFormWajibAll(),
                 getFormRegisterAll()
@@ -137,6 +148,7 @@ export default function AdminKeuanganDashboard({ siteType = 'all', adminRole = '
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                         <div className="lg:col-span-2">
                             <KeuanganAreaChart 
+                                transactions={transactions}
                                 pesertaLunas={dataPesertaLunas}
                                 formWajibMap={formWajibMap}
                                 formRegisterMap={formRegisterMap}
