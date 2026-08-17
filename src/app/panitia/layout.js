@@ -100,8 +100,10 @@ export default function PanitiaLayout({ children }) {
                 if (userId) {
                     setAdminOffline(userId);
                 }
-                if (handleLogoutRef.current) {
-                    handleLogoutRef.current();
+            } else if (document.visibilityState === 'visible') {
+                resetActivityTimer();
+                if (userIdRef.current) {
+                    updateHeartbeat(userIdRef.current);
                 }
             }
         };

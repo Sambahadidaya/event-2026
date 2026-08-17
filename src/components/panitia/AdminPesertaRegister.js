@@ -99,14 +99,21 @@ export default function AdminPesertaRegister() {
                 const statusList = [];
                 for (const form of registerForms) {
                     const pricing = await getFormRegisterPricingAdmin(form.id);
-                    const formTeams = data.filter(t => t.nama_lomba?.toLowerCase().trim() === form.nama_lomba?.toLowerCase().trim() && t.verivikasi !== false);
+                    const formTeams = data.filter(t =>
+                        t.nama_lomba?.toLowerCase().trim() === form.nama_lomba?.toLowerCase().trim() &&
+                        t.verivikasi !== false &&
+                        (!form.kode_form || (t.kode_form && t.kode_form.toLowerCase().startsWith(form.kode_form.toLowerCase())))
+                    );
                     let isFull = true;
                     if (pricing && pricing.length > 0) {
                         let totalMaks = 0;
                         let totalRegistered = 0;
                         for (const p of pricing) {
                             totalMaks += (p.maks_team || 0);
-                            const registered = formTeams.filter(t => t.peserta?.[0]?.kategori === p.kategori).length;
+                            const registered = formTeams.filter(t =>
+                                (t.peserta && t.peserta.some(pe => pe.kategori === p.kategori)) ||
+                                t.peserta?.[0]?.kategori === p.kategori
+                            ).length;
                             totalRegistered += registered;
                         }
                         isFull = totalRegistered >= totalMaks;
@@ -142,10 +149,10 @@ export default function AdminPesertaRegister() {
         const targetTeams = data.filter(t =>
             t.nama_lomba?.toLowerCase().trim() === currentLombaName.toLowerCase().trim() &&
             t.verivikasi !== false &&
-            (!activeForm?.kode_form || t.kode_form === activeForm.kode_form)
+            (!activeForm?.kode_form || (t.kode_form && t.kode_form.toLowerCase().startsWith(activeForm.kode_form.toLowerCase())))
         );
         targetTeams.forEach(team => {
-            const kat = team.peserta?.[0]?.kategori;
+            const kat = team.peserta?.find(p => p.kategori)?.kategori || team.peserta?.[0]?.kategori || team.kategori;
             if (kat && counts[kat] !== undefined) {
                 counts[kat]++;
             }
@@ -239,18 +246,23 @@ export default function AdminPesertaRegister() {
         // Filter peserta to only 'register' type
         const registerPeserta = (pesertaData || []).filter(p => p.jenis_form === 'register');
 
-        // Map peserta into teams by matching names
+        // Map peserta into teams by matching kode_form and member nims/codes
         const enrichedTeams = (teamData || []).map(team => {
-            // Find peserta that belong to this team's members (match by kode == nim)
+            const teamKode = team.kode_form?.toLowerCase().trim();
             const memberCodes = (team.team_members || []).map(m => m.kode?.toLowerCase().trim()).filter(Boolean);
 
             const matchedPeserta = [];
-            const seenNims = new Set();
+            const seenIds = new Set();
             for (const p of registerPeserta) {
+                const pKode = p.kode_form?.toLowerCase().trim();
                 const pNim = p.nim?.toLowerCase().trim();
-                if (pNim && memberCodes.includes(pNim) && !seenNims.has(pNim)) {
+
+                const isKodeMatch = teamKode && pKode && (pKode === teamKode || pKode.startsWith(teamKode) || teamKode.startsWith(pKode));
+                const isNimMatch = pNim && memberCodes.includes(pNim);
+
+                if ((isKodeMatch || isNimMatch) && !seenIds.has(p.id)) {
                     matchedPeserta.push(p);
-                    seenNims.add(pNim);
+                    seenIds.add(p.id);
                 }
             }
 
@@ -476,8 +488,8 @@ export default function AdminPesertaRegister() {
                 const registered = data.filter(t =>
                     t.nama_lomba?.toLowerCase().trim() === currentLombaName?.toLowerCase().trim() &&
                     t.verivikasi !== false &&
-                    t.peserta?.[0]?.kategori === p.kategori &&
-                    (!activeForm?.kode_form || t.kode_form === activeForm.kode_form)
+                    ((t.peserta && t.peserta.some(pe => pe.kategori === p.kategori)) || t.peserta?.[0]?.kategori === p.kategori) &&
+                    (!activeForm?.kode_form || (t.kode_form && t.kode_form.toLowerCase().startsWith(activeForm.kode_form.toLowerCase())))
                 ).length;
                 totalRegistered += registered;
             });
@@ -934,9 +946,8 @@ export default function AdminPesertaRegister() {
                             const registered = data.filter(t =>
                                 t.nama_lomba?.toLowerCase().trim() === currentLombaName?.toLowerCase().trim() &&
                                 t.verivikasi !== false &&
-                                t.peserta?.[0]?.kategori === 'Mahasiswa LP3I' &&
-                                t.peserta?.[0]?.kampus === k.nama_kampus &&
-                                (!activeForm?.kode_form || t.kode_form === activeForm.kode_form)
+                                (t.peserta?.some(p => p.kategori === 'Mahasiswa LP3I' && p.kampus === k.nama_kampus) || (t.peserta?.[0]?.kategori === 'Mahasiswa LP3I' && t.peserta?.[0]?.kampus === k.nama_kampus)) &&
+                                (!activeForm?.kode_form || (t.kode_form && t.kode_form.toLowerCase().startsWith(activeForm.kode_form.toLowerCase())))
                             ).length;
                             const max = k.maks_team || 0;
                             const remaining = Math.max(0, max - registered);
