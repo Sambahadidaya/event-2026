@@ -1,0 +1,3 @@
+fokus ke halaman pj lomba yaitu pada manajemen team atau difile src/app/panitia/pj_lomba/form_register/page.js atau lebih tepatya di src/components/panitia/AdminPesertaRegister
+ada bug kecil yaitu pada saat pemanggilan di data peserta atau yang join antara tabel team_members dengan tabel peserta itu malah mengambil 2 kali, padahal dalam tabel team_members itu cuman 1 orang saja dan ketika ditabel pesertanya malah ke ambil double karna kebetuan memang datanya itu ada 2 yang sama diform register itu.
+coba bacalah file yang relevan jangan sampai cuman asumsi saja.

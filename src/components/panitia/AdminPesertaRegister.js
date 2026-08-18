@@ -260,7 +260,12 @@ export default function AdminPesertaRegister() {
                 const isKodeMatch = teamKode && pKode && (pKode === teamKode || pKode.startsWith(teamKode) || teamKode.startsWith(pKode));
                 const isNimMatch = pNim && memberCodes.includes(pNim);
 
-                if ((isKodeMatch || isNimMatch) && !seenIds.has(p.id)) {
+                const shouldMatch =
+                    (isKodeMatch && isNimMatch) ||
+                    (isKodeMatch && memberCodes.length === 0) ||
+                    (isNimMatch && (!teamKode || isKodeMatch));
+
+                if (shouldMatch && !seenIds.has(p.id)) {
                     matchedPeserta.push(p);
                     seenIds.add(p.id);
                 }

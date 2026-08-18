@@ -272,7 +272,7 @@ export const updateStatusPembayaranPkkmb = async (id, status) => {
             // Fetch pricing for Wajib form
             const rawKodeForm = firstPeserta.kode_form;
             const searchKode = rawKodeForm ? (rawKodeForm.length > 4 ? rawKodeForm.slice(0, -4) : rawKodeForm) : null;
-            
+
             let requiredFullNominal = 500000; // default fallback
             let hasPricing = false;
 
@@ -353,7 +353,7 @@ export const updateStatusPembayaranPkkmb = async (id, status) => {
                     _pembayaran_nominal: currentPayment.nominal,
                     _pembayaran_jenis_bayar: currentPayment.jenis_bayar
                 };
-                
+
                 // If it is Tahap 2, we should fetch the specific second peserta's payment method and proof if available
                 if (currentPayment.tahapan === 'tahap 2') {
                     const { data: secondPeserta } = await supabaseAdmin
@@ -388,3 +388,51 @@ export const updateStatusPembayaranPkkmb = async (id, status) => {
         return { success: false, error: 'Terjadi kesalahan internal pada server' };
     }
 };
+
+/**
+ * Hapus satu record pembayaran_pkkmb beserta record peserta terkait (jika ada).
+ * @param {string} pembayaranId - UUID di tabel pembayaran_pkkmb
+ * @param {string|null} pesertaId - UUID di tabel peserta (boleh null)
+ * @param {string} nimUser - NIM peserta, dipakai untuk cleanup finance
+ */
+export const deletePembayaranPkkmb = async (pembayaranId, pesertaId, nimUser) => {
+    try {
+        const { user, adminNama, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        if (!pembayaranId) throw new Error('ID pembayaran diperlukan');
+
+        // 1. Cleanup finance records (by NIM sebagai kode_payer)
+        if (nimUser) {
+            const fakeStubPeserta = { nim: nimUser, site_type: 'pkkmb', nama: '' };
+            await autoDeleteTransactionFromPeserta(fakeStubPeserta);
+        }
+
+        // 2. Hapus record peserta jika peserta_id tersedia
+        if (pesertaId) {
+            await supabaseAdmin.from('peserta').delete().eq('id', pesertaId);
+        }
+
+        // 3. Hapus record pembayaran_pkkmb
+        const { error: delErr } = await supabaseAdmin
+            .from('pembayaran_pkkmb')
+            .delete()
+            .eq('id', pembayaranId);
+
+        if (delErr) throw delErr;
+
+        await insertAuditLog(
+            user.email,
+            'DELETE_PEMBAYARAN_PKKMB',
+            pembayaranId,
+            `Deleted pembayaran_pkkmb${pesertaId ? ' + peserta' : ''} for NIM ${nimUser}`,
+            adminNama
+        );
+
+        return { success: true };
+    } catch (error) {
+        console.error('Internal Log - Error deleting pembayaran pkkmb:', error);
+        return { success: false, error: 'Terjadi kesalahan internal pada server' };
+    }
+};
+

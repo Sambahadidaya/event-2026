@@ -3,14 +3,29 @@
 import { openai } from '@/lib/openai';
 
 /**
+ * Helper untuk meratakan data section (panduan / ketentuan) menjadi string konteks.
+ */
+const buildSectionContext = (sections) => {
+    if (!sections || !Array.isArray(sections)) return '';
+    return sections.map(sec => {
+        let text = `--- ${sec.title} ---\n${sec.content || ''}`;
+        if (sec.subsections && Array.isArray(sec.subsections)) {
+            const subText = sec.subsections.map(sub => `* ${sub.title}: ${sub.content}`).join('\n');
+            text += `\nSub-bagian:\n${subText}`;
+        }
+        return text;
+    }).join('\n\n');
+};
+
+/**
  * Menghasilkan jawaban AI secara dinamis.
- * faqData digunakan sebagai REFERENSI konteks, bukan jawaban statis.
+ * faqData, panduanSections, dan ketentuanSections digunakan sebagai REFERENSI konteks.
  * AI menjawab dengan bahasa santai, sopan, dan pakai emote.
  * Juga mengembalikan flag apakah pertanyaan termasuk cakupan FAQ atau tidak.
  * 
  * @returns {{ answer: string, isFaqMatched: boolean }}
  */
-export const generateAnswer = async (text, faqData, siteType) => {
+export const generateAnswer = async (text, faqData, siteType, panduanSections = null, ketentuanSections = null) => {
     try {
         if (!text || !siteType) {
             throw new Error('Parameter text dan siteType wajib diisi');
@@ -23,6 +38,31 @@ export const generateAnswer = async (text, faqData, siteType) => {
             .filter(f => !['halo', 'hai', 'hi', 'terima kasih'].includes(f.question.toLowerCase()))
             .map(f => `Q: ${f.question}\nA: ${f.answer}`)
             .join('\n\n');
+
+        const lowerText = text.toLowerCase();
+
+        // Keyword matching untuk Panduan & Ketentuan
+        const panduanKeywords = ['panduan', 'cara', 'bagaimana', 'langkah', 'tutorial', 'petunjuk', 'gunakan', 'buka', 'klik', 'akses', 'fitur', 'menu', 'halaman', 'dimana', 'di mana', 'melihat', 'mendaftar', 'mengisi', 'mengunggah', 'unduh', 'download', 'upload'];
+        const ketentuanKeywords = ['ketentuan', 'peraturan', 'syarat', 'tata tertib', 'aturan', 'boleh', 'dilarang', 'sanksi', 'seragam', 'pakaian', 'atribut', 'rambut', 'nametag', 'persyaratan', 'regulasi', 'lomba', 'biaya', 'bayar', 'pembayaran', 'format', 'jadwal', 'tim', 'hadiah'];
+
+        const isPanduanRelevant = panduanKeywords.some(kw => lowerText.includes(kw));
+        const isKetentuanRelevant = ketentuanKeywords.some(kw => lowerText.includes(kw));
+
+        let extraContext = '';
+
+        if (isPanduanRelevant && panduanSections) {
+            const panduanText = buildSectionContext(panduanSections);
+            if (panduanText) {
+                extraContext += `\n\nDATA REFERENSI PANDUAN PORTAL:\n${panduanText}`;
+            }
+        }
+
+        if (isKetentuanRelevant && ketentuanSections) {
+            const ketentuanText = buildSectionContext(ketentuanSections);
+            if (ketentuanText) {
+                extraContext += `\n\nDATA REFERENSI KETENTUAN & TATA TERTIB:\n${ketentuanText}`;
+            }
+        }
 
         const systemPrompt = `Kamu adalah "Mba Asisten", asisten virtual yang ramah, lucu dan ceria untuk portal ${siteName} di sebuah universitas. 🎓
 
@@ -41,12 +81,12 @@ PANDUAN MENJAWAB:
 - Jika user mengucapkan terima kasih, balas dengan ramah
 
 DATA REFERENSI FAQ (gunakan ini sebagai acuan utama saat menjawab):
-${faqContext}
+${faqContext}${extraContext}
 
 ATURAN PENTING:
-1. Jika pertanyaan user BERKAITAN dengan topik di data referensi FAQ, jawab berdasarkan informasi tersebut tapi JANGAN copy-paste — sampaikan dengan bahasamu sendiri yang natural dan santai.
+1. Jika pertanyaan user BERKAITAN dengan topik di data referensi FAQ, Panduan, atau Ketentuan, jawab berdasarkan informasi tersebut tapi JANGAN copy-paste — sampaikan dengan bahasamu sendiri yang natural dan santai.
 2. Jika pertanyaan user TIDAK BERKAITAN sama sekali dengan ${siteName} atau topik kampus (misalnya soal cuaca, politik, coding, dll), jawab dengan sopan bahwa kamu tidak bisa membantu dan hanya bisa membantu seputar ${siteName} dan arahkan user ke menu Kontak jika butuh bantuan lebih lanjut.
-3. Tambahkan "[FAQ_MATCH]" di AKHIR jawabanmu jika pertanyaan berkaitan dengan data FAQ. Tambahkan "[NOT_FAQ]" di akhir jika tidak berkaitan. Tag ini WAJIB ada di setiap jawaban.
+3. Tambahkan "[FAQ_MATCH]" di AKHIR jawabanmu jika pertanyaan berkaitan dengan data FAQ, Panduan, atau Ketentuan. Tambahkan "[NOT_FAQ]" di akhir jika tidak berkaitan. Tag ini WAJIB ada di setiap jawaban.
 `;
 
         // Menyimpan logic dummy dari task33 yang menampilkan log di server console
@@ -89,3 +129,4 @@ ATURAN PENTING:
         throw error;
     }
 };
+

@@ -1,0 +1,3 @@
+fokus ke halaman verifikasi keuangan khususnya disite pkkmb, yaitu di file src/app/panitia/keuangan/verifikasi/
+saya ingin pada saat mengklik tombol verifikasi itukan ada tombol setujui atau tolak, nah saya ingin ada tombol baru yaitu tombol hapus atau delete, yang jika untuk site pkkmb itu akan double delete yaitu pada tabel peserta dan tabel pembayaran_pkkmb tapi kalau untuk site pose itu hanya delete pada tabel peserta saja dan pastikan hanya 1 row saja yang didelete sesuai yang dipilih, dan sesuai form yang aktif juga.
+coba bacalah seluruh file yang relevan dan pastikan tidak cuman asusmsi dan jangan merusak logika yang lain.

@@ -1,0 +1,2 @@
+fokus ke halaman nilai yang ada difile src/app/pose/nilai/page.js.
+saya ingin pada saat verifikasi itu jika memang berhasil verif maka ada notif berhasil verifikasi. dan muncul tabel atau div baru itu yang hasil nilai itu, tapi jika verifikasinya gagal maka ada notif gagal verifikasi, terus jika berhasil verif jika memang sudah ditilai kan itu akan muncul div hasil nilai itu tapi jika belum ditilai maka divnya berisi teks "Tim Anda terdaftar, namun belum ada penilaian juri yang dirilis." 

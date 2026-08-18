@@ -3,10 +3,10 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import {
     FileCheck, Search, Eye, CheckCircle2, XCircle, Clock,
-    FileText, UserCheck, Filter, X, FileImage, ExternalLink, MonitorPlay
+    FileText, UserCheck, Filter, X, FileImage, ExternalLink, MonitorPlay, Trash2
 } from 'lucide-react';
-import { getPesertaKeuangan, updateStatusPembayaranPeserta } from '@/api/supabase/admin/peserta';
-import { getPembayaranPkkmbKeuangan, updateStatusPembayaranPkkmb } from '@/api/supabase/admin/pembayaran_pkkmb';
+import { getPesertaKeuangan, updateStatusPembayaranPeserta, deletePeserta } from '@/api/supabase/admin/peserta';
+import { getPembayaranPkkmbKeuangan, updateStatusPembayaranPkkmb, deletePembayaranPkkmb } from '@/api/supabase/admin/pembayaran_pkkmb';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
 import TablePagination from '@/components/panitia/TablePagination';
 import TombolCetak from '@/components/panitia/TombolCetak';
@@ -55,6 +55,10 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
     const [verifikasiModalOpen, setVerifikasiModalOpen] = useState(false);
     const [verifikasiItem, setVerifikasiItem] = useState(null);
     const [verifikasiLoading, setVerifikasiLoading] = useState(false);
+
+    // Modal state for Delete Confirmation
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -273,6 +277,35 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
     const handleOpenVerifikasi = (item) => {
         setVerifikasiItem(item);
         setVerifikasiModalOpen(true);
+    };
+
+    const handleDeleteItem = async () => {
+        if (!verifikasiItem) return;
+        setDeleteLoading(true);
+
+        const isPkkmb = verifikasiItem.tahapan !== undefined ||
+            (verifikasiItem.site_type === 'pkkmb' && verifikasiItem.jenis_form === 'wajib');
+
+        let res;
+        if (isPkkmb) {
+            res = await deletePembayaranPkkmb(
+                verifikasiItem.id,
+                verifikasiItem.peserta_id,
+                verifikasiItem.nim_user || verifikasiItem.nim
+            );
+        } else {
+            res = await deletePeserta(verifikasiItem.id);
+        }
+
+        if (res.success) {
+            setDeleteConfirmOpen(false);
+            setVerifikasiModalOpen(false);
+            setVerifikasiItem(null);
+            await fetchData();
+        } else {
+            window.alert('Gagal menghapus data. Silakan coba lagi.');
+        }
+        setDeleteLoading(false);
     };
 
     const tableColSpan = isPkkmbWajibTable ? 11 : 9;
@@ -861,23 +894,89 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
                             </p>
                         </div>
 
-                        {/* Action Buttons: Tolak & Setujui */}
-                        <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 flex items-center justify-end gap-3">
+                        {/* Action Buttons: Hapus (Kiri) | Tolak & Setujui (Kanan) */}
+                        <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 flex items-center justify-between gap-3">
                             <button
                                 type="button"
-                                onClick={() => handleUpdateStatus('ditolak')}
-                                disabled={verifikasiLoading}
-                                className="flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                onClick={() => setDeleteConfirmOpen(true)}
+                                disabled={verifikasiLoading || deleteLoading}
+                                className="py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold 
+                                           bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400
+                                           border border-gray-200 dark:border-gray-700
+                                           hover:bg-red-50 dark:hover:bg-red-900/20
+                                           hover:text-red-600 dark:hover:text-red-400
+                                           hover:border-red-200 dark:hover:border-red-800
+                                           transition-all flex items-center gap-2 disabled:opacity-50"
                             >
-                                <XCircle size={16} /> Tolak Pembayaran
+                                <Trash2 size={16} /> Hapus
+                            </button>
+
+                            <div className="flex items-center gap-2.5 flex-1 max-w-xs justify-end">
+                                <button
+                                    type="button"
+                                    onClick={() => handleUpdateStatus('ditolak')}
+                                    disabled={verifikasiLoading || deleteLoading}
+                                    className="flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+                                >
+                                    <XCircle size={16} /> Tolak
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleUpdateStatus('lunas')}
+                                    disabled={verifikasiLoading || deleteLoading}
+                                    className="flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+                                >
+                                    <CheckCircle2 size={16} /> Setujui (Lunas)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ================= MODAL KONFIRMASI HAPUS (z-[150]) ================= */}
+            {deleteConfirmOpen && verifikasiItem && (
+                <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm p-6 border border-gray-100 dark:border-gray-800">
+                        <div className="flex items-start gap-4 mb-5">
+                            <div className="w-11 h-11 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center shrink-0">
+                                <Trash2 size={20} className="text-red-600 dark:text-red-400" />
+                            </div>
+                            <div>
+                                <h4 className="font-extrabold text-base text-gray-900 dark:text-white mb-1">
+                                    Konfirmasi Hapus Data
+                                </h4>
+                                <p className="text-xs text-red-500 dark:text-red-400 font-semibold">
+                                    Tindakan ini tidak dapat dibatalkan!
+                                </p>
+                            </div>
+                        </div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
+                            Anda akan menghapus data pendaftaran <strong className="text-gray-900 dark:text-white">{verifikasiItem.nama}</strong>.
+                            {(verifikasiItem.tahapan !== undefined || verifikasiItem.site_type === 'pkkmb')
+                                ? ' Record di tabel pembayaran PKKMB dan peserta akan dihapus permanen.'
+                                : ' Record peserta akan dihapus permanen.'}
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setDeleteConfirmOpen(false)}
+                                disabled={deleteLoading}
+                                className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                            >
+                                Batal
                             </button>
                             <button
                                 type="button"
-                                onClick={() => handleUpdateStatus('lunas')}
-                                disabled={verifikasiLoading}
-                                className="flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                onClick={handleDeleteItem}
+                                disabled={deleteLoading}
+                                className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-red-600 hover:bg-red-700 text-white transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                             >
-                                <CheckCircle2 size={16} /> Setujui (Lunas)
+                                {deleteLoading ? (
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                    <><Trash2 size={15} /> Ya, Hapus</>
+                                )}
                             </button>
                         </div>
                     </div>

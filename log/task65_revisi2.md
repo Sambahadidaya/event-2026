@@ -1,0 +1,3 @@
+fokus ke halaman ai asisten dipublic (selain materi asisten dan admin asisten) yaitu pada file src/components/SamsChatbot.js lalu datanya dari src/lib/faqData.js dan src/api/openai/chat.js
+saya ingin datanya itu bukan cuman dari faqData tapi juga jika pertanyaan tentang panduan maka diambil juga dari src/data/panduanData.js (yang pastinya sesuai site yang aktif) terus juga jika pertanyaannya tentang ketentuan maka diambil juga dari src/data/ketentuanData.js.
+bacalah file file yang memang relevan agar nantinya tidak cuman menduga atau tidak cuman asumsi saja.

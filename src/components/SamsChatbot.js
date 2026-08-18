@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Bot, Headset, X, Send, HelpCircle, Maximize2, Minimize2 } from 'lucide-react';
 import { getFaqBySite, getRandomQuestions } from '@/lib/faqData';
+import { panduanData } from '@/data/panduanData';
+import { ketentuanData } from '@/data/ketentuanData';
 import { generateAnswer } from '@/api/openai/chat';
 import { saveChatHistory } from '@/api/supabase/public/admin';
 import { usePathname } from 'next/navigation';
@@ -177,7 +179,9 @@ export default function SamsChatbot() {
         setIsTyping(true);
 
         try {
-            const { answer, isFaqMatched, token } = await generateAnswer(inputanUser, faqData, siteType);
+            const panduanSections = panduanData[siteType]?.sections || null;
+            const ketentuanSections = ketentuanData[siteType]?.sections || null;
+            const { answer, isFaqMatched, token } = await generateAnswer(inputanUser, faqData, siteType, panduanSections, ketentuanSections);
 
             setMessages([...newMessages, { sender: 'bot', text: answer }]);
 

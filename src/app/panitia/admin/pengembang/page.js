@@ -81,8 +81,8 @@ export default function PengembangAdminPage() {
             {/* Toast Message */}
             {message && (
                 <div className={`p-4 rounded-2xl flex items-center gap-3 border animate-in slide-in-from-top-4 duration-300 shadow-md ${message.type === 'error'
-                        ? 'bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-900/50 text-red-700 dark:text-red-400'
-                        : 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-900/50 text-emerald-700 dark:text-emerald-400'
+                    ? 'bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-900/50 text-red-700 dark:text-red-400'
+                    : 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-900/50 text-emerald-700 dark:text-emerald-400'
                     }`}>
                     <AlertCircle size={20} className="shrink-0" />
                     <p className="text-sm font-semibold">{message.text}</p>
@@ -97,8 +97,8 @@ export default function PengembangAdminPage() {
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <span className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold border ${statusData?.kunci
-                                    ? 'bg-amber-50 text-amber-700 border-amber-200/50 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20'
-                                    : 'bg-emerald-50 text-emerald-700 border-emerald-200/50 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'
+                                ? 'bg-amber-50 text-amber-700 border-amber-200/50 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20'
+                                : 'bg-emerald-50 text-emerald-700 border-emerald-200/50 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'
                                 }`}>
                                 {statusData?.kunci ? (
                                     <>
@@ -179,6 +179,10 @@ export default function PengembangAdminPage() {
                             </li>
                             <li className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900/50 p-3 rounded-2xl border border-slate-200 dark:border-slate-800/60">
                                 <Terminal size={14} className="text-slate-400 shrink-0" />
+                                <span className="truncate">/pkkmb/panduan</span>
+                            </li>
+                            <li className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900/50 p-3 rounded-2xl border border-slate-200 dark:border-slate-800/60">
+                                <Terminal size={14} className="text-slate-400 shrink-0" />
                                 <span className="truncate">/pose/team</span>
                             </li>
                             <li className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900/50 p-3 rounded-2xl border border-slate-200 dark:border-slate-800/60">
@@ -187,8 +191,16 @@ export default function PengembangAdminPage() {
                             </li>
                             <li className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900/50 p-3 rounded-2xl border border-slate-200 dark:border-slate-800/60">
                                 <Terminal size={14} className="text-slate-400 shrink-0" />
-                                <span className="truncate">/pose/ketentuan</span>
+                                <span className="truncate">/pose/submit</span>
                             </li>
+                            <li className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900/50 p-3 rounded-2xl border border-slate-200 dark:border-slate-800/60">
+                                <Terminal size={14} className="text-slate-400 shrink-0" />
+                                <span className="truncate">/pose/nilai</span>
+                            </li>
+                            {/* <li className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900/50 p-3 rounded-2xl border border-slate-200 dark:border-slate-800/60">
+                                <Terminal size={14} className="text-slate-400 shrink-0" />
+                                <span className="truncate">/pose/ketentuan</span>
+                            </li> */}
                         </ul>
                     </div>
 

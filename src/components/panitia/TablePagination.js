@@ -12,7 +12,10 @@ export default function TablePagination({
 }) {
     if (totalItems === 0) return null;
 
-    const startIndex = (currentPage - 1) * itemsPerPage;
+    const validTotalItems = typeof totalItems === 'number' && !isNaN(totalItems) ? totalItems : null;
+    const validItemsPerPage = typeof itemsPerPage === 'number' && !isNaN(itemsPerPage) ? itemsPerPage : null;
+
+    const startIndex = validItemsPerPage && currentPage ? (currentPage - 1) * validItemsPerPage : 0;
     const pages = [];
     const maxVisible = 5;
     let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
@@ -25,16 +28,23 @@ export default function TablePagination({
     return (
         <div className="bg-gray-50/80 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-3 rounded-b-xl">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-gray-500 dark:text-gray-400">
-                <p className="text-xs sm:text-sm">
-                    Menampilkan{' '}
-                    <span className="font-medium text-gray-900 dark:text-white">{startIndex + 1}</span>
-                    {' – '}
-                    <span className="font-medium text-gray-900 dark:text-white">
-                        {Math.min(startIndex + itemsPerPage, totalItems)}
-                    </span>
-                    {' dari '}
-                    <span className="font-medium text-gray-900 dark:text-white">{totalItems}</span>
-                </p>
+                {validTotalItems !== null && validItemsPerPage !== null ? (
+                    <p className="text-xs sm:text-sm">
+                        Menampilkan{' '}
+                        <span className="font-medium text-gray-900 dark:text-white">{startIndex + 1}</span>
+                        {' – '}
+                        <span className="font-medium text-gray-900 dark:text-white">
+                            {Math.min(startIndex + validItemsPerPage, validTotalItems)}
+                        </span>
+                        {' dari '}
+                        <span className="font-medium text-gray-900 dark:text-white">{validTotalItems}</span>
+                    </p>
+                ) : (
+                    <p className="text-xs sm:text-sm">
+                        Halaman <span className="font-medium text-gray-900 dark:text-white">{currentPage}</span> dari{' '}
+                        <span className="font-medium text-gray-900 dark:text-white">{totalPages}</span>
+                    </p>
+                )}
                 <div className="flex items-center gap-1">
                     <button
                         type="button"

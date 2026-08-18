@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Trophy, Calendar, UserCheck, AlertCircle, CheckCircle, FileText, Star, MessageSquare } from 'lucide-react';
+import { Search, Trophy, Calendar, UserCheck, AlertCircle, CheckCircle, FileText, Star, MessageSquare, Info } from 'lucide-react';
 import PageHero from '@/components/public/PageHero';
 import ScheduleBarrier from '@/components/public/ScheduleBarrier';
 import { getNilaiByKodeForm } from '@/api/supabase/public/penilaian';
@@ -12,6 +12,7 @@ export default function CekNilaiPage() {
     const [verifying, setVerifying] = useState(false);
     const [result, setResult] = useState(null);
     const [errorMsg, setErrorMsg] = useState(null);
+    const [verifyStatus, setVerifyStatus] = useState(null);
 
     const handleVerify = async (e) => {
         e.preventDefault();
@@ -20,16 +21,16 @@ export default function CekNilaiPage() {
         setVerifying(true);
         setErrorMsg(null);
         setResult(null);
+        setVerifyStatus(null);
 
         const res = await getNilaiByKodeForm(kodeForm.trim());
         setVerifying(false);
 
         if (res.success) {
             setResult(res);
-            if (res.nilaiList.length === 0) {
-                setErrorMsg('Tim Anda terdaftar, namun belum ada penilaian juri yang dirilis.');
-            }
+            setVerifyStatus('success');
         } else {
+            setVerifyStatus('error');
             setErrorMsg(res.error || 'Terjadi kesalahan saat memverifikasi kode.');
         }
     };
@@ -78,15 +79,40 @@ export default function CekNilaiPage() {
                         </form>
                     </div>
 
-                    {/* Error Alert */}
-                    {errorMsg && !result && (
-                        <div className="p-4 bg-red-100 dark:bg-red-900/40 border border-red-200 dark:border-red-800 text-red-850 dark:text-red-200 rounded-2xl flex items-center gap-3">
-                            <AlertCircle size={24} className="text-red-650 shrink-0" />
-                            <span className="font-semibold text-sm">{errorMsg}</span>
+                    {/* Success Alert */}
+                    {verifyStatus === 'success' && (
+                        <div className="p-4 bg-emerald-100 dark:bg-emerald-900/40 border border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200 rounded-2xl flex items-center gap-3 animate-in fade-in duration-300">
+                            <CheckCircle size={24} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                            <span className="font-semibold text-sm">Verifikasi Berhasil! Tim Anda ditemukan.</span>
                         </div>
                     )}
 
-                    {/* Result Display */}
+                    {/* Error Alert */}
+                    {verifyStatus === 'error' && (
+                        <div className="p-4 bg-red-100 dark:bg-red-900/40 border border-red-200 dark:border-red-800 text-red-850 dark:text-red-200 rounded-2xl flex items-center gap-3 animate-in fade-in duration-300">
+                            <AlertCircle size={24} className="text-red-650 shrink-0" />
+                            <span className="font-semibold text-sm">Gagal Verifikasi: {errorMsg}</span>
+                        </div>
+                    )}
+
+                    {/* Result Display: Belum Ditilai */}
+                    {result && result.nilaiList.length === 0 && (
+                        <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 p-6 sm:p-8 rounded-3xl shadow-sm space-y-3 animate-in slide-in-from-top-4 duration-300">
+                            <div className="flex items-start sm:items-center gap-3 text-amber-800 dark:text-amber-300">
+                                <Info size={24} className="shrink-0 mt-0.5 sm:mt-0 text-amber-600 dark:text-amber-400" />
+                                <span className="font-bold text-base sm:text-lg">
+                                    Tim Anda terdaftar, namun belum ada penilaian juri yang dirilis.
+                                </span>
+                            </div>
+                            {result.team?.title && (
+                                <p className="text-xs sm:text-sm text-amber-700 dark:text-amber-400/90 pl-9 font-medium">
+                                    Tim: <span className="font-bold">{result.team.title}</span> ({result.team.nama_lomba || 'POSE'})
+                                </p>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Result Display: Has Nilai */}
                     {result && result.nilaiList.length > 0 && (
                         <div className="space-y-6 animate-in slide-in-from-top-4 duration-300">
                             {/* Summary Card */}
