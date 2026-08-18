@@ -36,7 +36,7 @@ export const getHasilPertandingan = async () => {
 // ==========================================
 // Mode Production (Query ke Database Supabase)
 // ==========================================
-/*
+
 export const getJadwalAcara = async (siteType = null) => {
     try {
         let query = supabaseAdmin
@@ -68,47 +68,47 @@ export const getJadwalAcara = async (siteType = null) => {
         return [];
     }
 };
-*/
+
 
 // ==========================================
 // Mode Development (Bypass Database)
 // ==========================================
-export const getJadwalAcara = async (siteType = null) => {
-    // Buat data dummy statis yang strukturnya mirip dengan tabel di database
-    const mockData = [
-        {
-            id: 1,
-            nama_acara: "pendaftaran",
-            waktu_mulai: "2026-08-20T07:00:00",
-            waktu_selesai: "2026-08-20T08:00:00",
-            site: "pkkmb",
-            deskripsi: "Registrasi ulang dan pembagian atribut peserta."
-        },
-        {
-            id: 2,
-            nama_acara: "seleksi",
-            waktu_mulai: "2026-08-20T08:00:00",
-            waktu_selesai: "2026-08-20T09:00:00",
-            site: "pkkmb",
-            deskripsi: "Pembukaan acara resmi di aula utama."
-        },
-        {
-            id: 3,
-            nama_acara: "acara",
-            waktu_mulai: "2026-08-21T08:00:00",
-            waktu_selesai: "2026-08-21T10:00:00",
-            site: "pose",
-            deskripsi: "Pengenalan unit kegiatan mahasiswa."
-        }
-    ];
+// export const getJadwalAcara = async (siteType = null) => {
+// Buat data dummy statis yang strukturnya mirip dengan tabel di database
+// const mockData = [
+//     {
+//         id: 1,
+//         nama_acara: "pendaftaran",
+//         waktu_mulai: "2026-08-20T07:00:00",
+//         waktu_selesai: "2026-08-20T08:00:00",
+//         site: "pkkmb",
+//         deskripsi: "Registrasi ulang dan pembagian atribut peserta."
+//     },
+//     {
+//         id: 2,
+//         nama_acara: "seleksi",
+//         waktu_mulai: "2026-08-20T08:00:00",
+//         waktu_selesai: "2026-08-20T09:00:00",
+//         site: "pkkmb",
+//         deskripsi: "Pembukaan acara resmi di aula utama."
+//     },
+//     {
+//         id: 3,
+//         nama_acara: "acara",
+//         waktu_mulai: "2026-08-21T08:00:00",
+//         waktu_selesai: "2026-08-21T10:00:00",
+//         site: "pose",
+//         deskripsi: "Pengenalan unit kegiatan mahasiswa."
+//     }
+// ];
 
-    // Simulasikan logika filter berdasarkan siteType layaknya query '.eq('site', siteType)'
-    if (siteType) {
-        return mockData.filter(item => item.site === siteType);
-    }
+// Simulasikan logika filter berdasarkan siteType layaknya query '.eq('site', siteType)'
+//     if (siteType) {
+//         return mockData.filter(item => item.site === siteType);
+//     }
 
-    return mockData;
-};
+//     return mockData;
+// };
 
 /**
  * CONTOH/TAHAPAN PENGGUNAAN SERVER TIME:
