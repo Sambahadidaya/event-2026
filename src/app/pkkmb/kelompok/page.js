@@ -63,7 +63,7 @@ function HorizontalScrollRow({ children }) {
             <div
                 ref={rowRef}
                 onScroll={handleScroll}
-                className="flex items-stretch overflow-x-auto scrollbar-none py-8 flex-nowrap scroll-smooth px-[12vw] md:px-8 gap-4 md:gap-6 snap-x snap-mandatory w-full"
+                className="flex items-start overflow-x-auto scrollbar-none py-8 flex-nowrap scroll-smooth px-[12vw] md:px-8 gap-4 md:gap-6 snap-x snap-mandatory w-full"
             >
                 {childArray.map((child, idx) => (
                     <div key={idx} className="carousel-card-item flex-none w-[76vw] sm:w-[350px] snap-center snap-always">
@@ -130,7 +130,7 @@ export default function PkkmbKelompok() {
     }, [kelompok, searchQuery]);
 
     return (
-        <div className="min-h-screen pt-24 pb-12 sm:pt-32 sm:pb-20 bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-150 transition-colors duration-300">
+        <div className="min-h-screen pt-24 pb-12 sm:pt-32 sm:pb-20 text-gray-900 dark:text-gray-150 transition-colors duration-300">
             <PengembangBarrier>
 
                 <div className="max-w-7xl mx-auto px-4 md:px-8 space-y-8 pb-20">
@@ -209,16 +209,20 @@ export default function PkkmbKelompok() {
 
 function KelompokCard({ item, isExpanded, onToggleExpand }) {
     return (
-        <div className="bg-white dark:bg-gray-900/60 rounded-3xl shadow-xs border border-gray-200 dark:border-gray-800 overflow-hidden transition-all duration-300 flex flex-col group h-full w-full">
-            <div className="p-6 flex-1 flex flex-col">
+        <div className="glass rounded-3xl overflow-hidden transition-all duration-300 flex flex-col group w-full">
+            {/* Seluruh area atas bisa diklik untuk expand/collapse */}
+            <div
+                className="p-6 flex-1 flex flex-col cursor-pointer select-none"
+                onClick={onToggleExpand}
+            >
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-4">
                         {item.foto_kelompok ? (
-                            <div className="w-14 h-14 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-xs shrink-0">
+                            <div className="w-14 h-14 rounded-2xl overflow-hidden border border-white/40 dark:border-white/10 shadow-xs shrink-0">
                                 <img src={item.foto_kelompok} alt={item.nama_kelompok} className="w-full h-full object-cover" />
                             </div>
                         ) : (
-                            <div className="w-14 h-14 rounded-2xl bg-gray-50 dark:bg-gray-950 flex items-center justify-center text-gray-400 border border-gray-200 dark:border-gray-800 shrink-0">
+                            <div className="w-14 h-14 rounded-2xl bg-white/30 dark:bg-black/30 flex items-center justify-center text-gray-400 border border-white/40 dark:border-white/10 shrink-0">
                                 <ImageIcon size={24} className="opacity-40" />
                             </div>
                         )}
@@ -227,7 +231,7 @@ function KelompokCard({ item, isExpanded, onToggleExpand }) {
                                 {item.nama_kelompok}
                             </h3>
                             <div className="flex flex-wrap gap-1.5 items-center">
-                                <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded bg-blue-55 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">
+                                <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100/70 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300">
                                     PJ: {item.nama_kabim}
                                 </span>
                                 {item.link_instagram && (
@@ -235,13 +239,18 @@ function KelompokCard({ item, isExpanded, onToggleExpand }) {
                                         href={item.link_instagram}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded bg-pink-50 text-pink-700 dark:bg-pink-900/20 dark:text-pink-400"
+                                        onClick={e => e.stopPropagation()}
+                                        className="inline-flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded bg-pink-50/70 text-pink-700 dark:bg-pink-900/20 dark:text-pink-400"
                                     >
                                         @{item.link_instagram.split('/').pop() || 'ig'}
                                     </a>
                                 )}
                             </div>
                         </div>
+                    </div>
+                    {/* Indikator expand di pojok kanan atas */}
+                    <div className="w-7 h-7 rounded-full bg-white/30 dark:bg-white/10 flex items-center justify-center text-gray-500 dark:text-gray-400 shrink-0 ml-2">
+                        {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </div>
                 </div>
 
@@ -251,35 +260,27 @@ function KelompokCard({ item, isExpanded, onToggleExpand }) {
                     </p>
                 )}
 
-                <div className="mt-auto pt-4 border-t border-gray-100 dark:border-gray-800/80">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="flex -space-x-2">
-                                {item.kelompok_members?.slice(0, 3).map((m, i) => (
-                                    <div key={i} className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900 border-2 border-white dark:border-gray-900 flex items-center justify-center text-[10px] font-bold text-blue-750 dark:text-blue-350 z-10">
-                                        {m.nama_anggota.charAt(0).toUpperCase()}
-                                    </div>
-                                ))}
-                                {item.kelompok_members?.length > 3 && (
-                                    <div className="w-7 h-7 rounded-full bg-gray-105 dark:bg-gray-850 border-2 border-white dark:border-gray-900 flex items-center justify-center text-[10px] font-bold text-gray-500 dark:text-gray-400 z-10">
-                                        +{item.kelompok_members.length - 3}
-                                    </div>
-                                )}
-                            </div>
-                            <span className="text-[11px] text-gray-500 font-semibold">{(item.kelompok_members || []).length} Anggota</span>
+                <div className="mt-auto pt-4 border-t border-white/20 dark:border-white/10">
+                    <div className="flex items-center gap-3">
+                        <div className="flex -space-x-2">
+                            {item.kelompok_members?.slice(0, 3).map((m, i) => (
+                                <div key={i} className="w-7 h-7 rounded-full bg-blue-100/60 dark:bg-blue-900/40 border-2 border-white/60 dark:border-white/20 flex items-center justify-center text-[10px] font-bold text-blue-700 dark:text-blue-300 z-10">
+                                    {m.nama_anggota.charAt(0).toUpperCase()}
+                                </div>
+                            ))}
+                            {item.kelompok_members?.length > 3 && (
+                                <div className="w-7 h-7 rounded-full bg-white/30 dark:bg-white/10 border-2 border-white/60 dark:border-white/20 flex items-center justify-center text-[10px] font-bold text-gray-500 dark:text-gray-400 z-10">
+                                    +{item.kelompok_members.length - 3}
+                                </div>
+                            )}
                         </div>
-                        <button
-                            onClick={onToggleExpand}
-                            className="w-7 h-7 rounded-full bg-gray-50 dark:bg-gray-850 flex items-center justify-center text-gray-400 hover:text-black dark:hover:text-white transition-colors"
-                        >
-                            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                        </button>
+                        <span className="text-[11px] text-gray-500 dark:text-gray-400 font-semibold">{(item.kelompok_members || []).length} Anggota</span>
                     </div>
                 </div>
             </div>
 
             {/* Expanded Content */}
-            <div className={`transition-all duration-300 overflow-hidden bg-gray-50/50 dark:bg-gray-900/30 border-t border-gray-100 dark:border-gray-800/80 ${isExpanded ? 'max-h-96 opacity-100 overflow-y-auto' : 'max-h-0 opacity-0'}`}>
+            <div className={`transition-all duration-300 overflow-hidden bg-white/20 dark:bg-white/5 border-t border-white/20 dark:border-white/10 ${isExpanded ? 'max-h-96 opacity-100 overflow-y-auto' : 'max-h-0 opacity-0'}`}>
                 <div className="p-5">
                     <h4 className="text-xs font-bold text-gray-900 dark:text-white mb-3">Daftar Anggota (Nama Saja)</h4>
                     {(!item.kelompok_members || item.kelompok_members.length === 0) ? (

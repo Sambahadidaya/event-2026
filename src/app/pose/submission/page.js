@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { ArrowRight, Trophy, Image as ImageIcon, ArrowUp, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import PageHero from '@/components/public/PageHero';
 import ScheduleBarrier from '@/components/public/ScheduleBarrier';
-import { KATEGORI } from '@/lib/lombaData';
 
 function HorizontalScrollRow({ children }) {
     const rowRef = useRef(null);
@@ -111,7 +110,6 @@ export default function PoseSubmitPage() {
     const [hasToken, setHasToken] = useState(false);
 
     // Filters
-    const [selectedKategori, setSelectedKategori] = useState('Semua');
     const [searchQuery, setSearchQuery] = useState('');
 
     // Scroll to Top FAB State
@@ -155,22 +153,9 @@ export default function PoseSubmitPage() {
     };
 
     // Filter Logic
-    const isFilterActive = selectedKategori !== 'Semua' || searchQuery.trim() !== '';
-
-    const filteredForms = forms.filter(form => {
-        const matchesSearch = form.nama_lomba?.toLowerCase().includes(searchQuery.toLowerCase());
-        const formKats = form.kategori_pendaftar ? form.kategori_pendaftar.split(',') : [];
-        const matchesKategori = selectedKategori === 'Semua' || formKats.includes(selectedKategori);
-
-        return matchesSearch && matchesKategori;
-    });
-
-    const activeCategories = KATEGORI.filter(kat => {
-        return forms.some(form => {
-            const formKats = form.kategori_pendaftar ? form.kategori_pendaftar.split(',') : [];
-            return formKats.includes(kat);
-        });
-    });
+    const filteredForms = forms.filter(form =>
+        form.nama_lomba?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     return (
         <ScheduleBarrier pageType="jadwal">
@@ -178,67 +163,26 @@ export default function PoseSubmitPage() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <PageHero
                         title="Pengumpulan Karya"
-                        subtitle="Pilih kategori lomba dan kumpulkan hasil karya kreativitas terbaikmu di sini!"
+                        subtitle="Pilih cabang lomba kreativitas dan kumpulkan hasil karya terbaikmu di sini!"
                         icon={Trophy}
                     />
 
-                    {hasToken && (
-                        <div className="max-w-3xl mx-auto mt-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
-                            <div>
-                                <h4 className="font-bold text-gray-955 dark:text-white">Status Pengumpulan Anda</h4>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Anda sudah pernah mengumpulkan karya dari perangkat ini. Klik tombol untuk melihat status karya Anda.</p>
-                            </div>
-                            <Link href="/pose/submit/dashboard" className="shrink-0 px-5 py-2.5 bg-black hover:bg-gray-850 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-black text-sm font-semibold rounded-xl transition-colors shadow-xs whitespace-nowrap">
-                                Lihat Dashboard Saya
-                            </Link>
-                        </div>
-                    )}
-
-                    {/* Filter and Search Bar */}
-                    <div className="mt-12 space-y-6">
-                        <div className="flex flex-col gap-2">
-                            <span className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Pilih Kategori</span>
-                            <div className="flex gap-2 overflow-x-auto scrollbar-none pb-2">
-                                <button
-                                    onClick={() => setSelectedKategori('Semua')}
-                                    className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all whitespace-nowrap ${selectedKategori === 'Semua'
-                                        ? 'bg-black dark:bg-white text-white dark:text-black border-transparent'
-                                        : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-850'
-                                        }`}
-                                >
-                                    Semua Kategori
-                                </button>
-                                {activeCategories.map(kat => (
-                                    <button
-                                        key={kat}
-                                        onClick={() => setSelectedKategori(kat)}
-                                        className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all whitespace-nowrap ${selectedKategori === kat
-                                            ? 'bg-black dark:bg-white text-white dark:text-black border-transparent'
-                                            : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-850'
-                                            }`}
-                                    >
-                                        {kat}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col md:flex-row gap-4 items-start md:items-end justify-end">
-                            <div className="relative w-full md:w-80">
-                                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={16} />
-                                <input
-                                    type="text"
-                                    placeholder="Cari cabang lomba kreativitas..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-sm focus:ring-1 focus:ring-black dark:focus:ring-white outline-none transition-all placeholder-gray-400"
-                                />
-                            </div>
+                    {/* Search Bar */}
+                    <div className="mt-8 flex justify-end">
+                        <div className="relative w-full md:w-80">
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={16} />
+                            <input
+                                type="text"
+                                placeholder="Cari cabang lomba kreativitas..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-sm focus:ring-1 focus:ring-black dark:focus:ring-white outline-none transition-all placeholder-gray-400"
+                            />
                         </div>
                     </div>
 
                     {loading ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-12 animate-pulse">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8 animate-pulse">
                             {[1, 2, 3].map(n => (
                                 <div key={n} className="bg-white dark:bg-gray-900 rounded-3xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-xs">
                                     <div className="h-48 bg-gray-200 dark:bg-gray-800 w-full" />
@@ -251,51 +195,21 @@ export default function PoseSubmitPage() {
                             ))}
                         </div>
                     ) : filteredForms.length === 0 ? (
-                        <div className="text-center mt-20 p-12 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl">
+                        <div className="text-center mt-12 p-12 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl">
                             <Trophy size={48} className="mx-auto text-gray-400 mb-4" />
                             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Belum Ada Pengumpulan</h3>
-                            <p className="text-gray-500 dark:text-gray-400">Tidak ada pengumpulan karya yang cocok dengan filter atau pencarian Anda saat ini.</p>
+                            <p className="text-gray-500 dark:text-gray-400">Tidak ada pengumpulan karya yang cocok dengan pencarian Anda saat ini.</p>
                         </div>
-                    ) : isFilterActive ? (
-                        <div className="mt-12 space-y-4">
+                    ) : (
+                        <div className="mt-8 space-y-4">
                             <span className="text-sm font-bold text-gray-400 dark:text-gray-500 block uppercase tracking-wider md:text-left">
-                                Hasil Pencarian Lomba Kreativitas
+                                Daftar Lomba Kreativitas
                             </span>
                             <HorizontalScrollRow>
                                 {filteredForms.map((form) => (
                                     <FormCard key={form.link_id || form.id} form={form} />
                                 ))}
                             </HorizontalScrollRow>
-                        </div>
-                    ) : (
-                        <div className="mt-12 space-y-16">
-                            {activeCategories.map(kat => {
-                                const katForms = forms.filter(form => {
-                                    const formKats = form.kategori_pendaftar ? form.kategori_pendaftar.split(',') : [];
-                                    return formKats.includes(kat);
-                                });
-
-                                if (katForms.length === 0) return null;
-
-                                return (
-                                    <div key={kat} className="space-y-8 border-b border-gray-150 dark:border-gray-900 pb-12 last:border-b-0">
-                                        <div className="flex items-center justify-center md:justify-start gap-3">
-                                            <div className="w-1.5 h-6 bg-black dark:bg-white rounded-full"></div>
-                                            <h2 className="text-2xl font-black tracking-tight text-gray-950 dark:text-white">
-                                                {kat}
-                                            </h2>
-                                        </div>
-
-                                        <div className="space-y-4">
-                                            <HorizontalScrollRow>
-                                                {katForms.map((form) => (
-                                                    <FormCard key={form.link_id || form.id} form={form} />
-                                                ))}
-                                            </HorizontalScrollRow>
-                                        </div>
-                                    </div>
-                                );
-                            })}
                         </div>
                     )}
                 </div>

@@ -4,163 +4,199 @@ export const panduanData = {
             {
                 id: 'landing-page',
                 title: 'Panduan Halaman Utama (Landing Page)',
-                content: 'Halaman utama PKKMB 2026 menyajikan informasi singkat, jumlah program studi, jumlah cabang kampus, dan navigasi utama kegiatan.',
+                content: 'Halaman utama PKKMB 2026 menyajikan informasi pembuka, statistik mahasiswa baru, cabang kampus Politeknik LP3I, pengenalan maskot, dan navigasi cepat kegiatan.',
                 imageKey: 'lendingpage',
                 youtubeId: 'kosong',
                 subsections: [
                     {
                         id: 'landing-info',
-                        title: 'Melihat Informasi Singkat',
-                        content: 'Pengguna dapat membaca deskripsi singkat tentang PKKMB 2026, jumlah mahasiswa baru yang terdaftar, prodi, dan cabang kampus LP3I.'
+                        title: 'Melihat Statistik & Informasi Singkat',
+                        content: 'Pengunjung dapat melihat ringkasan pengenalan PKKMB 2026, jumlah mahasiswa baru yang bergabung, program studi, serta kampus LP3I yang berpartisipasi.'
+                    },
+                    {
+                        id: 'landing-mascot-filosofi',
+                        title: 'Mengenal Maskot & Filosofi',
+                        content: 'Pelajari makna simbolis maskot resmi dan identitas visual PKKMB yang mencerminkan semangat kemandirian, kepemimpinan, dan kebersamaan.'
                     },
                     {
                         id: 'landing-navigasi',
-                        title: 'Navigasi Menu Utama',
-                        content: 'Gunakan tombol "Lihat Pengumuman" untuk langsung menuju halaman informasi penting atau "Hubungi Panitia" untuk bertanya.'
+                        title: 'Navigasi Cepat Portal',
+                        content: 'Gunakan tombol aksi di hero banner untuk langsung menuju halaman pengumuman darurat atau pusat layanan bantuan panitia.'
                     }
                 ]
             },
             {
-                id: 'pendaftaran',
-                title: 'Panduan Pendaftaran & Aktivasi',
-                content: 'Langkah-langkah pendaftaran akun mahasiswa baru dan aktivasi kelompok PKKMB.',
-                imageKey: 'lendingpage',
+                id: 'form-wajib',
+                title: 'Panduan Formulir Wajib Mahasiswa Baru',
+                content: 'Panduan pengisian formulir registrasi dan pendataan wajib bagi seluruh calon peserta PKKMB 2026 melalui link khusus.',
+                imageKey: 'daftar',
                 youtubeId: 'kosong',
                 subsections: [
                     {
-                        id: 'daftar-form',
-                        title: 'Mengisi Form Registrasi',
-                        content: 'Pilih jenis registrasi mahasiswa baru, isi NIM/identitas resmi, lalu upload bukti pendukung seperti bukti pembayaran atau berkas wajib.'
+                        id: 'form-wajib-akses',
+                        title: 'Mengakses Link Form Wajib',
+                        content: 'Buka tautan form wajib resmi yang dibagikan panitia (format: /pkkmb/form/[link_id]). Pastikan link valid dan masa pengisian masih aktif.'
                     },
                     {
-                        id: 'daftar-aktivasi',
-                        title: 'Proses Aktivasi Akun',
-                        content: 'Setelah data terverifikasi oleh panitia (maksimal 2x24 jam), akun Anda akan aktif dan otomatis masuk ke kelompok PKKMB yang ditentukan.'
-                    }
-                ]
-            },
-            {
-                id: 'kelompok',
-                title: 'Panduan Halaman Kelompok',
-                content: 'Cara memeriksa daftar anggota kelompok PKKMB Anda dan berkoordinasi sesama mentor.',
-                imageKey: 'lendingpage',
-                youtubeId: 'kosong',
-                subsections: [
-                    {
-                        id: 'kelompok-cek',
-                        title: 'Mencari Kelompok',
-                        content: 'Masukkan NIM Anda pada kolom pencarian untuk melihat nama kelompok, mentor pendamping, dan daftar rekan satu kelompok.'
+                        id: 'form-wajib-identitas',
+                        title: 'Pengisian Identitas & Kelengkapan Data',
+                        content: 'Lengkapi formulir dengan identitas resmi: Nama Lengkap, NIM, Program Studi, Kampus LP3I, Angkatan, Semester, serta nomor WhatsApp aktif untuk koordinasi.'
                     },
                     {
-                        id: 'kelompok-kontak',
-                        title: 'Koordinasi dengan Mentor',
-                        content: 'Gunakan link grup WhatsApp atau kontak mentor yang tertera untuk melakukan koordinasi tugas dan perlengkapan PKKMB.'
-                    }
-                ]
-            },
-            {
-                id: 'materi',
-                title: 'Panduan Halaman Materi & Tugas',
-                content: 'Langkah mendownload materi presentasi pemateri serta cara mengumpulkan tugas harian PKKMB.',
-                imageKey: 'lendingpage',
-                youtubeId: 'kosong',
-                subsections: [
-                    {
-                        id: 'materi-download',
-                        title: 'Mengunduh File PDF Materi',
-                        content: 'Klik judul materi yang aktif untuk mengunduh file presentasi (PDF) dari narasumber atau pemateri PKKMB.'
-                    },
-                    {
-                        id: 'materi-upload',
-                        title: 'Mengunggah Tugas Materi',
-                        content: 'Buka form tugas yang disediakan pada detail materi, masukkan data diri (NIM, Nama), sertakan link atau upload file PDF tugas Anda sebelum tenggat waktu berakhir.'
-                    }
-                ]
-            },
-            {
-                id: 'jadwal',
-                title: 'Panduan Halaman Jadwal Acara',
-                content: 'Cara memantau rangkaian timeline dan jadwal kegiatan PKKMB dari hari pertama hingga penutupan.',
-                imageKey: 'lendingpage',
-                youtubeId: 'kosong',
-                subsections: [
-                    {
-                        id: 'jadwal-tabel',
-                        title: 'Membaca Tabel Acara',
-                        content: 'Periksa kolom waktu, nama kegiatan, lokasi/ruangan, serta pembicara yang mengisi sesi tersebut.'
-                    },
-                    {
-                        id: 'jadwal-notifikasi',
-                        title: 'Pengingat Agenda Penting',
-                        content: 'Catat agenda krusial seperti Apel Pagi, Technical Meeting, dan penyerahan tugas wajib agar tidak terlambat.'
-                    }
-                ]
-            },
-            {
-                id: 'ketentuan',
-                title: 'Panduan Halaman Ketentuan',
-                content: 'Cara memahami aturan disiplin, tata tertib berpakaian, atribut, dan kebijakan privasi PKKMB.',
-                imageKey: 'lendingpage',
-                youtubeId: 'kosong',
-                subsections: [
-                    {
-                        id: 'ketentuan-atribut',
-                        title: 'Melihat Atribut & Seragam',
-                        content: 'Pelajari detail pakaian wajib (seperti ketentuan rambut 3-2-1 untuk putra, kerudung hitam untuk putri, dan ukuran nametag).'
-                    },
-                    {
-                        id: 'ketentuan-tatib',
-                        title: 'Sanksi & Pelanggaran',
-                        content: 'Pahami sistem sanksi bertahap mulai dari teguran hingga ketidaklulusan PKKMB jika melanggar tata tertib.'
+                        id: 'form-wajib-unggah',
+                        title: 'Unggah Bukti Pendukung & Kode Form',
+                        content: 'Unggah berkas atau bukti pembayaran jika dipersyaratkan. Setelah submit berhasil, simpan Kode Form unik Anda sebagai bukti verifikasi pendaftaran.'
                     }
                 ]
             },
             {
                 id: 'pemberitahuan',
                 title: 'Panduan Halaman Pemberitahuan',
-                content: 'Mengakses berita penting, pengumuman darurat, dan instruksi panitia secara real-time.',
-                imageKey: 'lendingpage',
+                content: 'Pusat rilis berita terkini, pengumuman darurat, dan arahan teknis dari panitia pelaksana PKKMB 2026.',
+                imageKey: 'pemberitahuan',
                 youtubeId: 'kosong',
                 subsections: [
                     {
-                        id: 'pemberitahuan-berita',
-                        title: 'Membaca Berita Terbaru',
-                        content: 'Gunakan fitur filter untuk memilah berita terpenting dan bacalah lampiran instruksi yang diunggah panitia.'
+                        id: 'pemberitahuan-timeline',
+                        title: 'Timeline Berita & Pengumuman',
+                        content: 'Pantau pengumuman terstruktur berdasarkan tanggal terbit untuk mengetahui update tata tertib, perubahan agenda, dan arahan pembimbing.'
+                    },
+                    {
+                        id: 'pemberitahuan-cari',
+                        title: 'Fitur Pencarian Pengumuman',
+                        content: 'Gunakan kolom pencarian berita untuk menemukan instruksi spesifik dengan mengetikkan judul atau kata kunci terkait.'
+                    }
+                ]
+            },
+            {
+                id: 'kelompok',
+                title: 'Panduan Halaman Kelompok & Pembimbing',
+                content: 'Panduan memeriksa pembagian kelompok mahasiswa baru, profil Kakak Pembimbing (Kabim), dan koordinasi anggota tim.',
+                imageKey: 'kelompok',
+                youtubeId: 'kosong',
+                subsections: [
+                    {
+                        id: 'kelompok-cari',
+                        title: 'Mencari Kelompok & Nama Pembimbing',
+                        content: 'Gunakan kolom pencarian untuk menemukan kelompok berdasarkan nama kelompok atau nama Kakak Pembimbing (Kabim/PJ).'
+                    },
+                    {
+                        id: 'kelompok-anggota',
+                        title: 'Melihat Daftar Anggota Kelompok',
+                        content: 'Klik kartu kelompok untuk melakukan expand (membuka) susunan lengkap rekan satu kelompok dan memeriksa nama-nama mahasiswa baru yang terdaftar.'
+                    },
+                    {
+                        id: 'kelompok-sosmed',
+                        title: 'Tautan Media Sosial Pembimbing',
+                        content: 'Klik tautan Instagram pembimbing pada kartu kelompok untuk memudahkan perkenalan dan komunikasi awal kelompok.'
+                    }
+                ]
+            },
+            {
+                id: 'jadwal',
+                title: 'Panduan Halaman Jadwal & Rilis Materi',
+                content: 'Pantau rangkaian timeline kegiatan PKKMB serta hitung mundur (countdown) sesi materi harian.',
+                imageKey: 'jadwal',
+                youtubeId: 'kosong',
+                subsections: [
+                    {
+                        id: 'jadwal-countdown',
+                        title: 'Hitung Mundur Sesi Materi',
+                        content: 'Setiap kartu materi dilengkapi indikator waktu. Kartu akan menampilkan countdown durasi menuju dimulainya pemaparan materi.'
+                    },
+                    {
+                        id: 'jadwal-akses-materi',
+                        title: 'Status Materi & Tombol Masuk',
+                        content: 'Ketika waktu pelaksanaan tiba, status berubah menjadi "Sedang Berlangsung" dan tombol "Masuk Materi" akan aktif untuk membuka ruang belajar.'
+                    }
+                ]
+            },
+            {
+                id: 'materi',
+                title: 'Panduan Halaman Detail Materi & Pengumpulan Tugas',
+                content: 'Panduan membaca dokumen presentasi narasumber, interaksi AI pendamping, dan pengumpulan tugas resume harian.',
+                imageKey: 'materi',
+                youtubeId: 'kosong',
+                subsections: [
+                    {
+                        id: 'materi-pdf-viewer',
+                        title: 'Membaca Modul / PDF Presentasi',
+                        content: 'Gunakan PDF Reader interaktif di dalam halaman untuk membalik halaman, memperbesar materi, atau gunakan tombol "Buka Tab Baru / Unduh" untuk menyimpan file presentasi.'
+                    },
+                    {
+                        id: 'materi-ai-bot',
+                        title: 'Tanya Jawab dengan AI SamsMateriBot',
+                        content: 'Manfaatkan fitur SamsMateriBot di samping materi untuk mengajukan pertanyaan dan berdiskusi seputar rangkuman poin penting dari materi narasumber.'
+                    },
+                    {
+                        id: 'materi-kumpul-tugas',
+                        title: 'Pengumpulan Resume Tugas',
+                        content: 'Beralih ke tab "Tugas", klik tombol "Isi Tugas", masukkan Nama, Kampus, NIM terdaftar (sistem memvalidasi database pendaftaran), serta unggah foto bukti catatan rangkuman Anda.'
+                    }
+                ]
+            },
+            {
+                id: 'ketentuan',
+                title: 'Panduan Halaman Ketentuan & Tata Tertib',
+                content: 'Informasi lengkap aturan kedisiplinan, tata cara berpakaian, atribut resmi, serta sistem sanksi PKKMB 2026.',
+                imageKey: 'ketentuan',
+                youtubeId: 'kosong',
+                subsections: [
+                    {
+                        id: 'ketentuan-seragam',
+                        title: 'Standar Seragam & Atribut Wajib',
+                        content: 'Pelajari aturan pakaian harian (kemeja putih, celana/rok kain hitam), ketentuan kerapian rambut, hijab, serta kelengkapan nametag resmi.'
+                    },
+                    {
+                        id: 'ketentuan-sanksi',
+                        title: 'Tata Tertib & Sanksi Pelanggaran',
+                        content: 'Pahami tingkatan poin pelanggaran mulai dari teguran lisan, tugas tambahan, hingga penundaan kelulusan sertifikasi PKKMB.'
                     }
                 ]
             },
             {
                 id: 'kontak',
-                title: 'Panduan Halaman Hubungi Panitia',
-                content: 'Bagaimana mengajukan pertanyaan atau kendala teknis langsung ke Admin/Panitia.',
-                imageKey: 'lendingpage',
+                title: 'Panduan Halaman Kontak Panitia',
+                content: 'Layanan terpadu untuk menyampaikan pertanyaan, konsultasi kendala teknis, atau pengaduan seputar PKKMB 2026.',
+                imageKey: 'kontak',
                 youtubeId: 'kosong',
                 subsections: [
                     {
-                        id: 'kontak-form',
-                        title: 'Mengirim Pesan',
-                        content: 'Isi nama, email, nomor WhatsApp aktif, dan pesan kendala Anda (misal: gagal verifikasi pembayaran) lalu kirim. Panitia akan membalas via WhatsApp.'
+                        id: 'kontak-kirim',
+                        title: 'Mengirimkan Pesan Kendala',
+                        content: 'Isi formulir kontak dengan nama, email aktif, nomor WhatsApp, serta rincian pertanyaan Anda. Panitia akan merespons langsung melalui kontak WhatsApp.'
                     }
                 ]
             }
         ],
         privacyPolicy: {
             title: 'Kebijakan Privasi & Keamanan Data PKKMB 2026',
-            content: 'Kami berkomitmen untuk menjaga keamanan data pribadi seluruh mahasiswa baru Politeknik LP3I:\n- Data seperti NIM, nama lengkap, program studi, dan nomor WhatsApp hanya digunakan untuk keperluan administrasi PKKMB, pembagian kelompok, dan distribusi informasi resmi.\n- Foto dokumentasi dan tugas yang diunggah hanya dapat diakses oleh panitia pelaksana dan mentor pendamping kelompok.\n- Data Anda dienkripsi dengan aman di database kami dan tidak akan dibagikan kepada pihak ketiga di luar Politeknik LP3I tanpa persetujuan tertulis.'
+            description: 'Komitmen penuh Politeknik LP3I dalam melindungi privasi, integritas berkas, serta kerahasiaan data pribadi seluruh calon mahasiswa baru:',
+            points: [
+                {
+                    title: 'Perlindungan Data Identitas Pribadi',
+                    desc: 'Data identitas (NIM, Nama Lengkap, Program Studi, Kampus, dan Nomor WhatsApp) hanya digunakan untuk keperluan administrasi resmi, pembagian kelompok, validasi tugas materi, dan koordinasi kepanitiaan.'
+                },
+                {
+                    title: 'Penyimpanan Berkas Cloud Terenkripsi',
+                    desc: 'Seluruh dokumen dan foto tugas yang diunggah dilindungi dalam infrastruktur penyimpanan cloud tersertifikasi dan hanya dapat ditinjau oleh panitia serta mentor pendamping.'
+                }
+            ],
+            content: 'Kami berkomitmen penuh menjaga privasi dan keamanan data pribadi calon mahasiswa baru Politeknik LP3I:\n- Data identitas (NIM, Nama Lengkap, Program Studi, Kampus, dan Nomor WhatsApp) hanya digunakan untuk keperluan administrasi resmi, pembagian kelompok, validasi tugas materi, dan koordinasi kepanitiaan.\n- Seluruh dokumen dan foto tugas yang diunggah dilindungi dalam infrastruktur penyimpanan cloud tersertifikasi dan hanya dapat ditinjau oleh panitia serta mentor pendamping.\n- Data peserta dienkripsi secara aman dan tidak akan diperjualbelikan atau dialihkan kepada pihak ketiga di luar lingkungan Politeknik LP3I tanpa persetujuan tertulis.'
         },
         updateVersi: [
             {
                 versi: 'versi 2026.1.2',
                 tanggal: '10 Juli 2026',
-                judul: 'Rilis Versi 1.2 — Fitur Pusat Bantuan & Panduan Terpadu',
-                isi: 'Pembaruan ini menghadirkan modul Panduan Penggunaan Portal PKKMB 2026 secara menyeluruh, perbaikan antarmuka publik, serta optimasi performa navigasi.',
+                judul: 'Rilis Versi 1.2 — Modul Panduan & Pusat Bantuan Terpadu',
+                isi: 'Pembaruan komprehensif panduan pengguna, optimasi viewer materi PDF dengan dukungan mobile responsive, integrasi AI SamsMateriBot, dan validasi tugas mahasiswa.',
                 imageKey: 'versi1.2'
             },
             {
                 versi: 'versi 2026.1.1',
                 tanggal: '28 Juni 2026',
-                judul: 'Rilis Versi 1.1 — Peningkatan Sistem Pendaftaran & Verifikasi',
-                isi: 'Peningkatan integrasi form pendaftaran mahasiswa baru, dukungan bukti pembayaran multi-format, serta penyempurnaan manajemen kelompok PKKMB.',
+                judul: 'Rilis Versi 1.1 — Peningkatan Sistem Form & Kelompok PKKMB',
+                isi: 'Integrasi sistem form wajib dinamis, manajemen kelompok berbasis pembimbing, serta perbaikan alur verifikasi data peserta baru.',
                 imageKey: 'versi1.1'
             }
         ]
@@ -170,172 +206,329 @@ export const panduanData = {
             {
                 id: 'landing-page',
                 title: 'Panduan Halaman Utama (Landing Page)',
-                content: 'Menampilkan ringkasan perlombaan POSE 2026, total hadiah (prize pool), maskot, dan filosofi logo kegiatan.',
+                content: 'Pusat etalase kegiatan Pekan Olahraga dan Seni (POSE) 2026 yang menampilkan info kompetisi, total hadiah, filosofi logo, dan maskot acara.',
                 imageKey: 'lendingpage',
-                youtubeId: 'kosong',
+                youtubeId: 'wDvuNAgTMco',
                 subsections: [
                     {
-                        id: 'landing-lomba',
-                        title: 'Melihat Daftar Kompetisi',
-                        content: 'Jelajahi carousel perlombaan (Badminton, Mobile Legends, Software Developer, dll) beserta nominal hadiahnya.'
+                        id: 'landing-lomba-carousel',
+                        title: 'Melihat Katalog Cabang Perlombaan',
+                        content: 'Jelajahi carousel cabang lomba (Olahraga, Seni, Akademik, dan Kreativitas Digital) lengkap dengan nominal prize pool dan kuota tim.'
                     },
                     {
-                        id: 'landing-filosofi',
-                        title: 'Filosofi Logo & Maskot',
-                        content: 'Klik tombol "Lihat Filosofi Logo" atau "Lihat Filosofi Maskot" untuk memahami cerita dan nilai sportivitas di balik desain visual POSE.'
+                        id: 'landing-filosofi-maskot',
+                        title: 'Eksplorasi Maskot & Nilai Filosofi',
+                        content: 'Pahami filosofi visual di balik logo dan maskot resmi POSE yang merepresentasikan sportivitas, kreativitas, dan solidaritas mahasiswa.'
+                    },
+                    {
+                        id: 'landing-navigasi-cepat',
+                        title: 'Akses Pendaftaran & Jadwal Cepat',
+                        content: 'Gunakan tombol navigasi cepat di landing page untuk langsung mendaftar lomba, melihat status tim, atau memantau jadwal pertandingan live.'
                     }
                 ]
             },
             {
                 id: 'pendaftaran',
-                title: 'Panduan Pendaftaran Tim Lomba',
-                content: 'Tata cara mendaftarkan tim delegasi program studi atau umum pada cabang lomba POSE.',
-                imageKey: 'lendingpage',
-                youtubeId: 'kosong',
+                title: 'Panduan Pendaftaran Lomba (Register Utama)',
+                content: 'Panduan memilih cabang lomba, filter kategori peserta, dan proses pendaftaran delegasi tim.',
+                imageKey: 'daftar',
+                youtubeId: 'zheG5TDBhCw',
                 subsections: [
                     {
-                        id: 'daftar-tim',
-                        title: 'Pengisian Anggota Tim',
-                        content: 'Masukkan nama tim, pilih jenis lomba, isi nama kapten beserta nomor WhatsApp, dan tambahkan nama seluruh anggota sesuai kuota cabang lomba.'
+                        id: 'pendaftaran-filter',
+                        title: 'Filter Kategori & Jenis Lomba',
+                        content: 'Gunakan filter "Pilih Kategori" (Mahasiswa LP3I, Dosen, Umum) dan filter "Jenis Lomba" (Olahraga, Seni, Akademik, Kreativitas) serta kolom pencarian untuk menemukan cabang lomba yang diminati.'
                     },
                     {
-                        id: 'daftar-bayar',
-                        title: 'Unggah Bukti Transaksi',
-                        content: 'Untuk kategori lomba berbayar, silakan lakukan transfer ke rekening Seabank atau serahkan Tunai ke panitia, lalu unggah foto bukti bayar yang jelas.'
-                    }
-                ]
-            },
-            {
-                id: 'team',
-                title: 'Panduan Halaman Daftar Tim',
-                content: 'Melihat status verifikasi tim, daftar peserta tanding, dan token kelulusan tim.',
-                imageKey: 'lendingpage',
-                youtubeId: 'kosong',
-                subsections: [
-                    {
-                        id: 'team-search',
-                        title: 'Mencari Tim Anda',
-                        content: 'Ketik nama tim Anda pada kolom pencarian untuk melihat status verifikasi pembayaran ("Verified" atau "Pending").'
+                        id: 'pendaftaran-detail-form',
+                        title: 'Pengisian Formulir Pendaftaran Tim',
+                        content: 'Klik "Daftar Sekarang", lengkapi nama tim, deskripsi/motto, data kapten, nomor WhatsApp aktif, susunan nama anggota, unggah logo tim, serta lampirkan bukti pembayaran/transfer.'
                     },
                     {
-                        id: 'team-members',
-                        title: 'Verifikasi Anggota',
-                        content: 'Pastikan seluruh nama anggota tim Anda sudah terdaftar dengan benar agar tidak didiskualifikasi saat bertanding.'
+                        id: 'pendaftaran-token',
+                        title: 'Penyimpanan Token & Kode Form',
+                        content: 'Setelah mendaftar, sistem akan menghasilkan Kode Form unik (format: Psxxxxxxx) dan menyimpan token perangkat Anda untuk memantau status verifikasi tim.'
                     }
                 ]
             },
             {
-                id: 'submit',
-                title: 'Panduan Mengumpulkan Lomba Karya',
-                content: 'Prosedur bagi peserta cabang lomba kreativitas (seperti Desain Poster, BMC, Software Dev, Release Writing, Digital UMKM) untuk mengirimkan file karya mereka.',
-                imageKey: 'lendingpage',
-                youtubeId: 'kosong',
+                id: 'register-dashboard',
+                title: 'Panduan Dashboard Status Pendaftaran Saya',
+                content: 'Panduan memantau status kelulusan verifikasi berkas dan pembayaran tim Anda secara mandiri.',
+                imageKey: 'dashboard',
+                youtubeId: 'UeCGtlPQ0no',
                 subsections: [
                     {
-                        id: 'submit-upload',
-                        title: 'Mengirimkan Link/File Karya',
-                        content: 'Buka halaman pengumpulan karya, masukkan kode tim/token pendaftaran, lalu sertakan link Drive/GitHub/YouTube karya Anda.'
+                        id: 'dashboard-akses',
+                        title: 'Mengakses Dashboard Tim',
+                        content: 'Buka tautan "Lihat Dashboard Saya" di bagian atas halaman pendaftaran lomba untuk melihat seluruh tim yang didaftarkan melalui perangkat Anda.'
                     },
                     {
-                        id: 'submit-deadline',
-                        title: 'Tenggat Waktu Pengiriman',
-                        content: 'Pastikan mengunggah karya sebelum batas waktu pengumpulan ditutup. Keterlambatan pengumpulan dapat membatalkan keikutsertaan tim.'
+                        id: 'dashboard-status',
+                        title: 'Membaca Status Verifikasi',
+                        content: 'Periksa status pendaftaran tim: "Menunggu Verifikasi" (sedang dicek admin), "Disetujui" (tim resmi terverifikasi dan masuk bagan/jadwal), atau "Ditolak" (berkas/pembayaran tidak sesuai).'
                     }
                 ]
             },
             {
-                id: 'nilai',
-                title: 'Panduan Halaman Klasemen & Nilai',
-                content: 'Memantau hasil perolehan skor pertandingan, klasemen perolehan medali prodi, dan status juara.',
-                imageKey: 'lendingpage',
-                youtubeId: 'kosong',
+                id: 'register-lanjut',
+                title: 'Panduan Pendaftaran Lomba Lanjutan',
+                content: 'Tata cara pendaftaran untuk kategori perlombaan tahap lanjutan atau form registrasi khusus tambahan.',
+                imageKey: 'form-lanjut',
+                youtubeId: 'iADVdrW62Tw',
                 subsections: [
                     {
-                        id: 'nilai-medali',
-                        title: 'Klasemen Medali',
-                        content: 'Lihat peringkat kontingen program studi berdasarkan jumlah medali Emas, Perak, dan Perunggu yang berhasil dimenangkan.'
+                        id: 'register-lanjut-katalog',
+                        title: 'Katalog Lomba Lanjutan',
+                        content: 'Akses halaman /pose/register/lanjut untuk melihat daftar cabang kompetisi lanjutan yang dibuka dengan regulasi dan tahapan khusus.'
                     },
                     {
-                        id: 'nilai-bracket',
-                        title: 'Bagan & Skor Tanding',
-                        content: 'Pantau bagan turnamen (bracket) untuk mengetahui tim mana saja yang lolos ke babak perempat final, semifinal, hingga final.'
+                        id: 'register-lanjut-submit',
+                        title: 'Pengisian Form Registrasi Lanjut',
+                        content: 'Pilih cabang lomba lanjutan, isi rincian berkas persyaratan khusus, dan pastikan data delegasi diinput secara lengkap sebelum batas waktu registrasi ditutup.'
                     }
                 ]
             },
             {
-                id: 'jadwal',
-                title: 'Panduan Halaman Jadwal Tanding',
-                content: 'Melihat jadwal pelaksanaan tanding lengkap beserta nama wasit, lokasi lapangan, dan jam kick-off.',
-                imageKey: 'lendingpage',
-                youtubeId: 'kosong',
+                id: 'form-wajib',
+                title: 'Panduan Formulir Wajib POSE',
+                content: 'Panduan pengisian form pendataan/registrasi wajib non-lomba yang diterbitkan oleh panitia POSE 2026.',
+                imageKey: 'form-wajib',
+                youtubeId: 'UvSczm6iuMU',
                 subsections: [
                     {
-                        id: 'jadwal-tanding',
-                        title: 'Cek Jam & Lapangan',
-                        content: 'Jangan sampai tim terlambat! Periksa bagan jadwal tanding hari ini untuk melihat lapangan (Court) mana yang digunakan tim Anda.'
-                    }
-                ]
-            },
-            {
-                id: 'ketentuan',
-                title: 'Panduan Halaman Ketentuan Lomba',
-                content: 'Membaca buku panduan teknis (Rules & Regulations) tiap cabang olahraga dan seni.',
-                imageKey: 'lendingpage',
-                youtubeId: 'kosong',
-                subsections: [
-                    {
-                        id: 'ketentuan-spesifik',
-                        title: 'Aturan Spesifik Lomba',
-                        content: 'Setiap cabang (seperti Badminton Ganda Campuran atau Software Developer) memiliki aturan teknis main, durasi, alat, dan kriteria penilaian juri.'
+                        id: 'form-wajib-pose-isi',
+                        title: 'Mengisi Form Wajib',
+                        content: 'Buka link form wajib (/pose/form/[link_id]), isi identitas peserta lengkap (NIM/Nama/Prodi/Kampus), sertakan berkas yang dipersyaratkan, lalu submit untuk mendapatkan konfirmasi resmi.'
                     }
                 ]
             },
             {
                 id: 'pemberitahuan',
-                title: 'Panduan Halaman Pemberitahuan & Hasil',
-                content: 'Berisi pengumuman bagan tanding terbaru, keputusan komdis, serta update penting seputar POSE.',
-                imageKey: 'lendingpage',
-                youtubeId: 'kosong',
+                title: 'Panduan Halaman Pemberitahuan',
+                content: 'Pusat pengumuman resmi, jadwal technical meeting, perubahan venue/lapangan, dan keputusan dewan komdis POSE 2026.',
+                imageKey: 'pemberitahuan',
+                youtubeId: '5nUffYDEVxU',
                 subsections: [
                     {
-                        id: 'pemberitahuan-pengumuman',
-                        title: 'Melihat Hasil Resmi',
-                        content: 'Pengumuman pemenang, pergantian jadwal tanding akibat cuaca, atau regulasi darurat akan dirilis resmi di halaman ini.'
+                        id: 'pemberitahuan-pose-update',
+                        title: 'Melihat Update Terbaru',
+                        content: 'Pantau timeline berita harian seputar pengundian bagan tanding (bracket), update cuaca lapangan, dan jadwal technical meeting.'
+                    },
+                    {
+                        id: 'pemberitahuan-pose-filter',
+                        title: 'Pencarian Pengumuman Khusus',
+                        content: 'Gunakan kolom pencarian untuk menyaring pemberitahuan cabang lomba spesifik dengan mudah dan cepat.'
+                    }
+                ]
+            },
+            {
+                id: 'team',
+                title: 'Panduan Halaman Tim Terverifikasi',
+                content: 'Daftar seluruh tim yang telah lulus verifikasi dan siap berkompetisi dalam ajang POSE 2026.',
+                imageKey: 'team',
+                youtubeId: '5_2MM28lQ0U',
+                subsections: [
+                    {
+                        id: 'team-kategori-filter',
+                        title: 'Filter Berdasarkan Kategori & Cabang',
+                        content: 'Gunakan tab filter utama (Olahraga, Seni, Akademik, Kreativitas) dan sub-filter cabang lomba untuk mempermudah pencarian tim lawan.'
+                    },
+                    {
+                        id: 'team-search-bar',
+                        title: 'Mencari Nama Tim',
+                        content: 'Ketik nama tim pada kolom pencarian untuk memastikan tim Anda sudah berstatus terverifikasi dan terdaftar secara publik.'
+                    },
+                    {
+                        id: 'team-expand-members',
+                        title: 'Melihat Susunan Anggota & Asal Kampus',
+                        content: 'Klik kartu tim untuk membuka (expand) susunan lengkap anggota delegasi, peran kapten/anggota, serta kampus asal delegasi.'
+                    }
+                ]
+            },
+            {
+                id: 'jadwal',
+                title: 'Panduan Halaman Jadwal & Pertandingan',
+                content: 'Panduan memantau agenda tanding langsung (Live Match), urutan pertandingan, dan jadwal yang akan datang.',
+                imageKey: 'jadwal',
+                youtubeId: 'FzyHiJe3ysc',
+                subsections: [
+                    {
+                        id: 'jadwal-live-section',
+                        title: 'Pemantauan Pertandingan Langsung (Live)',
+                        content: 'Bagian teratas menampilkan laga yang sedang berlangsung dengan Live Timer. Untuk cabang kreativitas, menampilkan durasi presentasi karya tim.'
+                    },
+                    {
+                        id: 'jadwal-tanding-tabel',
+                        title: 'Jadwal Mendatang & Countdown',
+                        content: 'Lihat daftar pertandingan berdasarkan status (Semua, Live, Belum Dimulai, Selesai), nomor urutan tanding, serta countdown waktu menuju pertandingan.'
+                    },
+                    {
+                        id: 'jadwal-tim-peserta',
+                        title: 'Daftar Tim Peserta Lomba',
+                        content: 'Periksa daftar peserta yang terjadwal bertanding pada cabang lomba yang Anda ikuti.'
+                    }
+                ]
+            },
+            {
+                id: 'submit',
+                title: 'Panduan Pengumpulan Karya Lomba (Submission)',
+                content: 'Prosedur pengumpulan karya digital bagi peserta cabang lomba kreativitas (Poster, Software Dev, BMC, Desain UMKM, dll).',
+                imageKey: 'submit',
+                youtubeId: 'uhjuXldEjKM',
+                subsections: [
+                    {
+                        id: 'submit-cek-jadwal',
+                        title: 'Pemeriksaan Jadwal Submission',
+                        content: 'Halaman pengumpulan karya hanya dapat diakses selama jadwal pengumpulan dibuka (status open). Pastikan tidak terlambat sebelum batas waktu berakhir.'
+                    },
+                    {
+                        id: 'submit-token-input',
+                        title: 'Input Kode Form & Tautan Karya',
+                        content: 'Buka tautan form pengumpulan (/pose/submission/[id]), masukkan kode form tim Anda, tulis keterangan konsep karya, dan sertakan tautan berkas (Google Drive, GitHub, Figma, YouTube) atau upload file dokumen.'
+                    },
+                    {
+                        id: 'submit-verifikasi-kirim',
+                        title: 'Konfirmasi Pengiriman Karya',
+                        content: 'Pastikan izin akses tautan Google Drive disetel "Anyone with the link / Siapa saja yang memiliki link" sebelum menekan tombol kirim karya.'
+                    }
+                ]
+            },
+            {
+                id: 'nilai',
+                title: 'Panduan Cek Nilai & Evaluasi Dewan Juri',
+                content: 'Panduan transparansi penilaian untuk melihat rincian skor, evaluasi kriteria, kritik, dan saran dari juri kompetisi.',
+                imageKey: 'nilai',
+                youtubeId: 'gU5Eo4B_I5g',
+                subsections: [
+                    {
+                        id: 'nilai-input-kode',
+                        title: 'Memasukkan Kode Form Tim',
+                        content: 'Ketik Kode Form pendaftaran tim Anda (contoh: Psxxxxxxx) pada kolom pencarian nilai, lalu klik tombol "Cek Nilai".'
+                    },
+                    {
+                        id: 'nilai-rekap-skor',
+                        title: 'Melihat Rata-Rata Nilai Akhir',
+                        content: 'Sistem akan menampilkan ringkasan kartu tim, cabang lomba, dan rata-rata skor akhir yang telah diakumulasi dari seluruh dewan juri penilai.'
+                    },
+                    {
+                        id: 'nilai-breakdown-kriteria',
+                        title: 'Breakdown Nilai Per Kriteria & Juri',
+                        content: 'Lihat rincian nilai per kriteria penilaian beserta bobot persentasenya dari masing-masing juri penilai.'
+                    },
+                    {
+                        id: 'nilai-kritik-saran',
+                        title: 'Membaca Kritik & Saran Juri',
+                        content: 'Pelajari catatan kritik konstruktif dan saran masukan yang diberikan dewan juri untuk pengembangan karya tim Anda di masa mendatang.'
+                    }
+                ]
+            },
+            {
+                id: 'ketentuan',
+                title: 'Panduan Halaman Ketentuan Perlombaan',
+                content: 'Peraturan teknis, format kompetisi, kriteria diskualifikasi, dan regulasi resmi tiap cabang lomba POSE 2026.',
+                imageKey: 'ketentuan',
+                youtubeId: 'AbG-0ZiArjc',
+                subsections: [
+                    {
+                        id: 'ketentuan-teknis-cabang',
+                        title: 'Regulasi Teknis Tiap Cabang Lomba',
+                        content: 'Pelajari aturan spesifik mengenai durasi tanding, sistem gugur/round robin, batasan pergantian pemain, serta format pengumpulan karya.'
+                    },
+                    {
+                        id: 'ketentuan-sportivitas',
+                        title: 'Kode Etik & Fair Play',
+                        content: 'Pahami ketentuan etika kompetisi, sanksi tindakan non-sportif (walkover/diskualifikasi), dan tata cara pengajuan banding resmi.'
                     }
                 ]
             },
             {
                 id: 'kontak',
-                title: 'Panduan Halaman Kontak Hubung',
-                content: 'Cara berkomunikasi langsung dengan panitia koordinator lapangan (korlap) cabang olahraga tertentu.',
-                imageKey: 'lendingpage',
-                youtubeId: 'kosong',
+                title: 'Panduan Halaman Kontak & Penanggung Jawab Lomba',
+                content: 'Layanan komunikasi langsung dengan sekretariat panitia dan kontak Penanggung Jawab (PJ) masing-masing cabang lomba.',
+                imageKey: 'kontak',
+                youtubeId: '2-feInUztCo',
                 subsections: [
                     {
-                        id: 'kontak-tanya',
-                        title: 'Mengirimkan Laporan Kendala',
-                        content: 'Jika tim mengalami kesulitan verifikasi pendaftaran atau jadwal bentrok, hubungi panitia melalui form pesan agar segera ditindaklanjuti.'
+                        id: 'kontak-kirim-pesan',
+                        title: 'Formulir Pertanyaan & Bantuan',
+                        content: 'Kirimkan pertanyaan atau kendala administratif melalui form kontak terpadu agar segera ditanggapi oleh sekretariat POSE 2026 via WhatsApp.'
+                    },
+                    {
+                        id: 'kontak-pj-lomba',
+                        title: 'Daftar Kontak WhatsApp PJ Cabang Lomba',
+                        content: 'Gunakan daftar kontak Penanggung Jawab (PJ) per cabang perlombaan untuk koordinasi teknis pertandingan, jadwal tanding, dan kebutuhan teknis di lapangan.'
                     }
                 ]
             }
         ],
         privacyPolicy: {
             title: 'Kebijakan Privasi & Keamanan Data POSE 2026',
-            content: 'Kebijakan perlindungan data untuk tim, peserta, dan sivitas akademika dalam kegiatan POSE 2026:\n- Informasi registrasi tim, detail kontak kapten, NIM anggota, serta bukti transfer pembayaran disimpan secara aman demi verifikasi keabsahan mahasiswa aktif.\n- Publikasi data di halaman Klasemen dan Tim dibatasi hanya pada Nama Tim, Nama Anggota, Program Studi, dan hasil pertandingan demi kenyamanan privasi Anda.\n- Seluruh berkas bukti bayar dan pengumpulan karya lomba dilindungi secara aman di dalam bucket storage dan hanya diakses oleh dewan juri serta panitia penanggung jawab.'
+            description: 'Kebijakan perlindungan privasi data peserta, tim delegasi, dan sivitas akademika dalam kegiatan POSE 2026:',
+            points: [
+                {
+                    title: 'Verifikasi & Keamanan Identitas Peserta',
+                    desc: 'Data registrasi tim, kontak kapten, kartu identitas mahasiswa (NIM), serta bukti transaksi disimpan dengan standar keamanan enkripsi untuk verifikasi keabsahan peserta.'
+                },
+                {
+                    title: 'Batasan Publikasi Data Tim Publik',
+                    desc: 'Data publikasi tim pada halaman Tim dan Jadwal dibatasi hanya pada Nama Tim, Cabang Lomba, Nama Anggota, dan Asal Kampus demi menjaga kenyamanan privasi peserta.'
+                },
+                {
+                    title: 'Akses Ketat Karya & Penilaian Juri',
+                    desc: 'Seluruh dokumen bukti pembayaran, berkas karya submission, dan rekaman penilaian juri disimpan dalam storage server berkeamanan tinggi dan hanya dapat diakses oleh panitia penanggung jawab serta dewan juri.'
+                }
+            ],
+            content: 'Kebijakan perlindungan privasi data peserta, tim delegasi, dan sivitas akademika dalam kegiatan POSE 2026:\n- Data registrasi tim, kontak kapten, kartu identitas mahasiswa (NIM), serta bukti transaksi disimpan dengan standar keamanan enkripsi untuk verifikasi keabsahan peserta.\n- Data publikasi tim pada halaman Tim dan Jadwal dibatasi hanya pada Nama Tim, Cabang Lomba, Nama Anggota, dan Asal Kampus demi menjaga kenyamanan privasi peserta.\n- Seluruh dokumen bukti pembayaran, berkas karya submission, dan rekaman penilaian juri disimpan dalam storage server berkeamanan tinggi dan hanya dapat diakses oleh panitia penanggung jawab serta dewan juri.'
         },
         updateVersi: [
             {
+                versi: 'versi 2026.2.2',
+                tanggal: '23 Agustus 2026',
+                judul: 'Rilis Versi 2.2 — Penambahan Halaman Panduan',
+                isi: 'Penambahan halaman panduan pada portal POSE 2026. \n Dan memperbaiki desain sekaligus sistem form lanjutan dan nilai',
+                imageKey: 'versi2.2'
+            },
+            {
+                versi: 'versi 2026.2.1',
+                tanggal: '15 Agustus 2026',
+                judul: 'Rilis Versi 2.1 — Peluncuran Halaman Ketentuan',
+                isi: 'Peluncuran halaman ketentuan pada portal POSE 2026.',
+                imageKey: 'versi2.1'
+            },
+            {
+                versi: 'versi 2026.1.5',
+                tanggal: '30 Juli 2026',
+                judul: 'Rilis Versi 1.5 — Perbaikan Sistem Verifikasi & Pembayaran',
+                isi: 'Perbaikan sistem verifikasi dan integrasi sistem pembayaran pada portal POSE 2026.',
+                imageKey: 'versi1.5'
+            },
+            {
+                versi: 'versi 2026.1.4',
+                tanggal: '26 Juli 2026',
+                judul: 'Rilis Versi 1.4 — Peluncuran Halaman Nilai & Evaluasi Dewan Juri',
+                isi: 'Rilis halaman Nilai & Evaluasi Dewan Juri pada portal POSE 2026.',
+                imageKey: 'versi1.4'
+            },
+            {
+                versi: 'versi 2026.1.3',
+                tanggal: '12 Juli 2026',
+                judul: 'Rilis Versi 1.3 — Integrasi Sistem Pembayaran & Formulir Pendaftaran',
+                isi: 'Integrasi sistem pembayaran dan formulir pendaftaran terintegrasi pada portal POSE 2026.',
+                imageKey: 'versi1.3'
+            },
+            {
                 versi: 'versi 2026.1.2',
                 tanggal: '10 Juli 2026',
-                judul: 'Rilis Versi 1.2 — Modul Panduan & Monitoring Perlombaan POSE',
-                isi: 'Menambahkan panduan lengkap kompetisi POSE 2026, integrasi catatan rilis versi, serta optimalisasi alur pengumpulan karya lomba digital.',
+                judul: 'Rilis Versi 1.2 — Integrasi Halaman Pemberitahuan, Team, Jadwal, dan Kontak',
+                isi: 'Integrasi halaman Pemberitahuan, Team, Jadwal, dan Kontak pada portal POSE 2026.',
                 imageKey: 'versi1.2'
             },
             {
                 versi: 'versi 2026.1.1',
                 tanggal: '28 Juni 2026',
-                judul: 'Rilis Versi 1.1 — Peluncuran Fitur Klasemen & Bagan Turnamen',
-                isi: 'Sistem pencatatan skor perolehan medali prodi, integrasi jadwal pertandingan real-time, dan perbaikan alur registrasi tim kontingen.',
+                judul: 'Rilis Versi 1.1 — Peluncuran Halaman LandingPage POSE 2026',
+                isi: 'Versi awal dari portal resmi POSE 2026.',
                 imageKey: 'versi1.1'
             }
         ]

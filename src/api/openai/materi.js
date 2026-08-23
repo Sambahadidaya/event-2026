@@ -8,7 +8,7 @@ import { openai } from '@/lib/openai';
  * 
  * @returns {{ answer: string }}
  */
-export const generateMateriAnswer = async (text, materiContext) => {
+export const generateMateriAnswer = async (text, materiContext, chatHistory = []) => {
     try {
         if (!text || !materiContext) {
             throw new Error('Parameter text dan materiContext wajib diisi');
@@ -21,6 +21,7 @@ PANDUAN MENJAWAB:
 - Jawab dengan bahasa Indonesia yang formal, akademis, terstruktur, dan jelas.
 - Jangan menggunakan emoji/emote berlebihan atau bahasa gaul.
 - Jawab dengan ringkas namun komprehensif.
+- Jika terdapat riwayat pertanyaan sebelumnya dari user, gunakan riwayat tersebut sebagai konteks untuk memahami maksud user agar percakapan terasa mengalir dan saling terhubung, namun tetap utamakan menjawab pertanyaan terbaru.
 
 DATA MATERI SAAT INI (gunakan ini sebagai SATU-SATUNYA acuan utama saat menjawab):
 ---
@@ -32,10 +33,15 @@ ATURAN PENTING:
 2. Jika pertanyaan TIDAK BERKAITAN dengan konteks materi di atas (walaupun berkaitan dengan FAQ umum PKKMB/POSE), tolak dengan sopan. Berikan respons: "Maaf, saya hanya diprogram untuk menjawab pertanyaan spesifik mengenai materi ini. Untuk pertanyaan umum lainnya, silakan kembali ke halaman utama."
 3. Jangan pernah memberikan informasi di luar konteks materi yang diberikan.`;
 
+        const historyMessages = Array.isArray(chatHistory)
+            ? chatHistory.map(q => ({ role: "user", content: q }))
+            : [];
+
         const { data, response } = await openai.chat.completions.create({
             model: "gpt-5.4-mini", // Or whatever model you prefer
             messages: [
                 { role: "system", content: systemPrompt },
+                ...historyMessages,
                 { role: "user", content: text }
             ],
             temperature: 0.5, // Lower temperature for more focused and factual answers

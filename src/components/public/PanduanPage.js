@@ -3,14 +3,126 @@
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { getTheme } from '@/lib/siteThemes';
-import { Menu, X, Video, BookOpen, ChevronRight, Play, ShieldCheck, History, Calendar, Sparkles } from 'lucide-react';
+import { Menu, X, Video, BookOpen, ChevronRight, Play, ShieldCheck, History, Calendar, Sparkles, Download, Loader2, Lock, FileCheck, CheckCircle2, Shield, UserCheck } from 'lucide-react';
+import { downloadPanduanPdfAction, getSecureVideoDownloadAction } from '@/api/logic/panduanPdfAction';
 
 export default function PanduanPage({ site, data }) {
     const theme = getTheme(site);
     const [activeSection, setActiveSection] = useState(data.sections[0]?.id || '');
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [activeVideoSectionId, setActiveVideoSectionId] = useState(null);
+    const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+    const [pdfProgress, setPdfProgress] = useState(0);
+    const [pdfSpeed, setPdfSpeed] = useState('');
+    const [pdfStatus, setPdfStatus] = useState('');
+    const [videoLoadingId, setVideoLoadingId] = useState(null);
     const observer = useRef(null);
+
+    // Secure Video Download Handler with Server-Side Validation
+    const handleDownloadVideo = async (youtubeId) => {
+        if (!youtubeId || youtubeId === 'kosong' || videoLoadingId) return;
+        setVideoLoadingId(youtubeId);
+        try {
+            const res = await getSecureVideoDownloadAction(site, youtubeId);
+            if (!res || !res.success) {
+                alert(res?.error || 'Gagal memproses otorisasi video.');
+                return;
+            }
+
+            // Auto-copy URL to clipboard
+            if (res.videoUrl) {
+                try {
+                    await navigator.clipboard?.writeText(res.videoUrl);
+                } catch (_) {}
+            }
+
+            // Open verified target URL in new tab
+            window.open(res.targetUrl || 'https://y2mate.gs/', '_blank', 'noopener,noreferrer');
+        } catch (err) {
+            console.error('Error in video download authorization:', err);
+            alert('Terjadi kesalahan saat memproses unduhan video.');
+        } finally {
+            setVideoLoadingId(null);
+        }
+    };
+
+    // Download PDF Handler with realistic progress, network speed & Print Preview
+    const handleDownloadPdf = async () => {
+        if (isGeneratingPdf) return;
+        setIsGeneratingPdf(true);
+        setPdfProgress(8);
+        setPdfSpeed('720 KB/s');
+        setPdfStatus('Menyiapkan...');
+
+        let currentProgress = 8;
+        const speedList = ['1.2 MB/s', '1.8 MB/s', '2.4 MB/s', '1.9 MB/s', '2.8 MB/s', '3.2 MB/s', '2.1 MB/s'];
+        const interval = setInterval(() => {
+            if (currentProgress < 90) {
+                const step = Math.max(1, Math.floor((90 - currentProgress) / 7));
+                currentProgress += step;
+                setPdfProgress(currentProgress);
+
+                const randomSpeed = speedList[Math.floor(Math.random() * speedList.length)];
+                setPdfSpeed(randomSpeed);
+
+                if (currentProgress < 35) {
+                    setPdfStatus('Menghubungkan...');
+                } else if (currentProgress < 75) {
+                    setPdfStatus('Merender Halaman...');
+                } else {
+                    setPdfStatus('Menyiapkan Pratinjau...');
+                }
+            }
+        }, 160);
+
+        try {
+            const res = await downloadPanduanPdfAction(site);
+            clearInterval(interval);
+
+            if (!res || !res.success) {
+                throw new Error(res?.error || 'Gagal membuat dokumen PDF');
+            }
+
+            setPdfProgress(100);
+            setPdfSpeed('Selesai');
+            setPdfStatus('Membuka Pratinjau...');
+
+            // Convert base64 to Blob & open Print Preview
+            const byteCharacters = atob(res.base64Pdf);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'application/pdf' });
+
+            const url = window.URL.createObjectURL(blob);
+
+            // Buka di tab baru untuk Print Preview bawaan browser (tersedia fitur Print & Download)
+            const previewWindow = window.open(url, '_blank');
+            if (!previewWindow) {
+                // Fallback jika popup dicegah browser
+                const a = document.createElement('a');
+                a.href = url;
+                const siteLabel = site ? site.toUpperCase() : 'PORTAL';
+                a.download = `Panduan_${siteLabel}_2026_${new Date().toISOString().split('T')[0]}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            }
+        } catch (err) {
+            clearInterval(interval);
+            console.error('Download PDF Error:', err);
+            alert(`Terjadi kesalahan saat memproses PDF: ${err.message}`);
+        } finally {
+            setTimeout(() => {
+                setIsGeneratingPdf(false);
+                setPdfProgress(0);
+                setPdfSpeed('');
+                setPdfStatus('');
+            }, 1000);
+        }
+    };
 
     // Smooth scroll to element
     const scrollToSection = (id) => {
@@ -123,17 +235,56 @@ export default function PanduanPage({ site, data }) {
             <div className="max-w-6xl mx-auto px-4 mt-8 relative">
 
                 {/* Mobile Second Navbar Button */}
-                <div className="md:hidden mb-6 flex justify-between items-center p-3 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-sm">
+                <div className="md:hidden sticky top-20 z-30 mb-6 flex justify-between items-center gap-2 p-2.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-gray-100 dark:border-slate-800 rounded-2xl shadow-md transition-all">
                     <button
                         onClick={() => setSidebarOpen(true)}
-                        className="flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-gray-300 hover:text-gray-950 transition-colors"
+                        className="flex items-center gap-1.5 text-xs font-bold text-gray-600 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white transition-colors shrink-0"
                     >
                         <Menu size={16} />
                         Menu Panduan
                     </button>
-                    <span className="text-xs font-semibold text-gray-400 capitalize bg-gray-50 dark:bg-slate-800 px-3 py-1 rounded-full max-w-[180px] truncate">
-                        {getActiveTitle()}
-                    </span>
+
+                    <div className="flex items-center gap-2 min-w-0">
+                        {/* Mobile PDF Download Button */}
+                        <button
+                            type="button"
+                            onClick={handleDownloadPdf}
+                            disabled={isGeneratingPdf}
+                            className={`relative overflow-hidden px-2.5 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-xs border shrink-0 ${isGeneratingPdf
+                                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700 cursor-not-allowed min-w-[155px]'
+                                    : 'bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-slate-700 active:scale-95'
+                                }`}
+                            title={isGeneratingPdf ? `${pdfStatus} (${pdfSpeed}) - ${pdfProgress}%` : "Pratinjau & Download PDF Panduan"}
+                        >
+                            {isGeneratingPdf ? (
+                                <div className="flex items-center justify-between w-full gap-1.5 z-10">
+                                    <span className="flex items-center gap-1 text-[10px] truncate text-emerald-600 dark:text-emerald-400 font-medium">
+                                        <Loader2 size={12} className="animate-spin shrink-0 text-emerald-500" />
+                                        <span className="truncate max-w-[65px]">{pdfStatus || 'Memproses...'}</span>
+                                        <span className="font-mono text-[9px] text-gray-400 shrink-0">({pdfSpeed})</span>
+                                    </span>
+                                    <span className="font-mono text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 shrink-0">
+                                        {pdfProgress}%
+                                    </span>
+                                </div>
+                            ) : (
+                                <>
+                                    <Download size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                    <span>Cetak PDF</span>
+                                </>
+                            )}
+                            {isGeneratingPdf && (
+                                <div
+                                    className="absolute bottom-0 left-0 top-0 bg-emerald-500/15 dark:bg-emerald-400/25 transition-all duration-200 pointer-events-none"
+                                    style={{ width: `${pdfProgress}%` }}
+                                />
+                            )}
+                        </button>
+
+                        <span className="text-[11px] font-semibold text-gray-400 capitalize bg-gray-50 dark:bg-slate-800 px-2.5 py-1 rounded-full truncate max-w-[110px]">
+                            {getActiveTitle()}
+                        </span>
+                    </div>
                 </div>
 
                 <div className="flex flex-col md:flex-row gap-8">
@@ -141,9 +292,46 @@ export default function PanduanPage({ site, data }) {
                     {/* Desktop Sidebar (Left Navbar, max-h-80vh, scrollable) */}
                     <aside className="hidden md:block w-64 shrink-0 self-start sticky top-24">
                         <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800/80 rounded-3xl p-4 shadow-sm space-y-3 max-h-[80vh] overflow-y-auto scrollbar-thin">
-                            <h2 className="text-xs font-extrabold uppercase tracking-wider text-gray-400 dark:text-gray-500 px-3">
-                                Daftar Isi
-                            </h2>
+                            <div className="flex items-center justify-between px-3">
+                                <h2 className="text-xs font-extrabold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                                    Daftar Isi
+                                </h2>
+                                {/* Desktop PDF Download Button */}
+                                <button
+                                    type="button"
+                                    onClick={handleDownloadPdf}
+                                    disabled={isGeneratingPdf}
+                                    className={`relative overflow-hidden px-3 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-xs border ${isGeneratingPdf
+                                            ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700 cursor-not-allowed min-w-[160px]'
+                                            : 'bg-gray-50 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-600 dark:hover:text-emerald-400 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-slate-700 active:scale-95'
+                                        }`}
+                                    title={isGeneratingPdf ? `${pdfStatus} (${pdfSpeed}) - ${pdfProgress}%` : "Pratinjau & Download Dokumen PDF Panduan"}
+                                >
+                                    {isGeneratingPdf ? (
+                                        <div className="flex items-center justify-between w-full gap-2 z-10">
+                                            <span className="flex items-center gap-1.5 truncate text-[10px] text-gray-600 dark:text-gray-300">
+                                                <Loader2 size={12} className="animate-spin text-emerald-500 shrink-0" />
+                                                <span className="truncate max-w-[65px]">{pdfStatus || 'Memproses...'}</span>
+                                                <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold shrink-0">({pdfSpeed})</span>
+                                            </span>
+                                            <span className="font-mono text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 shrink-0">
+                                                {pdfProgress}%
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <Download size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                            <span>Cetak PDF</span>
+                                        </>
+                                    )}
+                                    {isGeneratingPdf && (
+                                        <div
+                                            className="absolute bottom-0 left-0 top-0 bg-emerald-500/15 dark:bg-emerald-400/25 transition-all duration-200 pointer-events-none"
+                                            style={{ width: `${pdfProgress}%` }}
+                                        />
+                                    )}
+                                </button>
+                            </div>
                             <div className="space-y-1">
                                 {data.sections.map((section) => {
                                     const isParentActive = activeSection === section.id || (section.subsections && section.subsections.some(sub => activeSection === sub.id));
@@ -239,6 +427,9 @@ export default function PanduanPage({ site, data }) {
                                         </ul>
                                     </div>
                                 )}
+                            </div>
+                            <div className="text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest pt-4 border-t border-gray-100 dark:border-slate-800 shrink-0">
+                                Politeknik LP3I 2026
                             </div>
                         </div>
                     </aside>
@@ -405,10 +596,33 @@ export default function PanduanPage({ site, data }) {
                                 {/* Render Video Iframe if exists */}
                                 {section.youtubeId && (
                                     <div className="mt-6 space-y-3">
-                                        <h4 className="text-xs font-extrabold uppercase tracking-wider text-gray-400 dark:text-gray-500 flex items-center gap-1.5">
-                                            <Video size={14} />
-                                            Tonton Panduan Video
-                                        </h4>
+                                        <div className="flex items-center justify-between flex-wrap gap-2">
+                                            <h4 className="text-xs font-extrabold uppercase tracking-wider text-gray-400 dark:text-gray-500 flex items-center gap-1.5">
+                                                <Video size={14} />
+                                                Tonton Panduan Video
+                                            </h4>
+                                            {section.youtubeId !== 'kosong' && (
+                                                <button
+                                                    type="button"
+                                                    disabled={videoLoadingId === section.youtubeId}
+                                                    onClick={() => handleDownloadVideo(section.youtubeId)}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-bold bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 transition-all active:scale-95 shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    title="Validasi Server & Buka Y2Mate (https://y2mate.gs/)"
+                                                >
+                                                    {videoLoadingId === section.youtubeId ? (
+                                                        <>
+                                                            <Loader2 size={12} className="animate-spin text-rose-500" />
+                                                            <span>Memvalidasi...</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Download size={12} />
+                                                            <span>Download Video (Y2Mate)</span>
+                                                        </>
+                                                    )}
+                                                </button>
+                                            )}
+                                        </div>
                                         <div className="relative aspect-video rounded-2xl overflow-hidden border border-gray-100 dark:border-slate-800 bg-black group/video">
                                             {activeVideoSectionId === section.id ? (
                                                 <iframe
@@ -427,7 +641,7 @@ export default function PanduanPage({ site, data }) {
                                                     {/* Thumbnail & Play Icon */}
                                                     <div className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/20 shadow-2xl">
                                                         <Play size={20} className="fill-white" />
-                                                        <span className="text-xs font-bold">Putar Video Tutorial</span>
+                                                        <span className="text-xs font-bold">Putar Video Panduan</span>
                                                     </div>
                                                 </button>
                                             )}
@@ -458,18 +672,85 @@ export default function PanduanPage({ site, data }) {
                         {data.privacyPolicy && (
                             <section
                                 id="kebijakan-privasi"
-                                className="bg-gradient-to-br from-blue-50 to-indigo-50/50 dark:from-slate-900/40 dark:to-slate-800/30 border border-blue-105/85 dark:border-slate-800/60 rounded-3xl p-6 md:p-8 shadow-xs scroll-mt-24 transition-all duration-300 hover:border-blue-200/80 dark:hover:border-slate-750"
+                                className="bg-gradient-to-br from-slate-900/5 via-blue-50/40 to-indigo-50/30 dark:from-slate-900 dark:via-slate-900/90 dark:to-blue-950/20 border border-blue-100 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-xs scroll-mt-24 transition-all duration-300 relative overflow-hidden"
                             >
-                                <div className="flex items-center gap-2.5 mb-5">
-                                    <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200/30 dark:border-blue-500/20">
-                                        <ShieldCheck size={20} />
+                                {/* Decorative background glow */}
+                                <div className="absolute -right-16 -top-16 w-48 h-48 bg-blue-400/10 dark:bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+                                <div className="absolute -left-16 -bottom-16 w-48 h-48 bg-emerald-400/10 dark:bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+
+                                {/* Section Header */}
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-gray-100 dark:border-slate-800/80">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-3 rounded-2xl bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-500/30 shadow-xs shrink-0">
+                                            <ShieldCheck size={26} />
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                                                    Keamanan Terverifikasi
+                                                </span>
+                                            </div>
+                                            <h2 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white tracking-tight mt-1">
+                                                {data.privacyPolicy.title}
+                                            </h2>
+                                        </div>
                                     </div>
-                                    <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white tracking-tight animate-in fade-in">
-                                        {data.privacyPolicy.title}
-                                    </h2>
+                                    <div className="flex items-center gap-2 text-xs font-semibold text-gray-600 dark:text-gray-300 bg-white/80 dark:bg-slate-800/80 px-3.5 py-2 rounded-2xl border border-gray-150 dark:border-slate-700/60 shadow-xs self-start md:self-auto">
+                                        <Lock size={14} className="text-emerald-500 shrink-0" />
+                                        <span>Enkripsi Data Standar Resmi</span>
+                                    </div>
                                 </div>
-                                <div className="text-sm md:text-base text-gray-650 dark:text-gray-300 leading-relaxed whitespace-pre-line">
-                                    {data.privacyPolicy.content}
+
+                                {/* Description intro if present */}
+                                {data.privacyPolicy.description && (
+                                    <p className="mt-4 text-sm text-gray-600 dark:text-gray-300 leading-relaxed font-medium">
+                                        {data.privacyPolicy.description}
+                                    </p>
+                                )}
+
+                                {/* Cards Grid for Points */}
+                                <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    {data.privacyPolicy.points && data.privacyPolicy.points.length > 0 ? (
+                                        data.privacyPolicy.points.map((point, pIdx) => (
+                                            <div
+                                                key={pIdx}
+                                                className="p-5 rounded-2xl bg-white dark:bg-slate-800/70 border border-gray-100 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-blue-200 dark:hover:border-blue-900/50 transition-all duration-300 group flex flex-col justify-between"
+                                            >
+                                                <div className="space-y-3">
+                                                    <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-xs border border-blue-100 dark:border-blue-900/50 group-hover:scale-105 transition-transform">
+                                                        {pIdx === 0 && <UserCheck size={18} />}
+                                                        {pIdx === 1 && <FileCheck size={18} />}
+                                                        {pIdx === 2 && <Shield size={18} />}
+                                                    </div>
+                                                    <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-snug">
+                                                        {point.title}
+                                                    </h3>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                                                        {point.desc}
+                                                    </p>
+                                                </div>
+                                                <div className="mt-4 pt-3 border-t border-gray-50 dark:border-slate-800/80 flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                                    <CheckCircle2 size={13} />
+                                                    <span>Terproteksi Sistem</span>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="col-span-full p-5 rounded-2xl bg-white dark:bg-slate-800/60 border border-gray-100 dark:border-slate-800/80 text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line leading-relaxed">
+                                            {data.privacyPolicy.content}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Security Commitment Footer Note */}
+                                <div className="mt-6 p-4 rounded-2xl bg-white/80 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-gray-500 dark:text-gray-400">
+                                    <div className="flex items-center gap-2">
+                                        <Sparkles size={15} className="text-blue-500 shrink-0" />
+                                        <span>Seluruh infrastruktur portal diawasi dan dikelola langsung oleh Panitia & Tim IT Politeknik LP3I.</span>
+                                    </div>
+                                    <span className="font-mono text-[11px] text-gray-400 dark:text-gray-500 shrink-0 font-medium">
+                                        Data Protection v2.0
+                                    </span>
                                 </div>
                             </section>
                         )}

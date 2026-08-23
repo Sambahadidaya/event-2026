@@ -193,22 +193,20 @@ export default function PoseRegisterPage() {
             <div className="min-h-screen pt-24 pb-12 sm:pt-32 sm:pb-20 bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-150 transition-colors duration-300">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <PageHero
-                        title="Pendaftaran Lomba"
-                        subtitle="Pilih lomba yang ingin kamu ikuti dan jadilah juara!"
+                        title="Pendaftaran Lomba Lanjutan"
+                        subtitle="Pilih lomba lanjutan yang ingin kamu ikuti dan jadilah juara!"
                         icon={Trophy}
                     />
 
-                    {hasToken && (
-                        <div className="max-w-3xl mx-auto mt-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
-                            <div>
-                                <h4 className="font-bold text-gray-955 dark:text-white">Status Pendaftaran Anda</h4>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Anda sudah pernah mendaftar lomba dari perangkat ini. Klik tombol untuk melihat perkembangan verifikasi data Anda.</p>
-                            </div>
-                            <Link href="/pose/register/dashboard" className="shrink-0 px-5 py-2.5 bg-black hover:bg-gray-850 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-black text-sm font-semibold rounded-xl transition-colors shadow-xs whitespace-nowrap">
-                                Lihat Dashboard Saya
-                            </Link>
+                    <div className="max-w-3xl mx-auto mt-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
+                        <div>
+                            <h4 className="font-bold text-gray-955 dark:text-white">Status Pendaftaran Anda</h4>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Lihat Perkembangan Pendaftaran Anda yang sudah pernah mendaftar dari perangkat ini.</p>
                         </div>
-                    )}
+                        <Link href="/pose/register/dashboard" className="shrink-0 px-5 py-2.5 bg-black hover:bg-gray-850 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-black text-sm font-semibold rounded-xl transition-colors shadow-xs whitespace-nowrap">
+                            Lihat Dashboard Saya
+                        </Link>
+                    </div>
 
                     {/* Filter and Search Bar */}
                     <div className="mt-12 space-y-6">
@@ -384,7 +382,7 @@ function FormCard({ form }) {
                 )}
 
                 <Link
-                    href={`/pose/register/${form.link_id}`}
+                    href={`/pose/register/lanjut/${form.link_id}`}
                     className="inline-flex items-center justify-center gap-1.5 w-full px-4 py-2.5 bg-black dark:bg-white hover:bg-gray-900 dark:hover:bg-gray-100 text-white dark:text-black rounded-xl text-xs font-bold transition-all"
                 >
                     <span>Daftar Sekarang</span>

@@ -9,7 +9,7 @@ export default function PkkmbContact() {
                 site="pkkmb"
                 icon={MessageCircle}
                 title="Kontak Panitia PKKMB"
-                subtitle="Punya pertanyaan? Kirim pesan atau hubungi kami melalui media sosial."
+                subtitle="Ada pertanyaan, masukan, atau kritik? Sampaikan melalui form di bawah ini. Tim PKKMB akan segera menghubungi Anda."
             />
             <ContactForm site="pkkmb" />
         </div>

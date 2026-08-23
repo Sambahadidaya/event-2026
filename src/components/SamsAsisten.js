@@ -75,6 +75,39 @@ const customStyles = `
   }
 `;
 
+const STORAGE_KEY_PERTANYAAN = 'pertanyaanUser';
+
+const getStoredQuestions = () => {
+    if (typeof window === 'undefined') return [];
+    try {
+        const item = localStorage.getItem(STORAGE_KEY_PERTANYAAN);
+        return item ? JSON.parse(item) : [];
+    } catch (e) {
+        return [];
+    }
+};
+
+const saveQuestionToStorage = (newQuestion) => {
+    if (typeof window === 'undefined') return;
+    try {
+        const current = getStoredQuestions();
+        current.push(newQuestion);
+        if (current.length > 5) {
+            current.shift();
+        }
+        localStorage.setItem(STORAGE_KEY_PERTANYAAN, JSON.stringify(current));
+    } catch (e) {
+        console.error('Failed to save question to localStorage', e);
+    }
+};
+
+const clearStoredQuestions = () => {
+    if (typeof window === 'undefined') return;
+    try {
+        localStorage.removeItem(STORAGE_KEY_PERTANYAAN);
+    } catch (e) {}
+};
+
 export default function SamsAsisten({ adminRole }) {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([]);
@@ -93,6 +126,28 @@ export default function SamsAsisten({ adminRole }) {
     const [isPopupHiddenTemporarily, setIsPopupHiddenTemporarily] = useState(false);
 
     const messagesEndRef = useRef(null);
+
+    useEffect(() => {
+        const handleClear = () => {
+            clearStoredQuestions();
+        };
+
+        const handleVisibilityChange = () => {
+            if (document.hidden) {
+                clearStoredQuestions();
+            }
+        };
+
+        window.addEventListener('beforeunload', handleClear);
+        window.addEventListener('pagehide', handleClear);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            window.removeEventListener('beforeunload', handleClear);
+            window.removeEventListener('pagehide', handleClear);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, []);
 
     useEffect(() => {
         const currentPath = window.location.pathname;
@@ -184,7 +239,10 @@ export default function SamsAsisten({ adminRole }) {
         setIsTyping(true);
 
         try {
-            const { answer, isFaqMatched, token } = await generateAnswer(inputanUser, faqData, siteType, adminRole);
+            const chatHistory = getStoredQuestions();
+            const { answer, isFaqMatched, token } = await generateAnswer(inputanUser, faqData, siteType, adminRole, chatHistory);
+
+            saveQuestionToStorage(inputanUser);
 
             setMessages([...newMessages, { sender: 'bot', text: answer }]);
 

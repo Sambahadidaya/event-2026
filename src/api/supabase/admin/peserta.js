@@ -40,7 +40,93 @@ export const getPesertaKeuangan = async (siteType) => {
         const { data, error } = await query;
 
         if (error) throw error;
-        return data;
+        if (!data || data.length === 0) return [];
+
+        // Fetch master tables for pricing lookup
+        const [
+            { data: formWajibData },
+            { data: formRegisterData },
+            { data: formPricingData }
+        ] = await Promise.all([
+            supabaseAdmin.from('form_wajib').select('id, kode_form, nominal, site'),
+            supabaseAdmin.from('form_register').select('id, kode_form, nominal, jenis_lomba, site'),
+            supabaseAdmin.from('form_register_pricing').select('form_id, kategori, nominal')
+        ]);
+
+        const wajibMap = {};
+        (formWajibData || []).forEach(fw => {
+            if (fw.kode_form) wajibMap[fw.kode_form] = fw;
+        });
+
+        const regMap = {};
+        (formRegisterData || []).forEach(fr => {
+            if (fr.kode_form) regMap[fr.kode_form] = fr;
+        });
+
+        const pricingMap = {};
+        (formPricingData || []).forEach(fp => {
+            pricingMap[`${fp.form_id}_${fp.kategori}`] = fp.nominal;
+        });
+
+        // Collect all NIMs of participants who have paid Form Wajib POSE
+        const { data: wajibPesertaData } = await supabaseAdmin
+            .from('peserta')
+            .select('nim, kampus, status_pembayaran')
+            .eq('site_type', 'pose')
+            .eq('jenis_form', 'wajib');
+
+        const lunasWajibSet = new Set();
+        (wajibPesertaData || []).forEach(wp => {
+            if (wp.nim) {
+                // If status_pembayaran is lunas or exists
+                if (wp.status_pembayaran?.toLowerCase() === 'lunas') {
+                    lunasWajibSet.add(`${wp.nim.toLowerCase()}_${(wp.kampus || '').toLowerCase()}`);
+                    lunasWajibSet.add(wp.nim.toLowerCase());
+                }
+            }
+        });
+
+        // POSE Form Wajib nominal (default 45000)
+        const defaultWajibNominal = (formWajibData || []).find(w => w.site === 'pose')?.nominal || 45000;
+
+        const result = data.map(p => {
+            let calculatedNominal = p.nominal || p.nominal_pembayaran || 0;
+            if (!calculatedNominal && p.kode_form) {
+                const kodeFull = p.kode_form;
+                const kodeBase = p.kode_form.length > 4 ? p.kode_form.slice(0, -4) : p.kode_form;
+
+                if (p.jenis_form === 'wajib') {
+                    const matchedW = wajibMap[kodeFull] || wajibMap[kodeBase];
+                    calculatedNominal = matchedW?.nominal || 0;
+                } else if (p.jenis_form === 'register') {
+                    const matchedR = regMap[kodeFull] || regMap[kodeBase];
+                    if (matchedR) {
+                        const priceKey = `${matchedR.id}_${p.kategori}`;
+                        const baseNominal = pricingMap[priceKey] !== undefined ? pricingMap[priceKey] : (matchedR.nominal || 0);
+
+                        if (matchedR.jenis_lomba === 'Kreativitas') {
+                            const nimKey1 = `${(p.nim || '').toLowerCase()}_${(p.kampus || '').toLowerCase()}`;
+                            const nimKey2 = (p.nim || '').toLowerCase();
+                            const hasWajib = lunasWajibSet.has(nimKey1) || lunasWajibSet.has(nimKey2);
+
+                            if (hasWajib) {
+                                calculatedNominal = Math.max(0, baseNominal - defaultWajibNominal);
+                            } else {
+                                calculatedNominal = baseNominal;
+                            }
+                        } else {
+                            calculatedNominal = baseNominal;
+                        }
+                    }
+                }
+            }
+            return {
+                ...p,
+                nominal: calculatedNominal
+            };
+        });
+
+        return result;
     } catch (error) {
         console.error("Internal Log - Error fetching peserta keuangan:", error);
         return [];
@@ -290,7 +376,92 @@ export const getPesertaLunas = async (siteType) => {
         const { data, error } = await query;
 
         if (error) throw error;
-        return data;
+        if (!data || data.length === 0) return [];
+
+        // Fetch master tables for pricing lookup
+        const [
+            { data: formWajibData },
+            { data: formRegisterData },
+            { data: formPricingData }
+        ] = await Promise.all([
+            supabaseAdmin.from('form_wajib').select('id, kode_form, nominal, site'),
+            supabaseAdmin.from('form_register').select('id, kode_form, nominal, jenis_lomba, site'),
+            supabaseAdmin.from('form_register_pricing').select('form_id, kategori, nominal')
+        ]);
+
+        const wajibMap = {};
+        (formWajibData || []).forEach(fw => {
+            if (fw.kode_form) wajibMap[fw.kode_form] = fw;
+        });
+
+        const regMap = {};
+        (formRegisterData || []).forEach(fr => {
+            if (fr.kode_form) regMap[fr.kode_form] = fr;
+        });
+
+        const pricingMap = {};
+        (formPricingData || []).forEach(fp => {
+            pricingMap[`${fp.form_id}_${fp.kategori}`] = fp.nominal;
+        });
+
+        // Collect all NIMs of participants who have paid Form Wajib POSE
+        const { data: wajibPesertaData } = await supabaseAdmin
+            .from('peserta')
+            .select('nim, kampus, status_pembayaran')
+            .eq('site_type', 'pose')
+            .eq('jenis_form', 'wajib');
+
+        const lunasWajibSet = new Set();
+        (wajibPesertaData || []).forEach(wp => {
+            if (wp.nim) {
+                if (wp.status_pembayaran?.toLowerCase() === 'lunas') {
+                    lunasWajibSet.add(`${wp.nim.toLowerCase()}_${(wp.kampus || '').toLowerCase()}`);
+                    lunasWajibSet.add(wp.nim.toLowerCase());
+                }
+            }
+        });
+
+        // POSE Form Wajib nominal (default 45000)
+        const defaultWajibNominal = (formWajibData || []).find(w => w.site === 'pose')?.nominal || 45000;
+
+        const result = data.map(p => {
+            let calculatedNominal = p.nominal || p.nominal_pembayaran || 0;
+            if (!calculatedNominal && p.kode_form) {
+                const kodeFull = p.kode_form;
+                const kodeBase = p.kode_form.length > 4 ? p.kode_form.slice(0, -4) : p.kode_form;
+
+                if (p.jenis_form === 'wajib') {
+                    const matchedW = wajibMap[kodeFull] || wajibMap[kodeBase];
+                    calculatedNominal = matchedW?.nominal || 0;
+                } else if (p.jenis_form === 'register') {
+                    const matchedR = regMap[kodeFull] || regMap[kodeBase];
+                    if (matchedR) {
+                        const priceKey = `${matchedR.id}_${p.kategori}`;
+                        const baseNominal = pricingMap[priceKey] !== undefined ? pricingMap[priceKey] : (matchedR.nominal || 0);
+
+                        if (matchedR.jenis_lomba === 'Kreativitas') {
+                            const nimKey1 = `${(p.nim || '').toLowerCase()}_${(p.kampus || '').toLowerCase()}`;
+                            const nimKey2 = (p.nim || '').toLowerCase();
+                            const hasWajib = lunasWajibSet.has(nimKey1) || lunasWajibSet.has(nimKey2);
+
+                            if (hasWajib) {
+                                calculatedNominal = Math.max(0, baseNominal - defaultWajibNominal);
+                            } else {
+                                calculatedNominal = baseNominal;
+                            }
+                        } else {
+                            calculatedNominal = baseNominal;
+                        }
+                    }
+                }
+            }
+            return {
+                ...p,
+                nominal: calculatedNominal
+            };
+        });
+
+        return result;
     } catch (error) {
         console.error("Internal Log - Error fetching peserta lunas:", error);
         return [];

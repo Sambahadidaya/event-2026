@@ -39,7 +39,10 @@ export const getFormPengumpulanByLink = async (linkId) => {
             throw error;
         }
 
-        return data;
+        return {
+            ...data,
+            gambar: data.gambar || data.form_register?.gambar || null
+        };
     } catch (error) {
         console.error("Internal Log - Error fetching form pengumpulan public:", error);
         return null;
@@ -56,6 +59,7 @@ export const getFormPengumpulanFields = async (eventCode) => {
                 link_id,
                 status,
                 form_id,
+                gambar,
                 created_at,
                 form_register!inner (
                     id,
@@ -82,7 +86,8 @@ export const getFormPengumpulanFields = async (eventCode) => {
             status: item.status,
             form_id: item.form_id,
             created_at: item.created_at,
-            ...item.form_register
+            ...item.form_register,
+            gambar: item.gambar || item.form_register?.gambar || null
         }));
 
         return formattedData;

@@ -324,7 +324,7 @@ export const getFormTransaksiPengeluaran = async (site = 'all') => {
 
 export const createFormTransaksiPengeluaran = async (payload) => {
     try {
-        const { user, adminNama, error: authError } = await checkAdminAuth();
+        const { user, adminId, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         const {
@@ -371,7 +371,7 @@ export const createFormTransaksiPengeluaran = async (payload) => {
                 keterangan: `${judul}${keterangan ? ' - ' + keterangan : ''}`,
                 nominal,
                 bukti_pembayaran: bukti_pembayaran || null,
-                created_by: user.id
+                created_by: adminId || null
             }])
             .select()
             .single();
@@ -544,7 +544,7 @@ export const autoCreateTransactionFromPeserta = async (peserta, userEmail = 'sys
             if (searchKode) {
                 const { data: fr } = await supabaseAdmin
                     .from('form_register')
-                    .select('id, nama_lomba, nominal, site')
+                    .select('id, nama_lomba, jenis_lomba, nominal, site')
                     .or(`kode_form.eq.${searchKode},kode_form.eq.${rawKodeForm}`)
                     .limit(1)
                     .single();
@@ -558,7 +558,34 @@ export const autoCreateTransactionFromPeserta = async (peserta, userEmail = 'sys
                         .eq('kategori', kategoriPeserta)
                         .single();
 
-                    nominal = (pricing && pricing.nominal != null) ? pricing.nominal : (fr.nominal || 0);
+                    let calcNominal = (pricing && pricing.nominal != null) ? pricing.nominal : (fr.nominal || 0);
+
+                    // Khusus Kreativitas: jika Mahasiswa LP3I sudah isi Form Wajib POSE, potongan nominal form_wajib
+                    if (fr.jenis_lomba === 'Kreativitas' && (kategoriPeserta === 'Mahasiswa LP3I') && peserta.nim) {
+                        const { data: wajibPeserta } = await supabaseAdmin
+                            .from('peserta')
+                            .select('id')
+                            .eq('site_type', 'pose')
+                            .eq('jenis_form', 'wajib')
+                            .eq('nim', peserta.nim)
+                            .eq('kampus', peserta.kampus)
+                            .maybeSingle();
+
+                        if (wajibPeserta) {
+                            const { data: fw } = await supabaseAdmin
+                                .from('form_wajib')
+                                .select('nominal')
+                                .eq('site', 'pose')
+                                .order('created_at', { ascending: false })
+                                .limit(1)
+                                .maybeSingle();
+
+                            const wajibNominal = fw?.nominal !== undefined ? fw.nominal : 45000;
+                            calcNominal = Math.max(0, calcNominal - wajibNominal);
+                        }
+                    }
+
+                    nominal = calcNominal;
                     keterangan = `Pendaftaran ${fr.nama_lomba || 'Lomba'} - ${peserta.nama}`;
                     formCategoryName = `Lomba ${fr.nama_lomba || ''}`;
                     formRegisterId = fr.id;
@@ -566,8 +593,8 @@ export const autoCreateTransactionFromPeserta = async (peserta, userEmail = 'sys
             }
         }
 
-        // Fallback default nominal if still 0
-        if (!nominal || nominal === 0) {
+        // Fallback default nominal if still undefined or null
+        if (nominal === undefined || nominal === null) {
             nominal = site === 'pkkmb' ? 500000 : 150000;
         }
 
@@ -849,7 +876,7 @@ export const autoDeleteTransactionFromPeserta = async (peserta) => {
 
 export const createFormTransaksiPemasukan = async (payload) => {
     try {
-        const { user, adminNama, error: authError } = await checkAdminAuth();
+        const { user, adminId, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
         const {
@@ -879,7 +906,7 @@ export const createFormTransaksiPemasukan = async (payload) => {
                 keterangan: `${judul}${keterangan ? ' - ' + keterangan : ''}`,
                 nominal,
                 bukti_pembayaran: bukti_pembayaran || null,
-                created_by: user.id
+                created_by: adminId || null
             }])
             .select()
             .single();

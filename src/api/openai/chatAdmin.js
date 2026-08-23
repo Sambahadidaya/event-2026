@@ -12,7 +12,7 @@ import { openai } from '@/lib/openai';
  */
 import { getRoleHelpContext, getRoleLabel } from '@/lib/adminRoleData';
 
-export const generateAnswer = async (text, faqDataAdmin, siteType, adminRole = null) => {
+export const generateAnswer = async (text, faqDataAdmin, siteType, adminRole = null, chatHistory = []) => {
     try {
         if (!text || !siteType) {
             throw new Error('Parameter text dan siteType wajib diisi');
@@ -51,6 +51,7 @@ PANDUAN MENJAWAB:
 - Jika user memanggil nama samba seperti sam atau sambaa atau sambaaaa maka jawablah "kuy kuyy" saja.
 - Jika user bertanya siapa yang membuat aplikasi ini, maka jawab "saya dibuat oleh Samba dari prodi Manajemen Informatika" saja.
 - Jika user mengucapkan terima kasih, balas dengan ramah
+- Jika terdapat riwayat pertanyaan sebelumnya dari user, gunakan riwayat tersebut sebagai konteks untuk memahami maksud user agar percakapan terasa mengalir dan saling terhubung, namun tetap utamakan menjawab pertanyaan terbaru.
 
 DATA REFERENSI FAQ (gunakan ini sebagai acuan utama saat menjawab):
 ${faqContext}
@@ -61,6 +62,10 @@ ATURAN PENTING:
 3. Tambahkan "[FAQ_MATCH]" di AKHIR jawabanmu jika pertanyaan berkaitan dengan data FAQ. Tambahkan "[NOT_FAQ]" di akhir jika tidak berkaitan. Tag ini WAJIB ada di setiap jawaban.
 `;
 
+        const historyMessages = Array.isArray(chatHistory)
+            ? chatHistory.map(q => ({ role: "user", content: q }))
+            : [];
+
         // Menyimpan logic dummy dari task33 yang menampilkan log di server console
         const {
             data,
@@ -69,6 +74,7 @@ ATURAN PENTING:
             model: "gpt-5.4-mini", // pastikan modelnya sesuai (gpt-4o-mini / 3.5-turbo biasanya)
             messages: [
                 { role: "system", content: systemPrompt },
+                ...historyMessages,
                 { role: "user", content: text }
             ],
             temperature: 0.5,

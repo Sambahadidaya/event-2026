@@ -12,7 +12,7 @@ export const getFormPengumpulan = async () => {
             .from('form_pengumpulan')
             .select(`
                 *,
-                form_register ( id, nama_lomba, jenis_lomba, site )
+                form_register ( id, nama_lomba, jenis_lomba, site, gambar )
             `)
             .order('created_at', { ascending: false });
 

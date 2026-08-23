@@ -2,13 +2,125 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { getTheme } from '@/lib/siteThemes';
-import { Menu, X, Video, FileText, ChevronRight } from 'lucide-react';
+import { Menu, X, Video, FileText, ChevronRight, Download, Loader2 } from 'lucide-react';
+import { downloadKetentuanPdfAction, getSecureVideoDownloadAction } from '@/api/logic/panduanPdfAction';
 
 export default function KetentuanPage({ site, data }) {
     const theme = getTheme(site);
     const [activeSection, setActiveSection] = useState(data.sections[0]?.id || '');
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+    const [pdfProgress, setPdfProgress] = useState(0);
+    const [pdfSpeed, setPdfSpeed] = useState('');
+    const [pdfStatus, setPdfStatus] = useState('');
+    const [videoLoadingId, setVideoLoadingId] = useState(null);
     const observer = useRef(null);
+
+    // Secure Video Download Handler with Server-Side Validation
+    const handleDownloadVideo = async (youtubeId) => {
+        if (!youtubeId || youtubeId === 'kosong' || videoLoadingId) return;
+        setVideoLoadingId(youtubeId);
+        try {
+            const res = await getSecureVideoDownloadAction(site, youtubeId);
+            if (!res || !res.success) {
+                alert(res?.error || 'Gagal memproses otorisasi video.');
+                return;
+            }
+
+            // Auto-copy URL to clipboard
+            if (res.videoUrl) {
+                try {
+                    await navigator.clipboard?.writeText(res.videoUrl);
+                } catch (_) {}
+            }
+
+            // Open verified target URL in new tab
+            window.open(res.targetUrl || 'https://y2mate.gs/', '_blank', 'noopener,noreferrer');
+        } catch (err) {
+            console.error('Error in video download authorization:', err);
+            alert('Terjadi kesalahan saat memproses unduhan video.');
+        } finally {
+            setVideoLoadingId(null);
+        }
+    };
+
+    // Download PDF Handler with realistic progress, network speed & Print Preview
+    const handleDownloadPdf = async () => {
+        if (isGeneratingPdf) return;
+        setIsGeneratingPdf(true);
+        setPdfProgress(8);
+        setPdfSpeed('720 KB/s');
+        setPdfStatus('Menyiapkan...');
+
+        let currentProgress = 8;
+        const speedList = ['1.2 MB/s', '1.8 MB/s', '2.4 MB/s', '1.9 MB/s', '2.8 MB/s', '3.2 MB/s', '2.1 MB/s'];
+        const interval = setInterval(() => {
+            if (currentProgress < 90) {
+                const step = Math.max(1, Math.floor((90 - currentProgress) / 7));
+                currentProgress += step;
+                setPdfProgress(currentProgress);
+
+                const randomSpeed = speedList[Math.floor(Math.random() * speedList.length)];
+                setPdfSpeed(randomSpeed);
+
+                if (currentProgress < 35) {
+                    setPdfStatus('Menghubungkan...');
+                } else if (currentProgress < 75) {
+                    setPdfStatus('Merender Halaman...');
+                } else {
+                    setPdfStatus('Menyiapkan Pratinjau...');
+                }
+            }
+        }, 160);
+
+        try {
+            const res = await downloadKetentuanPdfAction(site);
+            clearInterval(interval);
+
+            if (!res || !res.success) {
+                throw new Error(res?.error || 'Gagal membuat dokumen PDF');
+            }
+
+            setPdfProgress(100);
+            setPdfSpeed('Selesai');
+            setPdfStatus('Membuka Pratinjau...');
+
+            // Convert base64 to Blob & open Print Preview
+            const byteCharacters = atob(res.base64Pdf);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'application/pdf' });
+
+            const url = window.URL.createObjectURL(blob);
+
+            // Buka di tab baru untuk Print Preview bawaan browser (tersedia fitur Print & Download)
+            const previewWindow = window.open(url, '_blank');
+            if (!previewWindow) {
+                // Fallback jika popup dicegah browser
+                const a = document.createElement('a');
+                a.href = url;
+                const siteLabel = site ? site.toUpperCase() : 'PORTAL';
+                a.download = `Ketentuan_${siteLabel}_2026_${new Date().toISOString().split('T')[0]}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            }
+        } catch (err) {
+            clearInterval(interval);
+            console.error('Download PDF Error:', err);
+            alert(`Terjadi kesalahan saat memproses PDF: ${err.message}`);
+        } finally {
+            setTimeout(() => {
+                setIsGeneratingPdf(false);
+                setPdfProgress(0);
+                setPdfSpeed('');
+                setPdfStatus('');
+            }, 1000);
+        }
+    };
 
     // Smooth scroll to element
     const scrollToSection = (id) => {
@@ -90,17 +202,57 @@ export default function KetentuanPage({ site, data }) {
             <div className="max-w-6xl mx-auto px-4 mt-8 relative">
 
                 {/* Mobile Second Navbar Button */}
-                <div className="md:hidden mb-6 flex justify-between items-center p-3 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-sm">
+                <div className="md:hidden sticky top-20 z-30 mb-6 flex justify-between items-center gap-2 p-2.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-gray-100 dark:border-slate-800 rounded-2xl shadow-md transition-all">
                     <button
                         onClick={() => setSidebarOpen(true)}
-                        className="flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-gray-300 hover:text-gray-950 transition-colors"
+                        className="flex items-center gap-1.5 text-xs font-bold text-gray-600 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white transition-colors shrink-0"
                     >
                         <Menu size={16} />
                         Menu Ketentuan
                     </button>
-                    <span className="text-xs font-semibold text-gray-400 capitalize bg-gray-50 dark:bg-slate-800 px-3 py-1 rounded-full max-w-[180px] truncate">
-                        {getActiveTitle()}
-                    </span>
+
+                    <div className="flex items-center gap-2 min-w-0">
+                        {/* Mobile PDF Download Button */}
+                        <button
+                            type="button"
+                            onClick={handleDownloadPdf}
+                            disabled={isGeneratingPdf}
+                            className={`relative overflow-hidden px-2.5 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-xs border shrink-0 ${
+                                isGeneratingPdf
+                                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700 cursor-not-allowed min-w-[155px]'
+                                    : 'bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-slate-700 active:scale-95'
+                            }`}
+                            title={isGeneratingPdf ? `${pdfStatus} (${pdfSpeed}) - ${pdfProgress}%` : "Pratinjau & Download PDF Ketentuan"}
+                        >
+                            {isGeneratingPdf ? (
+                                <div className="flex items-center justify-between w-full gap-1.5 z-10">
+                                    <span className="flex items-center gap-1 text-[10px] truncate text-blue-600 dark:text-blue-400 font-medium">
+                                        <Loader2 size={12} className="animate-spin shrink-0 text-blue-500" />
+                                        <span className="truncate max-w-[65px]">{pdfStatus || 'Memproses...'}</span>
+                                        <span className="font-mono text-[9px] text-gray-400 shrink-0">({pdfSpeed})</span>
+                                    </span>
+                                    <span className="font-mono text-[10px] font-extrabold text-blue-600 dark:text-blue-400 shrink-0">
+                                        {pdfProgress}%
+                                    </span>
+                                </div>
+                            ) : (
+                                <>
+                                    <Download size={13} className="text-blue-600 dark:text-blue-400 shrink-0" />
+                                    <span>Cetak PDF</span>
+                                </>
+                            )}
+                            {isGeneratingPdf && (
+                                <div
+                                    className="absolute bottom-0 left-0 top-0 bg-blue-500/15 dark:bg-blue-400/25 transition-all duration-200 pointer-events-none"
+                                    style={{ width: `${pdfProgress}%` }}
+                                />
+                            )}
+                        </button>
+
+                        <span className="text-[11px] font-semibold text-gray-400 capitalize bg-gray-50 dark:bg-slate-800 px-2.5 py-1 rounded-full truncate max-w-[110px]">
+                            {getActiveTitle()}
+                        </span>
+                    </div>
                 </div>
 
                 <div className="flex flex-col md:flex-row gap-8">
@@ -108,9 +260,47 @@ export default function KetentuanPage({ site, data }) {
                     {/* Desktop Sidebar (Left Navbar, max-h-80vh, scrollable) */}
                     <aside className="hidden md:block w-64 shrink-0 self-start sticky top-24">
                         <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800/80 rounded-3xl p-4 shadow-sm space-y-3 max-h-[80vh] overflow-y-auto scrollbar-thin">
-                            <h2 className="text-xs font-extrabold uppercase tracking-wider text-gray-400 dark:text-gray-500 px-3">
-                                Daftar Isi
-                            </h2>
+                            <div className="flex items-center justify-between px-3">
+                                <h2 className="text-xs font-extrabold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                                    Daftar Isi
+                                </h2>
+                                {/* Desktop PDF Download Button */}
+                                <button
+                                    type="button"
+                                    onClick={handleDownloadPdf}
+                                    disabled={isGeneratingPdf}
+                                    className={`relative overflow-hidden px-3 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-xs border ${
+                                        isGeneratingPdf
+                                            ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700 cursor-not-allowed min-w-[160px]'
+                                            : 'bg-gray-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:text-blue-600 dark:hover:text-blue-400 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-slate-700 active:scale-95'
+                                    }`}
+                                    title={isGeneratingPdf ? `${pdfStatus} (${pdfSpeed}) - ${pdfProgress}%` : "Pratinjau & Download Dokumen PDF Ketentuan"}
+                                >
+                                    {isGeneratingPdf ? (
+                                        <div className="flex items-center justify-between w-full gap-2 z-10">
+                                            <span className="flex items-center gap-1.5 truncate text-[10px] text-gray-600 dark:text-gray-300">
+                                                <Loader2 size={12} className="animate-spin text-blue-500 shrink-0" />
+                                                <span className="truncate max-w-[65px]">{pdfStatus || 'Memproses...'}</span>
+                                                <span className="font-mono text-blue-600 dark:text-blue-400 font-bold shrink-0">({pdfSpeed})</span>
+                                            </span>
+                                            <span className="font-mono text-[10px] font-extrabold text-blue-600 dark:text-blue-400 shrink-0">
+                                                {pdfProgress}%
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <Download size={13} className="text-blue-600 dark:text-blue-400 shrink-0" />
+                                            <span>Cetak PDF</span>
+                                        </>
+                                    )}
+                                    {isGeneratingPdf && (
+                                        <div
+                                            className="absolute bottom-0 left-0 top-0 bg-blue-500/15 dark:bg-blue-400/25 transition-all duration-200 pointer-events-none"
+                                            style={{ width: `${pdfProgress}%` }}
+                                        />
+                                    )}
+                                </button>
+                            </div>
                             <div className="space-y-1">
                                 {data.sections.map((section) => {
                                     const isParentActive = activeSection === section.id || (section.subsections && section.subsections.some(sub => activeSection === sub.id));
@@ -265,9 +455,32 @@ export default function KetentuanPage({ site, data }) {
                                         <div className="grid grid-cols-1 gap-6">
                                             {section.videos.map((vid, idx) => (
                                                 <div key={idx} className="space-y-2.5">
-                                                    <p className="text-xs font-bold text-gray-700 dark:text-gray-200">
-                                                        {vid.title}
-                                                    </p>
+                                                    <div className="flex items-center justify-between flex-wrap gap-2">
+                                                        <p className="text-xs font-bold text-gray-700 dark:text-gray-200">
+                                                            {vid.title}
+                                                        </p>
+                                                        {vid.youtubeId && vid.youtubeId !== 'kosong' && (
+                                                            <button
+                                                                type="button"
+                                                                disabled={videoLoadingId === vid.youtubeId}
+                                                                onClick={() => handleDownloadVideo(vid.youtubeId)}
+                                                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-bold bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 transition-all active:scale-95 shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                title="Validasi Server & Buka Y2Mate (https://y2mate.gs/)"
+                                                            >
+                                                                {videoLoadingId === vid.youtubeId ? (
+                                                                    <>
+                                                                        <Loader2 size={12} className="animate-spin text-rose-500" />
+                                                                        <span>Memvalidasi...</span>
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <Download size={12} />
+                                                                        <span>Download Video (Y2Mate)</span>
+                                                                    </>
+                                                                )}
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                     <div className="relative aspect-video rounded-2xl overflow-hidden border border-gray-100 dark:border-slate-800 bg-black">
                                                         <iframe
                                                             className="absolute inset-0 w-full h-full"

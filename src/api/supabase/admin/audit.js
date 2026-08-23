@@ -53,13 +53,13 @@ export const checkAdminAuth = async () => {
             .single();
 
         if (adminError || !adminData) {
-            return { user: null, adminNama: null, error: 'Unauthorized access: Not an admin' };
+            return { user: null, adminId: null, adminNama: null, error: 'Unauthorized access: Not an admin' };
         }
 
-        return { user, adminNama: adminData.nama, error: null };
+        return { user, adminId: adminData.id, adminNama: adminData.nama, error: null };
     } catch (error) {
         console.error("Auth Check Error:", error);
-        return { user: null, adminNama: null, error: 'Internal server error during auth check' };
+        return { user: null, adminId: null, adminNama: null, error: 'Internal server error during auth check' };
     }
 };
 

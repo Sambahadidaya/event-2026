@@ -863,14 +863,14 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
                                             <span className="text-gray-500 font-medium">Tahapan</span>
                                             <span className="font-bold text-indigo-600 dark:text-indigo-400 text-right capitalize">{verifikasiItem.tahapan || '-'}</span>
                                         </div>
-                                        <div className="flex justify-between items-start text-xs sm:text-sm">
-                                            <span className="text-gray-500 font-medium">Nominal</span>
-                                            <span className="font-bold text-emerald-600 dark:text-emerald-400 text-right">
-                                                {verifikasiItem.nominal ? `Rp ${Number(verifikasiItem.nominal).toLocaleString('id-ID')}` : '-'}
-                                            </span>
-                                        </div>
                                     </>
                                 )}
+                                <div className="flex justify-between items-start text-xs sm:text-sm">
+                                    <span className="text-gray-500 font-medium">Nominal Tagihan</span>
+                                    <span className="font-bold text-emerald-600 dark:text-emerald-400 text-right">
+                                        {verifikasiItem.nominal !== undefined && verifikasiItem.nominal !== null && verifikasiItem.nominal !== '' ? `Rp ${Number(verifikasiItem.nominal).toLocaleString('id-ID')}` : '-'}
+                                    </span>
+                                </div>
                             </div>
 
                             {/* Bukti Bayar Preview Link */}

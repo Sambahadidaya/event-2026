@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Trophy, Plus, Edit2, Trash2, Link as LinkIcon, Copy, Check, Eye, Filter, RefreshCw, FileText, UserCheck, Star, Sparkles, FileDown, Sheet } from 'lucide-react';
+import { Trophy, Plus, Edit2, Trash2, Link as LinkIcon, Copy, Check, Eye, Filter, RefreshCw, FileText, UserCheck, Star, Sparkles, FileDown, Sheet, MessageSquare } from 'lucide-react';
 import { generatePdfAction } from '@/api/pdf/route';
 import TombolCetak from '@/components/panitia/TombolCetak';
 import { getTeams } from '@/api/supabase/public/team';
@@ -29,6 +29,9 @@ export default function AdminPenilaianPJ() {
     // Filters
     const [namaLombaFilter, setNamaLombaFilter] = useState('all');
     const [selectedFormId, setSelectedFormId] = useState('all');
+
+    // Detail Penilaian Juri Modal State
+    const [detailModalItem, setDetailModalItem] = useState(null);
 
     // Form Modal State (Form Nilai Lomba)
     const [showFormModal, setShowFormModal] = useState(false);
@@ -519,10 +522,10 @@ export default function AdminPenilaianPJ() {
                     <div>
                         <h3 className="font-bold text-lg text-gray-900 dark:text-white flex items-center gap-2">
                             <FileText size={20} className="text-violet-500" />
-                            Master Form Penilaian Juri (`form_nilai_lomba`)
+                            Form Penilaian Juri
                         </h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                            Form nilai menentukan kriteria (judul) dan bobot penilaian yang diakses oleh Juri via link public
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
+                            Form nilai menentukan kriteria dan bobot penilaian yang diakses oleh Juri
                         </p>
                     </div>
 
@@ -640,16 +643,16 @@ export default function AdminPenilaianPJ() {
                 </div>
             </div>
 
-            {/* SECTION 2: TABEL DETAIL PENILAIAN (PIVOT TABLE) */}
+            {/* SECTION 2: TABEL DETAIL PENILAIAN JURI */}
             <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
                 <div className="p-5 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                         <h3 className="font-bold text-lg text-gray-900 dark:text-white flex items-center gap-2">
                             <Sparkles size={20} className="text-amber-500" />
-                            Matriks Detail Penilaian (Pivot Table `detail_nilai_lomba`)
+                            Detail Penilaian Juri
                         </h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                            Kolom mewakili kriteria (`judul_nilai`) dan baris mewakili Nama Tim beserta nilai akhir tertimbang
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
+                            Kolom mewakili nilai dari tiap kriteria penilaian dan baris mewakili Nama Tim beserta nilai akhir
                         </p>
                     </div>
 
@@ -726,6 +729,7 @@ export default function AdminPenilaianPJ() {
                                     Nilai Akhir
                                 </th>
                                 <th className="px-4 py-3.5">Kritik & Saran</th>
+                                <th className="px-4 py-3.5 text-center w-24">Detail</th>
                                 <th className="px-4 py-3.5 text-center w-24">Aksi</th>
                             </tr>
                         </thead>
@@ -733,14 +737,14 @@ export default function AdminPenilaianPJ() {
                             {loading ? (
                                 Array.from({ length: 3 }).map((_, i) => (
                                     <tr key={`skel-n-${i}`} className="animate-pulse">
-                                        <td colSpan={6 + parsedCriteria.length} className="px-4 py-4">
+                                        <td colSpan={7 + parsedCriteria.length} className="px-4 py-4">
                                             <div className="h-8 bg-gray-100 dark:bg-gray-800 rounded-lg w-full"></div>
                                         </td>
                                     </tr>
                                 ))
                             ) : filteredNilai.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6 + parsedCriteria.length} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                                    <td colSpan={7 + parsedCriteria.length} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                                         Belum ada data nilai masuk. Gunakan link public juri atau klik tombol "+" pada master form untuk menginput nilai.
                                     </td>
                                 </tr>
@@ -797,6 +801,19 @@ export default function AdminPenilaianPJ() {
                                                 {item.kritik && <div><strong>Kritik:</strong> {item.kritik}</div>}
                                                 {item.saran && <div><strong>Saran:</strong> {item.saran}</div>}
                                                 {!item.kritik && !item.saran && <span className="text-gray-400 italic">Tidak ada catatan</span>}
+                                            </td>
+                                            {/* Tombol Lihat Detail Penilaian */}
+                                            <td className="px-4 py-4 text-center">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setDetailModalItem(item);
+                                                    }}
+                                                    className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-bold rounded-lg border border-gray-200 dark:border-gray-700 transition-colors shadow-xs"
+                                                    title="Lihat Detail Penilaian"
+                                                >
+                                                    Lihat
+                                                </button>
                                             </td>
                                             <td className="px-4 py-4 text-center">
                                                 <div className="flex items-center justify-center gap-1">
@@ -1180,6 +1197,106 @@ export default function AdminPenilaianPJ() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL DETAIL PENILAIAN JURI */}
+            {detailModalItem && (
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl max-w-lg w-full overflow-hidden border border-gray-200 dark:border-gray-800 animate-in zoom-in-95 duration-200">
+                        <div className="p-5 border-b border-gray-150 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
+                            <div className="flex items-center gap-3">
+                                {detailModalItem.team?.gambar ? (
+                                    <img src={detailModalItem.team.gambar} alt="" className="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-700" />
+                                ) : (
+                                    <div className="w-10 h-10 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-300 font-bold text-base flex items-center justify-center">
+                                        {detailModalItem.team?.title?.charAt(0) || 'T'}
+                                    </div>
+                                )}
+                                <div>
+                                    <h3 className="font-extrabold text-base text-gray-900 dark:text-white">
+                                        {detailModalItem.team?.title || 'Detail Penilaian Tim'}
+                                    </h3>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                        Juri: <span className="font-semibold text-gray-800 dark:text-gray-200">{detailModalItem.form_nilai_lomba?.nama_juri || '-'}</span> | {detailModalItem.team?.nama_lomba || '-'}
+                                    </p>
+                                </div>
+                            </div>
+                            <button onClick={() => setDetailModalItem(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 font-bold text-lg p-1">✕</button>
+                        </div>
+
+                        <div className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
+                            {/* Nilai Akhir Highlight */}
+                            <div className="bg-gray-50 dark:bg-gray-950 p-4 rounded-2xl border border-gray-200 dark:border-gray-800 flex items-center justify-between">
+                                <div>
+                                    <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Nilai Akhir Tertimbang</span>
+                                    <div className="text-xs text-gray-400 mt-0.5">
+                                        Tanggal: {detailModalItem.created_at ? new Date(detailModalItem.created_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
+                                    </div>
+                                </div>
+                                <div className="px-4 py-2 bg-black dark:bg-white text-white dark:text-black font-black text-2xl rounded-2xl shadow-xs">
+                                    {detailModalItem.nilai_akhir !== null ? Number(detailModalItem.nilai_akhir).toFixed(2) : '-'}
+                                </div>
+                            </div>
+
+                            {/* Breakdown Kriteria */}
+                            <div className="space-y-3">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
+                                    <FileText size={14} className="text-orange-500" />
+                                    Rincian Nilai per Kriteria
+                                </h4>
+                                <div className="grid grid-cols-1 gap-2.5">
+                                    {(detailModalItem.detail_nilai_lomba || []).map((crit) => (
+                                        <div key={crit.id || crit.judul_nilai} className="p-3 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 flex items-center justify-between gap-3">
+                                            <div>
+                                                <div className="text-sm font-bold text-gray-900 dark:text-white">{crit.judul_nilai}</div>
+                                                <div className="text-[11px] text-gray-500 font-semibold mt-0.5">Bobot Kriteria: {crit.bobot_nilai}%</div>
+                                            </div>
+                                            <div className="text-base font-extrabold text-gray-900 dark:text-white bg-white dark:bg-gray-900 px-3 py-1 rounded-lg border border-gray-200 dark:border-gray-800">
+                                                {crit.nilai} <span className="text-xs text-gray-400 font-semibold">/100</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {(!detailModalItem.detail_nilai_lomba || detailModalItem.detail_nilai_lomba.length === 0) && (
+                                        <p className="text-xs text-gray-400 italic">Tidak ada rincian kriteria.</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Kritik & Saran */}
+                            {(detailModalItem.kritik || detailModalItem.saran) && (
+                                <div className="space-y-3 pt-2 border-t border-gray-150 dark:border-gray-800">
+                                    {detailModalItem.kritik && (
+                                        <div className="bg-gray-50 dark:bg-gray-950 p-4 rounded-2xl border border-gray-200 dark:border-gray-800">
+                                            <div className="text-xs font-bold text-orange-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                                                <MessageSquare size={12} />
+                                                <span>Catatan Kritik Juri</span>
+                                            </div>
+                                            <p className="text-sm text-gray-700 dark:text-gray-300 italic">"{detailModalItem.kritik}"</p>
+                                        </div>
+                                    )}
+                                    {detailModalItem.saran && (
+                                        <div className="bg-gray-50 dark:bg-gray-950 p-4 rounded-2xl border border-gray-200 dark:border-gray-800">
+                                            <div className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                                                <MessageSquare size={12} />
+                                                <span>Saran Masukan Juri</span>
+                                            </div>
+                                            <p className="text-sm text-gray-700 dark:text-gray-300 italic">"{detailModalItem.saran}"</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="p-4 bg-gray-50/50 dark:bg-gray-800/50 border-t border-gray-150 dark:border-gray-800 flex justify-end">
+                            <button
+                                onClick={() => setDetailModalItem(null)}
+                                className="px-5 py-2 rounded-xl bg-black dark:bg-white text-white dark:text-black text-xs font-bold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+                            >
+                                Tutup
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

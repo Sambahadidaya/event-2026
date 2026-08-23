@@ -8,7 +8,7 @@ import { submitKontak } from '@/api/supabase/public/admin';
 export default function ContactForm({ site }) {
     const theme = getTheme(site);
     const [formData, setFormData] = useState({ nama: '', email: '', whatsapp: '', pesan: '' });
-    const [contactMethod, setContactMethod] = useState('email');
+    const [contactMethod, setContactMethod] = useState('whatsapp');
     const [loading, setLoading] = useState(false);
     const [toast, setToast] = useState(null);
 
@@ -113,13 +113,13 @@ export default function ContactForm({ site }) {
     const sosmedData = {
         pkkmb: {
             email: "#",
-            wa: "#",
+            wa: "https://wa.me/6289601014872",
             ig: "https://www.instagram.com/pkkmbpolteklp3i?igsh=dnZsenp1eHVubG5w"
         },
         pose: {
             email: "#",
-            wa: "#",
-            ig: "https://instagram.com/pose_kampus2026"
+            wa: "https://wa.me/6289601014872",
+            ig: "https://www.instagram.com/pose_nasional2026?igsh=MTl1dG9jaWNydGdodQ=="
         }
     };
 

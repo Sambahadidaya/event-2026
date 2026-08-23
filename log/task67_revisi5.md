@@ -1,0 +1,2 @@
+fokus ke halaman src/app/panitia/keuangan/dashboard
+pada div Data Peserta Lunas yang ketika aku tekan tombol swich Form Register itu kenapa nominalnya masih 0? padahal saat verifikasi di src/app/panitia/keuangan/verifikasi itu nominalnya masuk ke tabel transaction_finance didatabase. dan juga padahal div Total Incomenya sudah bertambah. terus pada div Cash Flow itu ada bug ui yaitu tidak sinkron tanggalnya padahal harusnya pakai waktu indonesia seperti div dibawahnya yaitu div Data Peserta Lunas yang kolom Tanggal Pembayaran

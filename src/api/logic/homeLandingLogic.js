@@ -61,7 +61,9 @@ const getStatsConfig = (site) => {
         ];
     } else {
         return [
-            { iconName: 'Calendar', label: 'Tanggal Pendaftaran', value: '10 Agustus - 7 September' },
+            { iconName: 'Calendar', label: 'Tanggal Pendaftaran', value: '1 - 31 Agustus' },
+            { iconName: 'Calendar', label: 'Tanggal Pendaftaran Tahap 2', value: '1 - 7 September' },
+            { iconName: 'Calendar', label: 'Tanggal Pengumpulan', value: '8 - 13 September' },
             { iconName: 'Calendar', label: 'Tanggal Acara', value: '15 - 17 September' },
             { iconName: 'Trophy', label: 'Cabang lomba', value: '10 Cabang' },
             { iconName: 'Palette', label: 'Jenis Lomba', value: '3 Jenis' },
@@ -81,15 +83,16 @@ const getFeaturesConfig = (site) => {
     } else {
         return [
             { iconName: 'Bell', title: 'Pemberitahuan', desc: 'Jadwal pertandingan, hasil lomba, dan pengumuman resmi POSE.', href: '/pose/pemberitahuan' },
-            { iconName: 'Users', title: 'Tim', desc: 'Cek susunan tim pertandingan setiap cabang.', href: '/pose/team' },
-            { iconName: 'Trophy', title: 'Jadwal & Klasemen', desc: 'Cek Jadwal dan klasemen pertandingan setiap cabang.', href: '/pose/jadwal' },
-            { iconName: 'Users', title: 'Daftar Lomba', desc: 'Daftar Lomba.', href: '/pose/register' },
-            { iconName: 'Upload', title: 'Submit Karya', desc: 'Kirim karya lomba.', href: '/pose/submit' },
-            { iconName: 'Users', title: 'Nilai', desc: 'Cek Nilai Lomba.', href: '/pose/nilai' },
-            { iconName: 'Users', title: 'Sertifikat', desc: 'Cek sertifikat juara lomba.', href: '/pose/sertifikat' },
+            { iconName: 'Users', title: 'Tim', desc: 'Cek semua tim yang mengikuti lomba.', href: '/pose/team' },
+            { iconName: 'Trophy', title: 'Jadwal & Klasemen', desc: 'Cek jadwal dan klasemen pertandingan setiap cabang.', href: '/pose/jadwal' },
+            { iconName: 'Users', title: 'Daftar Lomba', desc: 'Daftarkan diri kamu untuk mengikuti lomba.', href: '/pose/register' },
+            { iconName: 'Users', title: 'Daftar Lomba Lanjutan', desc: 'Daftarkan diri kamu untuk mengikuti lomba.', href: '/pose/register/lanjut' },
+            { iconName: 'Upload', title: 'Submit Karya', desc: 'Kirimkan karya kamu untuk lomba.', href: '/pose/submission' },
+            { iconName: 'Users', title: 'Nilai', desc: 'Cek nilai lomba kamu.', href: '/pose/nilai' },
+            { iconName: 'Users', title: 'Sertifikat', desc: 'Cek sertifikat lomba kamu.', href: '/pose/sertifikat' },
             { iconName: 'Users', title: 'Syarat & Ketentuan', desc: 'Informasi Syarat & Ketentuan Lomba.', href: '/pose/ketentuan' },
-            { iconName: 'BookOpen', title: 'Buku Panduan', desc: 'Informasi Buku Panduan.', href: '/pose/panduan' },
-            { iconName: 'MessageCircle', title: 'Kontak', desc: 'Hubungi panitia POSE untuk pendaftaran dan informasi.', href: '/pose/contact' },
+            { iconName: 'BookOpen', title: 'Buku Panduan', desc: 'Informasi Buku Panduan dan Video Panduan.', href: '/pose/panduan' },
+            { iconName: 'MessageCircle', title: 'Kontak', desc: 'Informasi Kontak Panitia POSE.', href: '/pose/contact' },
         ];
     }
 };
@@ -109,8 +112,8 @@ const getTimelineConfig = (site) => {
     } else {
         return [
             { day: 'Fase 1', title: 'Pendaftaran & Seleksi', desc: 'Pendaftaran atlet dan audisi cabang seni dari setiap prodi.' },
-            { day: 'Fase 2', title: 'Pertandingan', desc: 'Babak penyisihan dan semifinal seluruh cabang olahraga & seni.' },
-            { day: 'Fase 3', title: 'Grand Final', desc: 'Final cabang unggulan, penyerahan piala, dan closing ceremony.' }
+            { day: 'Fase 2', title: 'Pertandingan', desc: 'Babak penyisihan dan semifinal seluruh cabang olahraga.' },
+            { day: 'Fase 3', title: 'Grand Final', desc: 'Final cabang olahraga, penyerahan piala, dan closing ceremony.' }
         ];
     }
 };
@@ -124,7 +127,7 @@ export async function getSiteContent(site) {
         subtitle: isPkkmb ? 'Pengenalan Kehidupan Kampus bagi Mahasiswa Baru' : 'Pekan Olahraga dan Seni',
         description: isPkkmb
             ? 'Selamat datang, generasi baru Politeknik LP3I! PKKMB adalah gerbang awal perjalanan akademismu — temukan pengumuman, kelompok, dan informasi penting di sini.'
-            : 'Raih prestasi, tunjukkan bakat! POSE adalah ajang bergengsi antarprodi — olahraga, seni, dan semangat juara dalam satu panggung.',
+            : 'Raih prestasi, tunjukkan bakat! POSE adalah ajang bergengsi antarprodi sekaligus antarkampus — olahraga, seni, dan semangat juara dalam satu panggung.',
         logo: isPkkmb ? logoPkkmb : logoPose,
         stats: getStatsConfig(site),
         features: getFeaturesConfig(site),

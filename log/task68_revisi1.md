@@ -1,0 +1,2 @@
+fokus ke barirer schedule yang berada difile src/components/public/ScheduleBarrier.js
+saya ingin tampilan desain atau UI/UXnya perbaikilah karna menurutku masuk terlihat jelek dan untuk warna formal saja hitam putih sesuai dengan mode dark/light yang aktif. untuk layout gunakan yang rapih jangan terlalu ramai dan ukuran fontnya sesuaikan dengan mobile atau destop.

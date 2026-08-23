@@ -30,7 +30,7 @@ const isValidInput = (str) => {
     return !regex.test(str);
 };
 
-export default function FormRegister({ formConfig }) {
+export default function FormRegister({ formConfig, nominalOverride = null, requiresBuktiOverride = null, forceShowNominal = false }) {
     const availableKategori = formConfig?.kategori_pendaftar
         ? formConfig.kategori_pendaftar.split(',')
         : ['Mahasiswa LP3I', 'Siswa', 'Dosen', 'Umum', 'Alumni LP3I'];
@@ -73,11 +73,15 @@ export default function FormRegister({ formConfig }) {
     const registeredTeamCount = teamCounts[kategori] || 0;
     const isQuotaFull = registeredTeamCount >= maksTeam;
 
-    const nominalAktif = currentCategoryPricing !== undefined && currentCategoryPricing !== null
+    const baseNominal = currentCategoryPricing !== undefined && currentCategoryPricing !== null
         ? (currentCategoryPricing.nominal !== undefined ? currentCategoryPricing.nominal : 0)
         : (formConfig?.nominal != null ? formConfig.nominal : 0);
 
-    const requiresBukti = formConfig?.butuh_bukti !== false || kategori !== 'Mahasiswa LP3I';
+    const nominalAktif = nominalOverride !== null ? nominalOverride : baseNominal;
+
+    const requiresBukti = requiresBuktiOverride !== null
+        ? (requiresBuktiOverride || kategori !== 'Mahasiswa LP3I')
+        : (formConfig?.butuh_bukti !== false || kategori !== 'Mahasiswa LP3I');
 
     const isMhsLP3I = kategori === 'Mahasiswa LP3I';
     const isAlumniLP3I = kategori === 'Alumni LP3I';
@@ -1274,14 +1278,24 @@ export default function FormRegister({ formConfig }) {
                                 })()}
 
                                 {/* Nominal Tagihan */}
-                                {nominalAktif > 0 && (
+                                {(nominalAktif > 0 || forceShowNominal || nominalOverride !== null) && (
                                     <div className="mt-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex justify-between items-center">
                                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Tagihan ({kategori})</span>
                                         <span className="text-lg font-bold text-gray-900 dark:text-white">
-                                            Rp {nominalAktif.toLocaleString('id-ID')}
+                                            Rp {nominalAktif.toLocaleString('id-ID')}/{isIndividu ? 'individu' : 'team'}
                                         </span>
                                     </div>
                                 )}
+                            </div>
+                        )}
+
+                        {/* Nominal Tagihan ketika Pembayaran disembunyikan (misal form biasa / sudah isi form wajib) */}
+                        {!requiresBukti && nominalAktif > 0 && (
+                            <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex justify-between items-center">
+                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Tagihan ({kategori})</span>
+                                <span className="text-lg font-bold text-gray-900 dark:text-white">
+                                    Rp {nominalAktif.toLocaleString('id-ID')}/{isIndividu ? 'individu' : 'team'}
+                                </span>
                             </div>
                         )}
 

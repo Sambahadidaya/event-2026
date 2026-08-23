@@ -1,0 +1,3 @@
+fokus ke halaman nilai pose yang difile src/app/pose/nilai/page.js dan src/app/pose/nilai/[link]/page.js.
+perbaikilah UI/UXnya karna menurutku masih kurang enak dilihat dan masih banyak warna bercampur aduk dan saya ingin warnanya formal aja yang hitam putih sesuai dengan mode dark/light yang ada sedikit warna orennya itu sebagai aksen aja.
+terus di halaman panitianya yang di src/app/panitia/pj_lomba/penilaian/page.js tepatnya dibagian tabel Detail Penilaian Juri saya ingin ada kolom baru yaitu untuk melihat detailnya dengan judul kolomnya detail dan isi rownya berupa tombol lihat yang ketika dilihat maka akan muncul modal detail penilaiannya sesuai dengan id atau team row itu 

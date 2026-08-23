@@ -40,7 +40,7 @@ export default function PanitiaLayout({ children }) {
 
     const updateHeartbeat = async (userId) => {
         if (userId) {
-            await updateAdminStatus(userId, { last_active: new Date().toISOString() });
+            await updateAdminStatus(userId, { is_online: true, last_active: new Date().toISOString() });
         }
     };
 
@@ -74,6 +74,7 @@ export default function PanitiaLayout({ children }) {
                 setAdminData(adminUser);
                 if (adminUser.user_id) {
                     userIdRef.current = adminUser.user_id;
+                    updateHeartbeat(adminUser.user_id);
                 }
             } else {
                 setLoading(false);
@@ -111,6 +112,13 @@ export default function PanitiaLayout({ children }) {
         window.addEventListener('beforeunload', handleUnloadOrClose);
         window.addEventListener('pagehide', handleUnloadOrClose);
         document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        // Periodic heartbeat every 30 seconds to keep online status active
+        heartbeatInterval.current = setInterval(() => {
+            if (document.visibilityState === 'visible' && userIdRef.current) {
+                updateHeartbeat(userIdRef.current);
+            }
+        }, 30000);
 
         // Setup activity listeners
         window.addEventListener('mousemove', resetActivityTimer);

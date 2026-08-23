@@ -1,7 +1,7 @@
 import { MessageCircle } from 'lucide-react';
 import ContactForm from '@/components/ContactForm';
 import PageHero from '@/components/public/PageHero';
-import ScheduleBarrier from '@/components/public/ScheduleBarrier';
+import PjLombaContactSection from '@/components/public/PjLombaContactSection';
 
 export default function PoseContact() {
     return (
@@ -10,10 +10,12 @@ export default function PoseContact() {
                 site="pose"
                 icon={MessageCircle}
                 title="Kontak Panitia POSE"
-                subtitle="Punya pertanyaan seputar pendaftaran atau jadwal? Hubungi kami di sini."
+                subtitle="Ada pertanyaan, masukan, atau kritik? Sampaikan melalui form di bawah ini. Atau hubungi Kontak Penanggung Jawab (PJ) Lomba dibawah form ini."
             />
             <ContactForm site="pose" />
 
+            <PjLombaContactSection site="pose" />
         </div>
     );
 }
+

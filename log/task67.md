@@ -1,0 +1,4 @@
+fokus ke halaman pose public sama pkkmb public yang difile src/app/pose/page.js atau src/app/pose/layout.js dan src/app/pkkmb/page.js atau src/app/pkkmb/layout.js.
+saya ingin ketika awal atau pertama kali user membuka saya ingin ada pop up atau modal muncul yang memberitahukan update versi website itu, yang dimodalnya berisi teks dan recap atau list updatenya dan dibawah teksnya ada tombol oke atau lihat detail versi yang diarahkan ke halaman panduan tepatnya pada bagian /pkkmb/panduan atau /pose/panduan yang bagian updateVersi, tapi aku bingung itu gimana caranya atau logicnya karna bisa saja user sudah pernah masuk tapi aku ada update terbaru dan mungkin ini akan memakai localstrage ya?
+terus saya ingin ada src/components/public/ baru dan api baru yang di src/api/logic/ baru dan pastinya data baru yang di src/data/
+coba bacalah codingan yang relevan lalu planningkanlah

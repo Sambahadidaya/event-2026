@@ -26,6 +26,43 @@ ChartJS.register(
   Legend
 );
 
+function getWibDate(dateInput) {
+  if (!dateInput) return null;
+  if (typeof dateInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateInput.trim())) {
+    const [y, m, dayStr] = dateInput.trim().split('-').map(Number);
+    return new Date(y, m - 1, dayStr, 12, 0, 0);
+  }
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return null;
+
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Jakarta',
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      second: 'numeric',
+      hour12: false
+    });
+
+    const parts = formatter.formatToParts(d);
+    let year = 0, month = 0, day = 0, hour = 0, minute = 0, second = 0;
+    for (const p of parts) {
+      if (p.type === 'year') year = parseInt(p.value, 10);
+      if (p.type === 'month') month = parseInt(p.value, 10) - 1;
+      if (p.type === 'day') day = parseInt(p.value, 10);
+      if (p.type === 'hour') hour = parseInt(p.value, 10);
+      if (p.type === 'minute') minute = parseInt(p.value, 10);
+      if (p.type === 'second') second = parseInt(p.value, 10);
+    }
+    return new Date(year, month, day, hour, minute, second);
+  } catch (e) {
+    return d;
+  }
+}
+
 export default function KeuanganAreaChart({
   transactions = [],
   pesertaLunas = [],
@@ -43,7 +80,7 @@ export default function KeuanganAreaChart({
         const isExpense = item.kategori?.type_transaksi === 'expense' || item.kode_payer?.startsWith('EXP');
         const val = Number(item.nominal || 0);
         const dateStr = item.tanggal_transaksi || item.created_at;
-        const date = dateStr ? new Date(dateStr) : null;
+        const date = getWibDate(dateStr);
         if (date && !isNaN(date.getTime())) {
           list.push({ date, nominal: val, type: isExpense ? 'expense' : 'income' });
 
@@ -64,7 +101,7 @@ export default function KeuanganAreaChart({
             nominal = formRegisterMap[kodeForm].nominal || 0;
           }
         }
-        const date = peserta.created_at ? new Date(peserta.created_at) : null;
+        const date = getWibDate(peserta.created_at);
         if (date && !isNaN(date.getTime())) {
           list.push({ date, nominal, type: 'income' });
         }

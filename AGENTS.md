@@ -923,7 +923,9 @@ VALUES
 │   │   │   ├── ketentuanLogic.js
 │   │   │   ├── panduan_admin.js
 │   │   │   ├── panduanLogic.js
-│   │   │   └── panitiaAuthLogic.js
+│   │   │   ├── panduanPdfAction.js
+│   │   │   ├── panitiaAuthLogic.js
+│   │   │   └── updateVersionLogic.js
 │   │   ├── pdf/
 │   │   │   └── route.js
 │   │   ├── supabase/
@@ -958,7 +960,8 @@ VALUES
 │   │   │   │   ├── pengembang.js
 │   │   │   │   ├── penilaian.js
 │   │   │   │   ├── peserta.js
-│   │   │   │   ├── sales.jsjs
+│   │   │   │   ├── register_lanjut.js
+│   │   │   │   ├── sales.js
 │   │   │   │   ├── submission.js
 │   │   │   │   └── team.js
 │   │   │   ├── storage.js
@@ -1142,6 +1145,8 @@ VALUES
 │   │       │   ├── dashboard
 │   │       │   │   └── page.js
 │   │       │   ├── lanjut
+│   │       │   │   ├── [id]
+│   │       │   │   │   └── page.js
 │   │       │   │   └── page.js
 │   │       │   └── page.js
 │   │       ├── submission/
@@ -1239,6 +1244,8 @@ VALUES
 │   │   │   ├── Carousel.js
 │   │   │   ├── FormPengumpulan.js
 │   │   │   ├── FormRegister.js
+│   │   │   ├── FormRegisterLanjut.js
+│   │   │   ├── FormRegisterLanjutStandalone.js
 │   │   │   ├── FormRegistration.js
 │   │   │   ├── FormWajib.js
 │   │   │   ├── HomeLanding.js
@@ -1246,9 +1253,11 @@ VALUES
 │   │   │   ├── PageHero.js
 │   │   │   ├── PanduanPage.js
 │   │   │   ├── PengembangBarrier.js
+│   │   │   ├── PjLombaContactSection.js
 │   │   │   ├── PublicFooter.js
 │   │   │   ├── ScheduleBarrier.js
 │   │   │   ├── SiteBackground.js
+│   │   │   ├── UpdateVersionModal.js
 │   │   │   └── WaveDivider.js
 │   │   └── panitia/
 │   │       ├── absensi/
@@ -1312,7 +1321,8 @@ VALUES
 │   │   ├── ketentuanData.js
 │   │   ├── lombaPose.js
 │   │   ├── panduan_admin.js
-│   │   └── panduanData.js
+│   │   ├── panduanData.js
+│   │   └── updateVersionData.js
 │   ├── docs/
 │   │   ├── supabase/
 │   │   └── openai/
@@ -1327,6 +1337,7 @@ VALUES
 │       │   ├── certificate.js
 │       │   ├── invoice.js
 │       │   ├── medis.js
+│       │   ├── panduanKetentuan.js
 │       │   ├── penilaian.js
 │       │   ├── report.js
 │       │   ├── sales.js
@@ -1334,6 +1345,9 @@ VALUES
 │       │   └── template.jsjs
 │       ├── qr/
 │       │   └── qrcode.js
+│       ├── security/
+│       │   ├── inputGuard.js
+│       │   └── rateLimiter.jsjs
 │       ├── adminRoleData.js
 │       ├── dashboardUtils.js
 │       ├── dateUtils.js

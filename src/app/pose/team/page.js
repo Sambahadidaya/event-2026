@@ -74,11 +74,11 @@ function HorizontalScrollRow({ children }) {
             </button>
 
             {/* Scroll Container */}
-            {/* Menggunakan items-stretch agar tinggi card sama rata walau ada yang di-expand */}
+            {/* Menggunakan items-start agar tinggi card tidak memanjang berbarengan saat ada card di-expand */}
             <div
                 ref={rowRef}
                 onScroll={handleScroll}
-                className="flex items-stretch overflow-x-auto scrollbar-none py-8 flex-nowrap scroll-smooth px-[12vw] md:px-8 gap-4 md:gap-6 snap-x snap-mandatory"
+                className="flex items-start overflow-x-auto scrollbar-none py-8 flex-nowrap scroll-smooth px-[12vw] md:px-8 gap-4 md:gap-6 snap-x snap-mandatory"
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
                 {childArray.map((child, idx) => {
@@ -87,12 +87,12 @@ function HorizontalScrollRow({ children }) {
                     return (
                         <div
                             key={idx}
-                            className={`carousel-card-item snap-center shrink-0 transition-all duration-300 ease-in-out transform w-[75vw] sm:w-[280px] md:w-[310px] flex flex-col ${isCenter
+                            className={`carousel-card-item snap-center shrink-0 transition-all duration-300 ease-in-out transform w-[75vw] sm:w-[280px] md:w-[310px] ${isCenter
                                 ? 'scale-105 z-10 opacity-100'
                                 : 'scale-90 opacity-50 blur-[0.3px] md:scale-100 md:opacity-100 md:blur-none'
                                 }`}
                         >
-                            <div className="w-full h-full">
+                            <div className="w-full">
                                 {child}
                             </div>
                         </div>
@@ -184,9 +184,9 @@ export default function PoseTeam() {
         <PengembangBarrier>
 
             <ScheduleBarrier pageType="jadwal">
-                <div className="min-h-screen pt-24 pb-12 sm:pt-32 sm:pb-20 bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-150 transition-colors duration-300">
+                <div className="min-h-screen pt-24 pb-12 sm:pt-32 sm:pb-20 text-gray-900 dark:text-gray-150 transition-colors duration-300">
                     <div className="max-w-7xl mx-auto px-4 md:px-8 space-y-8 pb-20">
-                        <PageHero site="pose" icon={Users} title="Tim POSE" subtitle="Informasi pembagian tim dan peserta lomba" />
+                        <PageHero site="pose" icon={Users} title="Tim POSE" subtitle="Informasi tim dan peserta lomba" />
 
                         {/* Filter and Search Bar */}
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-12">
@@ -333,8 +333,12 @@ export default function PoseTeam() {
 
 function TeamCard({ team, isExpanded, onToggleExpand }) {
     return (
-        <div className="bg-white dark:bg-gray-900/60 rounded-3xl shadow-xs border border-gray-200 dark:border-gray-800 overflow-hidden transition-all duration-300 flex flex-col group h-full">
-            <div className="p-6 flex-1 flex flex-col">
+        <div className="glass rounded-3xl overflow-hidden transition-all duration-300 flex flex-col group">
+            {/* Seluruh area atas bisa diklik untuk expand/collapse */}
+            <div
+                className="p-6 flex-1 flex flex-col cursor-pointer select-none"
+                onClick={onToggleExpand}
+            >
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-4">
                         {team.gambar ? (
@@ -342,7 +346,7 @@ function TeamCard({ team, isExpanded, onToggleExpand }) {
                                 <img src={team.gambar} alt={team.title} className="w-full h-full object-cover" />
                             </div>
                         ) : (
-                            <div className="w-14 h-14 rounded-2xl bg-gray-50 dark:bg-gray-950 flex items-center justify-center text-gray-400 border border-gray-200 dark:border-gray-800 shrink-0">
+                            <div className="w-14 h-14 rounded-2xl bg-white/30 dark:bg-black/30 flex items-center justify-center text-gray-400 border border-white/40 dark:border-white/10 shrink-0">
                                 <ImageIcon size={24} className="opacity-40" />
                             </div>
                         )}
@@ -352,7 +356,7 @@ function TeamCard({ team, isExpanded, onToggleExpand }) {
                             </h3>
                             <div className="flex flex-wrap gap-1.5 items-center">
                                 {team.nama_lomba && (
-                                    <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded bg-gray-105 text-gray-800 dark:bg-gray-800 dark:text-gray-300">
+                                    <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded bg-white/50 dark:bg-white/10 text-gray-800 dark:text-gray-300">
                                         {team.nama_lomba}
                                     </span>
                                 )}
@@ -364,6 +368,10 @@ function TeamCard({ team, isExpanded, onToggleExpand }) {
                             </div>
                         </div>
                     </div>
+                    {/* Indikator expand di pojok kanan atas */}
+                    <div className="w-7 h-7 rounded-full bg-white/30 dark:bg-white/10 flex items-center justify-center text-gray-500 dark:text-gray-400 shrink-0 ml-2">
+                        {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </div>
                 </div>
 
                 {team.content && team.content.trim() !== '' && (
@@ -372,35 +380,27 @@ function TeamCard({ team, isExpanded, onToggleExpand }) {
                     </p>
                 )}
 
-                <div className="mt-auto pt-4 border-t border-gray-100 dark:border-gray-800/80">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="flex -space-x-2">
-                                {team.team_members?.slice(0, 3).map((m, i) => (
-                                    <div key={i} className="w-7 h-7 rounded-full bg-gray-205 dark:bg-gray-800 border-2 border-white dark:border-gray-900 flex items-center justify-center text-[10px] font-bold text-gray-700 dark:text-gray-300 z-10">
-                                        {m.nama.charAt(0).toUpperCase()}
-                                    </div>
-                                ))}
-                                {team.team_members?.length > 3 && (
-                                    <div className="w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-850 border-2 border-white dark:border-gray-900 flex items-center justify-center text-[10px] font-bold text-gray-500 dark:text-gray-400 z-10">
-                                        +{team.team_members.length - 3}
-                                    </div>
-                                )}
-                            </div>
-                            <span className="text-[11px] text-gray-500 font-semibold">{team.team_members?.length || 0} Anggota</span>
+                <div className="mt-auto pt-4 border-t border-white/20 dark:border-white/10">
+                    <div className="flex items-center gap-3">
+                        <div className="flex -space-x-2">
+                            {team.team_members?.slice(0, 3).map((m, i) => (
+                                <div key={i} className="w-7 h-7 rounded-full bg-white/40 dark:bg-white/10 border-2 border-white/60 dark:border-white/20 flex items-center justify-center text-[10px] font-bold text-gray-700 dark:text-gray-300 z-10">
+                                    {m.nama.charAt(0).toUpperCase()}
+                                </div>
+                            ))}
+                            {team.team_members?.length > 3 && (
+                                <div className="w-7 h-7 rounded-full bg-white/30 dark:bg-white/10 border-2 border-white/60 dark:border-white/20 flex items-center justify-center text-[10px] font-bold text-gray-500 dark:text-gray-400 z-10">
+                                    +{team.team_members.length - 3}
+                                </div>
+                            )}
                         </div>
-                        <button
-                            onClick={onToggleExpand}
-                            className="w-7 h-7 rounded-full bg-gray-50 dark:bg-gray-850 flex items-center justify-center text-gray-400 hover:text-black dark:hover:text-white transition-colors"
-                        >
-                            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                        </button>
+                        <span className="text-[11px] text-gray-500 dark:text-gray-400 font-semibold">{team.team_members?.length || 0} Anggota</span>
                     </div>
                 </div>
             </div>
 
             {/* Expanded Content */}
-            <div className={`transition-all duration-300 overflow-hidden bg-gray-50/50 dark:bg-gray-900/30 border-t border-gray-100 dark:border-gray-800/80 ${isExpanded ? 'max-h-96 opacity-100 overflow-y-auto' : 'max-h-0 opacity-0'}`}>
+            <div className={`transition-all duration-300 overflow-hidden bg-white/20 dark:bg-white/5 border-t border-white/20 dark:border-white/10 ${isExpanded ? 'max-h-96 opacity-100 overflow-y-auto' : 'max-h-0 opacity-0'}`}>
                 <div className="p-5">
                     <h4 className="text-xs font-bold text-gray-900 dark:text-white mb-3">Daftar Anggota</h4>
                     {(!team.team_members || team.team_members.length === 0) ? (

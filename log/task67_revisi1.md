@@ -1,0 +1,2 @@
+fokus ke halaman panduan yaitu pada src/components/public/PanduanPage.js
+saya ingin pada tampilan mobile itukan ada tombol Menu Panduan, nah saya ingin ketika discrol ke bawah itu tombol menu panduannya tidak menghilang (tidak ikut ke scrol atau ketutup) tpi saya ingin ketika discroll kebawah itu maka tombol menu panduannya sedikit naik keatas gitu tapi tidak menghilangkan tombolnya dan maksimal ke atasnya itu dibawah navbar utama, dan ketika discroll keatas itu maka tombol menu panduannya akan turun kebawah lagi.

@@ -355,6 +355,24 @@ export const checkPesertaPoseWajibByNimAndKampus = async (nim, kampus) => {
     }
 };
 
+export const getFormWajibPoseNominal = async () => {
+    try {
+        const { data, error } = await supabaseAdmin
+            .from('form_wajib')
+            .select('nominal')
+            .eq('site', 'pose')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (error) throw error;
+        return data?.nominal || 0;
+    } catch (error) {
+        console.error("Internal Log - Error fetching form wajib pose nominal:", error);
+        return 0;
+    }
+};
+
 export const getMetodePembayaran = async (site) => {
     try {
         let query = supabaseAdmin

@@ -4,6 +4,10 @@ import { panduanData } from '@/data/panduanData';
 
 // Import all pose guide assets
 import poseDaftar from '@/assets/panduan_pose/daftar.png';
+import poseDashboard from '@/assets/panduan_pose/dashboard.png';
+import poseFormWajib from '@/assets/panduan_pose/form-wajib.png';
+import poseFormDaftar from '@/assets/panduan_pose/form-daftar.png';
+import poseFormLanjut from '@/assets/panduan_pose/form-lanjut.png';
 import poseJadwal from '@/assets/panduan_pose/jadwal.png';
 import poseKetentuan from '@/assets/panduan_pose/ketentuan.png';
 import poseKontak from '@/assets/panduan_pose/kontak.png';
@@ -24,7 +28,8 @@ import pkkmbPemberitahuan from '@/assets/panduan_pkkmb/pemberitahuan.png';
 
 // Import update assets
 import poseUpdate11 from '@/assets/update/pose/versi1.1.png';
-import poseUpdate12 from '@/assets/update/pose/versi1.2.png';
+import poseUpdate21 from '@/assets/update/pose/versi2.1.png';
+import poseUpdate22 from '@/assets/update/pose/versi2.2.png';
 
 import pkkmbUpdate11 from '@/assets/update/pkkmb/versi1.1.png';
 import pkkmbUpdate12 from '@/assets/update/pkkmb/versi1.2.png';
@@ -32,6 +37,10 @@ import pkkmbUpdate12 from '@/assets/update/pkkmb/versi1.2.png';
 const imageMap = {
     pose: {
         daftar: poseDaftar,
+        dashboard: poseDashboard,
+        form_wajib: poseFormWajib,
+        form_daftar: poseFormDaftar,
+        form_lanjut: poseFormLanjut,
         jadwal: poseJadwal,
         ketentuan: poseKetentuan,
         kontak: poseKontak,
@@ -57,7 +66,8 @@ const imageMap = {
 const updateImageMap = {
     pose: {
         'versi1.1': poseUpdate11,
-        'versi1.2': poseUpdate12
+        'versi2.1': poseUpdate21,
+        'versi2.2': poseUpdate22,
     },
     pkkmb: {
         'versi1.1': pkkmbUpdate11,

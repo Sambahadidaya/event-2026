@@ -1,0 +1,3 @@
+fokus ke halaman team dan kelompok yaitu di src/app/pose/team/page.js dan src/app/pkkmb/kelompok/page.js
+ada bug UI yaitu ketika aku menekan tombol v itu malah jadi semuanya terbuka padahal saya ingin yang terbuka atau memanjang itu hanya div yang dipilih, dan ketika menekan tombol v di div lain maka otomatis akan pindah memanjangnya, intinya hanya 1 div saja yang memanjang.
+bacalah codingan yang relevan agar tidak cuman asumsi.

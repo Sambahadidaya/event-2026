@@ -1,0 +1,2 @@
+fokus ke halaman register pose mau itu di file src/app/pose/register/page.js atau di src/app/pose/register/lanjut/page.js
+pada div Status Pendaftaran Anda atau yg ada tombol untuk ke dashboard itu saya ingin terus muncul jangan cuman ketika user sudah daftar saja, jadi meskipun belum daftar saya ingin tetap muncul juga. dan ganti kalimat "Anda sudah pernah mendaftar lomba dari perangkat ini. Klik tombol untuk melihat perkembangan verifikasi data Anda." menjadi " Lihat Perkembangan Pendaftaran Anda yang sudah pernah mendaftar dari perangkat ini."

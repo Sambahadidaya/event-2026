@@ -11,18 +11,18 @@ export default function FormPengumpulan({ formData }) {
     const [isUrl, setIsUrl] = useState(false);
     const [fileLink, setFileLink] = useState('');
     const [selectedFile, setSelectedFile] = useState(null);
-    
+
     const [kodeValid, setKodeValid] = useState(null);
     const [kodeError, setKodeError] = useState('');
     const [kodeLoading, setKodeLoading] = useState(false);
     const [teamData, setTeamData] = useState(null);
-    
+
     const [submitLoading, setSubmitLoading] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
 
     const handleVerifyKode = async () => {
         if (!kodeForm || kodeForm.trim().length < 5) return;
-        
+
         setKodeLoading(true);
         setKodeError('');
         setKodeValid(null);
@@ -58,7 +58,7 @@ export default function FormPengumpulan({ formData }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!kodeValid) {
             alert('Mohon verifikasi Kode Form Anda terlebih dahulu.');
             return;
@@ -68,20 +68,20 @@ export default function FormPengumpulan({ formData }) {
             alert('Pilih file untuk diupload.');
             return;
         }
-        
+
         if (isUrl && !fileLink) {
             alert('Masukkan link URL yang valid.');
             return;
         }
 
         setSubmitLoading(true);
-        
+
         let finalLink = fileLink;
 
         if (!isUrl && selectedFile) {
             const uploadFormData = new FormData();
             uploadFormData.append('file', selectedFile);
-            
+
             const uploadRes = await uploadFile(uploadFormData, 'team-images', 'pengumpulan/');
             if (!uploadRes.success) {
                 alert('Gagal mengupload file: ' + uploadRes.error);
@@ -100,13 +100,13 @@ export default function FormPengumpulan({ formData }) {
         };
 
         const submitRes = await submitPengumpulan(payload);
-        
+
         if (submitRes.success) {
             setSuccessMessage('Karya Anda berhasil dikumpulkan! Panitia akan segera memeriksanya.');
         } else {
             alert('Gagal mengumpulkan: ' + submitRes.error);
         }
-        
+
         setSubmitLoading(false);
     };
 
@@ -133,9 +133,16 @@ export default function FormPengumpulan({ formData }) {
             <div className="bg-white dark:bg-gray-900 rounded-3xl overflow-hidden shadow-xl border border-gray-100 dark:border-gray-800">
                 {/* Header */}
                 <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-8 sm:p-12 text-center relative overflow-hidden">
+                    {(formData?.gambar || formData?.form_register?.gambar) && (
+                        <img
+                            src={formData.gambar || formData.form_register.gambar}
+                            alt={formData.form_register?.nama_lomba}
+                            className="absolute inset-0 w-full h-full object-cover opacity-20 pointer-events-none"
+                        />
+                    )}
                     <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
                     <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-400/20 rounded-full blur-2xl translate-y-1/2 -translate-x-1/4 pointer-events-none"></div>
-                    
+
                     <div className="relative z-10">
                         <span className="inline-block px-4 py-1.5 bg-white/20 backdrop-blur-sm text-white rounded-full text-sm font-medium mb-4">
                             Pengumpulan Karya
@@ -155,10 +162,10 @@ export default function FormPengumpulan({ formData }) {
                         {/* Verifikasi Tim */}
                         <div className="bg-gray-50 dark:bg-gray-800/50 p-6 rounded-2xl border border-gray-200 dark:border-gray-700">
                             <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
-                                Kode Tim (Rahasia) <span className="text-red-500">*</span>
+                                Kode Form/Tim <span className="text-red-500">*</span>
                             </label>
                             <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                                Masukkan kode form yang didapat saat pendaftaran tim untuk memverifikasi identitas Anda.
+                                Masukkan kode form yang didapat saat pendaftaran tim untuk memverifikasi identitas Anda. (Contoh: PsKrBmc28MF54xL)
                             </p>
                             <div className="flex gap-3">
                                 <input
@@ -166,7 +173,7 @@ export default function FormPengumpulan({ formData }) {
                                     required
                                     value={kodeForm}
                                     onChange={(e) => setKodeForm(e.target.value)}
-                                    placeholder="Contoh: PsOlBd99Xy"
+                                    placeholder="Contoh: PsKrBmc28MF54xL"
                                     className="flex-1 px-4 py-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-mono"
                                 />
                                 <button
@@ -178,7 +185,7 @@ export default function FormPengumpulan({ formData }) {
                                     {kodeLoading ? 'Cek...' : 'Verifikasi'}
                                 </button>
                             </div>
-                            
+
                             {kodeValid === true && teamData && (
                                 <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl flex items-start gap-3 animate-in fade-in">
                                     <CheckCircle2 className="text-green-500 shrink-0 mt-0.5" size={18} />
@@ -190,7 +197,7 @@ export default function FormPengumpulan({ formData }) {
                                     </div>
                                 </div>
                             )}
-                            
+
                             {kodeValid === false && (
                                 <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-start gap-3 animate-in fade-in">
                                     <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={18} />
@@ -204,26 +211,24 @@ export default function FormPengumpulan({ formData }) {
                             <label className="block text-sm font-semibold text-gray-900 dark:text-white">
                                 Metode Pengumpulan <span className="text-red-500">*</span>
                             </label>
-                            
+
                             <div className="flex gap-4">
-                                <label className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all ${
-                                    !kodeValid
+                                <label className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all ${!kodeValid
                                         ? 'border-gray-200 dark:border-gray-700 bg-gray-55/30 text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50'
                                         : !isUrl
                                             ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 cursor-pointer'
                                             : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer'
-                                }`}>
+                                    }`}>
                                     <input type="radio" name="uploadType" checked={!isUrl} onChange={() => setIsUrl(false)} disabled={!kodeValid} className="hidden" />
                                     <UploadCloud size={20} />
                                     <span className="font-medium">Upload File</span>
                                 </label>
-                                <label className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all ${
-                                    !kodeValid
+                                <label className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all ${!kodeValid
                                         ? 'border-gray-200 dark:border-gray-700 bg-gray-55/30 text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50'
                                         : isUrl
                                             ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 cursor-pointer'
                                             : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer'
-                                }`}>
+                                    }`}>
                                     <input type="radio" name="uploadType" checked={isUrl} onChange={() => setIsUrl(true)} disabled={!kodeValid} className="hidden" />
                                     <LinkIcon size={20} />
                                     <span className="font-medium">Input Link</span>

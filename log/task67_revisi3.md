@@ -1,0 +1,4 @@
+fokus ke halaman form pada register pada components/public/FormRegister.js
+saya ingin di div nominal ketika butuh_buktinya false nominalnya sembunyikan saja jangan ditampilkan
+terus pada halaman form register lanjutan pada components/public/FormRegisterLanjut.js saya ingin ketika inputan apakah sudah mengisi form wajib dan jawabannya Sudah Mengisi Form Wajib POSE maka jika masih ada nominal yang tersisa itu harus mengunggah bukti pembayaran juga seperti form register biasa tapi jika nominalnya 0 maka tidak perlu mengunggah bukti pembayaran
+coba bacalah codingan yang relevan dan api yang relevan agar tidak salah logic dan jangan sampai merusak logic yang lain

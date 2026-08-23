@@ -2,17 +2,24 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Mail, ExternalLink } from 'lucide-react';
 import { getTheme } from '@/lib/siteThemes';
 import { panduanData } from '@/data/panduanData';
 import logoPkkmb from '@/assets/logopkkmb.png';
 import logoPose from '@/assets/logopose.jpg';
 
-export default function PublicFooter({ site, links }) {
+export default function PublicFooter({ site, links = [] }) {
+    const pathname = usePathname();
     const theme = getTheme(site);
     const year = new Date().getFullYear();
     const logo = site === 'pkkmb' ? logoPkkmb : logoPose;
     const latestVersion = panduanData[site]?.updateVersi?.[0]?.versi || 'v1.2';
+    const isPkkmb = site === 'pkkmb';
+
+    if (pathname && pathname.startsWith('/pkkmb/materi/')) {
+        return null;
+    }
 
     return (
         <footer className={`relative z-10 mt-auto ${theme.footerBg} text-white overflow-hidden`}>
@@ -22,7 +29,7 @@ export default function PublicFooter({ site, links }) {
             <div className="max-w-6xl mx-auto px-6 md:px-8 pt-16 pb-8 relative z-10">
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-8">
                     {/* Brand */}
-                    <div className="md:col-span-5 flex flex-col items-start text-left">
+                    <div className="md:col-span-4 flex flex-col items-start text-left">
                         <div className="flex items-center gap-4 mb-5">
                             <div className="w-14 h-14 rounded-2xl overflow-hidden ring-4 ring-white/10 shrink-0 bg-white/10 shadow-xl">
                                 <Image
@@ -44,24 +51,45 @@ export default function PublicFooter({ site, links }) {
                     </div>
 
                     {/* Navigasi */}
-                    <div className="md:col-span-3 flex flex-col items-start">
+                    <div className="md:col-span-5 flex flex-col items-start w-full">
                         <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-white/40 mb-6">Navigasi</h3>
-                        <nav className="flex flex-col gap-3.5">
-                            {links.map(link => (
-                                <Link
-                                    key={link.href}
-                                    href={link.href}
-                                    className="text-sm text-white/70 hover:text-white transition-all duration-300 inline-flex items-center gap-3 group"
-                                >
-                                    <span className="w-1.5 h-1.5 rounded-full bg-white/20 group-hover:bg-white group-hover:scale-125 transition-all duration-300" />
-                                    <span className="group-hover:translate-x-1 transition-transform duration-300">{link.label}</span>
-                                </Link>
-                            ))}
+                        <nav className="grid grid-cols-2 gap-x-6 sm:gap-x-8 gap-y-3.5 w-full">
+                            {links.map(link => {
+                                const isActive = pathname === link.href || (link.href !== `/${site}` && link.href !== '/' && pathname?.startsWith(link.href));
+                                return (
+                                    <Link
+                                        key={link.href}
+                                        href={link.href}
+                                        className={`text-sm transition-all duration-300 inline-flex items-center gap-2.5 group relative ${isActive
+                                            ? (isPkkmb
+                                                ? 'text-[#FFC872] font-bold translate-x-1'
+                                                : site === 'pose'
+                                                    ? 'text-[#FCBF49] font-bold translate-x-1'
+                                                    : 'text-teal-300 font-bold translate-x-1')
+                                            : 'text-white/70 hover:text-white font-medium'
+                                            }`}
+                                    >
+                                        <span
+                                            className={`rounded-full transition-all duration-300 shrink-0 ${isActive
+                                                    ? (isPkkmb
+                                                        ? 'w-2 h-2 bg-[#FFC872] shadow-sm shadow-[#FFC872]/80 ring-2 ring-[#FFC872]/40 scale-110'
+                                                        : site === 'pose'
+                                                            ? 'w-2 h-2 bg-[#FCBF49] shadow-sm shadow-[#FCBF49]/80 ring-2 ring-[#FCBF49]/40 scale-110'
+                                                            : 'w-2 h-2 bg-teal-300 shadow-sm shadow-teal-300/80 ring-2 ring-teal-300/40 scale-110')
+                                                    : 'w-1.5 h-1.5 bg-white/20 group-hover:bg-white group-hover:scale-125'
+                                                }`}
+                                        />
+                                        <span className="group-hover:translate-x-1 transition-transform duration-300 truncate">
+                                            {link.label}
+                                        </span>
+                                    </Link>
+                                );
+                            })}
                         </nav>
                     </div>
 
                     {/* Portal & CTA */}
-                    <div className="md:col-span-4 flex flex-col items-start mt-2 md:mt-0">
+                    <div className="md:col-span-3 flex flex-col items-start mt-2 md:mt-0">
                         <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-white/40 mb-6">Hubungi Kami</h3>
                         <p className="text-white/60 text-sm mb-6 leading-relaxed max-w-xs">
                             Ada pertanyaan seputar kegiatan? Jangan ragu hubungi panitia kami.
@@ -117,3 +145,4 @@ export default function PublicFooter({ site, links }) {
         </footer>
     );
 }
+
