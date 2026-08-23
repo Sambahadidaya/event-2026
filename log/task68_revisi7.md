@@ -1,0 +1,1 @@
+fokus ke halaman lending page pada site pkkmb, saya ingin div logonya yang diats tombol lihat filosofi logo itu divnya samar dan ada icon svg mata yang mengartikan belum bisa dilihat dan tombol lihat filosofinya menjadi tidak bisa dibuka. dan ini saya ingin mengontrol kapan bisa dibukanya dan kapan disamarkan ini jadi berikan tahapannya juga dikomentar kodingannya itu.

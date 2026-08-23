@@ -8,6 +8,29 @@ import { getTheme } from '@/lib/siteThemes';
 import WaveDivider from '@/components/public/WaveDivider';
 import Carousel from '@/components/public/Carousel';
 
+/**
+ * =========================================================================================
+ * KONFIGURASI STATUS TAMPILAN LOGO PKKMB 2026
+ * =========================================================================================
+ * Ubah nilai variabel `IS_PKKMB_LOGO_REVEALED` di bawah ini untuk mengontrol tampilan Logo PKKMB:
+ * 
+ * 📌 PANDUAN CARA MENGONTROL STATUS LOGO PKKMB:
+ * 
+ * 1. MENSAMARKAN / MENGUNCI LOGO (Ketika Logo Belum Dirilis / Belum Boleh Dilihat):
+ *    Set -> const IS_PKKMB_LOGO_REVEALED = false;
+ *    - Div Logo PKKMB di Hero section akan disamarkan (Blur & Opacity rendah).
+ *    - Tampil Overlay Icon Mata Tertutup (EyeOff) & Tulisan "Belum Bisa Dilihat".
+ *    - Tombol "Lihat Filosofi Logo" akan TERKUNCI / DISABLED (tidak bisa diklik).
+ * 
+ * 2. MEMBUKA / MENGAKTIFKAN LOGO (Ketika Logo Sudah Resmi Dirilis):
+ *    Set -> const IS_PKKMB_LOGO_REVEALED = true;
+ *    - Div Logo PKKMB akan tampil tajam & jernih secara normal.
+ *    - Overlay icon mata tertutup otomatis hilang.
+ *    - Tombol "Lihat Filosofi Logo" BISA DIKLIK untuk membuka Modal Filosofi Logo.
+ * =========================================================================================
+ */
+const IS_PKKMB_LOGO_REVEALED = false;
+
 // Get Lucide Icon Component dynamically from serialized name
 const getLucideIcon = (name) => {
     return LucideIcons[name] || LucideIcons.HelpCircle;
@@ -587,44 +610,98 @@ export default function HomeLanding({ site, content, logoSlides, mascotInfo, lom
 
                                 {/* Mobile Logo Box (shows BELOW title & CTA on mobile) */}
                                 <div className="md:hidden w-full flex flex-col items-center">
-                                    <div className={`relative glass p-6 rounded-[2rem] shadow-2xl ${theme.ring} mb-4 w-56 flex justify-center group hover:scale-[1.02] transition-transform duration-500`}>
+                                    <div className={`relative glass p-6 rounded-[2rem] shadow-2xl ${theme.ring} mb-4 w-56 flex flex-col items-center justify-center group hover:scale-[1.02] transition-transform duration-500 overflow-hidden`}>
                                         <div className={`absolute -inset-4 rounded-[3.5rem] blur-2xl opacity-40 ${theme.blob1} group-hover:opacity-60 transition-opacity`} />
+                                        
+                                        {/* Gambar Logo (Disamarkan jika IS_PKKMB_LOGO_REVEALED = false) */}
                                         <Image
                                             src={content.logo}
                                             alt={`Logo ${content.title}`}
                                             width={200}
                                             height={200}
-                                            className="relative w-32 h-32 object-contain drop-shadow-2xl"
+                                            className={`relative w-32 h-32 object-contain drop-shadow-2xl transition-all duration-500 ${
+                                                !IS_PKKMB_LOGO_REVEALED 
+                                                    ? 'blur-xl opacity-25 scale-95 select-none pointer-events-none' 
+                                                    : ''
+                                            }`}
                                             priority
                                         />
+
+                                        {/* Overlay Icon Mata Tertutup bila logo belum dipublikasikan */}
+                                        {!IS_PKKMB_LOGO_REVEALED && (
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/40 dark:bg-black/60 backdrop-blur-xs rounded-[2rem] z-10 p-3 text-center transition-all duration-300">
+                                                <div className="p-3 rounded-full bg-white/90 dark:bg-slate-800/90 text-rose-500 dark:text-rose-400 shadow-xl mb-2 border border-rose-200 dark:border-rose-900/50 animate-pulse">
+                                                    <LucideIcons.EyeOff size={24} />
+                                                </div>
+                                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-white px-2.5 py-0.5 rounded-full bg-rose-600/90 dark:bg-rose-700/90 shadow-md border border-white/20">
+                                                    Belum Bisa Dilihat
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
+
+                                    {/* Tombol Lihat Filosofi Logo (Disabled jika IS_PKKMB_LOGO_REVEALED = false) */}
                                     <button
-                                        onClick={() => openModal('logo')}
-                                        className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold text-gray-700 dark:text-gray-200 bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-700 backdrop-blur-md transition-all shadow-sm ring-1 ring-black/5 dark:ring-white/10 cursor-pointer"
+                                        onClick={() => IS_PKKMB_LOGO_REVEALED && openModal('logo')}
+                                        disabled={!IS_PKKMB_LOGO_REVEALED}
+                                        title={!IS_PKKMB_LOGO_REVEALED ? "Logo belum dirilis, filosofi belum bisa dibuka" : "Lihat Filosofi Logo"}
+                                        className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all shadow-sm ring-1 ring-black/5 dark:ring-white/10 ${
+                                            IS_PKKMB_LOGO_REVEALED 
+                                                ? 'text-gray-700 dark:text-gray-200 bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-700 backdrop-blur-md cursor-pointer active:scale-95' 
+                                                : 'text-gray-400 dark:text-gray-500 bg-gray-200/50 dark:bg-slate-800/40 opacity-60 cursor-not-allowed pointer-events-none'
+                                        }`}
                                     >
-                                        <LucideIcons.ArrowUpWideNarrow size={16} /> Lihat Filosofi Logo
+                                        {IS_PKKMB_LOGO_REVEALED ? <LucideIcons.ArrowUpWideNarrow size={16} /> : <LucideIcons.EyeOff size={16} />}
+                                        Lihat Filosofi Logo
                                     </button>
                                 </div>
                             </div>
 
                             {/* Desktop Logo Box (hidden on mobile, shows on right on desktop) */}
                             <div className="hidden md:flex flex-col items-center w-72 lg:w-96 shrink-0">
-                                <div className={`relative glass p-10 rounded-[3rem] shadow-2xl ${theme.ring} mb-6 w-full flex justify-center group hover:scale-[1.02] transition-transform duration-500`}>
+                                <div className={`relative glass p-10 rounded-[3rem] shadow-2xl ${theme.ring} mb-6 w-full flex flex-col items-center justify-center group hover:scale-[1.02] transition-transform duration-500 overflow-hidden`}>
                                     <div className={`absolute -inset-4 rounded-[3.5rem] blur-2xl opacity-40 ${theme.blob1} group-hover:opacity-60 transition-opacity`} />
+                                    
+                                    {/* Gambar Logo (Disamarkan jika IS_PKKMB_LOGO_REVEALED = false) */}
                                     <Image
                                         src={content.logo}
                                         alt={`Logo ${content.title}`}
                                         width={240}
                                         height={240}
-                                        className="relative w-56 h-56 object-contain drop-shadow-2xl"
+                                        className={`relative w-56 h-56 object-contain drop-shadow-2xl transition-all duration-500 ${
+                                            !IS_PKKMB_LOGO_REVEALED 
+                                                ? 'blur-2xl opacity-25 scale-95 select-none pointer-events-none' 
+                                                : ''
+                                        }`}
                                         priority
                                     />
+
+                                    {/* Overlay Icon Mata Tertutup bila logo belum dipublikasikan */}
+                                    {!IS_PKKMB_LOGO_REVEALED && (
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/40 dark:bg-black/60 backdrop-blur-xs rounded-[3rem] z-10 p-4 text-center transition-all duration-300">
+                                            <div className="p-4 rounded-full bg-white/90 dark:bg-slate-800/90 text-rose-500 dark:text-rose-400 shadow-xl mb-3 border border-rose-200 dark:border-rose-900/50 animate-pulse">
+                                                <LucideIcons.EyeOff size={34} />
+                                            </div>
+                                            <span className="text-xs font-extrabold uppercase tracking-widest text-white px-4 py-1.5 rounded-full bg-rose-600/90 dark:bg-rose-700/90 shadow-md border border-white/20">
+                                                Belum Bisa Dilihat
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
+
+                                {/* Tombol Lihat Filosofi Logo (Disabled jika IS_PKKMB_LOGO_REVEALED = false) */}
                                 <button
-                                    onClick={() => openModal('logo')}
-                                    className="flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold text-gray-700 dark:text-gray-200 bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-700 backdrop-blur-md transition-all shadow-sm ring-1 ring-black/5 dark:ring-white/10 cursor-pointer"
+                                    onClick={() => IS_PKKMB_LOGO_REVEALED && openModal('logo')}
+                                    disabled={!IS_PKKMB_LOGO_REVEALED}
+                                    title={!IS_PKKMB_LOGO_REVEALED ? "Logo belum dirilis, filosofi belum bisa dibuka" : "Lihat Filosofi Logo"}
+                                    className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold transition-all shadow-sm ring-1 ring-black/5 dark:ring-white/10 ${
+                                        IS_PKKMB_LOGO_REVEALED 
+                                            ? 'text-gray-700 dark:text-gray-200 bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-700 backdrop-blur-md cursor-pointer active:scale-95' 
+                                            : 'text-gray-400 dark:text-gray-500 bg-gray-200/50 dark:bg-slate-800/40 opacity-60 cursor-not-allowed pointer-events-none'
+                                    }`}
                                 >
-                                    <LucideIcons.ArrowUpWideNarrow size={16} /> Lihat Filosofi Logo
+                                    {IS_PKKMB_LOGO_REVEALED ? <LucideIcons.ArrowUpWideNarrow size={16} /> : <LucideIcons.EyeOff size={16} />}
+                                    Lihat Filosofi Logo
                                 </button>
                             </div>
                         </div>
