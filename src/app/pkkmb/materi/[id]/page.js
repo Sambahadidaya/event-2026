@@ -148,7 +148,7 @@ export default function PkkmbMateriDetailPage() {
     return (
         <main className="min-h-screen relative flex flex-col font-sans text-slate-900 dark:text-slate-100 overflow-x-hidden">
             <SiteBackground site="pkkmb" subtle />
-            <PengembangBarrier>
+            <PengembangBarrier site="pkkmb" route="/materi">
 
                 {/* Header Fixed */}
                 <div className="fixed top-0 left-0 right-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 shadow-sm">

@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { getStatusPengembangan } from '@/api/supabase/public/pengembang';
 import { Wrench } from 'lucide-react';
 
-export default function PengembangBarrier({ children }) {
+export default function PengembangBarrier({ children, site, route }) {
     const [loading, setLoading] = useState(true);
     const [locked, setLocked] = useState(false);
     const [portalRoot, setPortalRoot] = useState(null);
@@ -17,7 +17,7 @@ export default function PengembangBarrier({ children }) {
     useEffect(() => {
         const checkStatus = async () => {
             try {
-                const res = await getStatusPengembangan();
+                const res = await getStatusPengembangan(site, route);
                 if (res && res.kunci) {
                     setLocked(true);
                 }
@@ -29,7 +29,7 @@ export default function PengembangBarrier({ children }) {
         };
 
         checkStatus();
-    }, []);
+    }, [site, route]);
 
     if (loading) {
         return (

@@ -8,26 +8,30 @@ import { supabaseAdmin } from '@/lib/supabase';
  */
 
 // Mode Production 
-export const getStatusPengembangan = async () => {
+export const getStatusPengembangan = async (site, route) => {
     try {
-        const { data, error } = await supabaseAdmin
-            .from('pengembangan')
-            .select('kunci')
-            .limit(1);
-
-        if (error) throw error;
-        if (!data || data.length === 0) {
+        if (!site || !route) {
             return { kunci: false };
         }
-        return { kunci: Boolean(data[0].kunci) };
+
+        let query = supabaseAdmin
+            .from('pengembangan')
+            .select('kunci')
+            .eq('site', site)
+            .eq('route', route)
+            .maybeSingle();
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+        if (!data) {
+            return { kunci: false };
+        }
+        return { kunci: Boolean(data.kunci) };
     } catch (error) {
         console.error("Internal Log - Error fetching status pengembangan:", error);
         return { kunci: false };
     }
 };
 
-//Mode Development
-// export const getStatusPengembangan = async () => {
-//     return { kunci: false };
-// };
 

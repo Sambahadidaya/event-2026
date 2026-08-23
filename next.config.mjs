@@ -3,8 +3,10 @@
 const nextConfig = {
   reactCompiler: true,
 
-  // Wajib untuk Vercel serverless: jangan bundle puppeteer-core & chromium-min
+  // Wajib untuk Vercel serverless: jangan bundle native binary modules (sharp, canvas, puppeteer)
   serverExternalPackages: [
+    'sharp',
+    'canvas',
     'puppeteer-core',
     '@sparticuz/chromium-min',
     'puppeteer'

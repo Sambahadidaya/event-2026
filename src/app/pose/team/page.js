@@ -181,7 +181,7 @@ export default function PoseTeam() {
     const isFilterActive = mainFilter !== 'Semua' || subFilter !== 'Semua' || searchQuery.trim() !== '';
 
     return (
-        <PengembangBarrier>
+        <PengembangBarrier site="pose" route="/team">
 
             <ScheduleBarrier pageType="jadwal">
                 <div className="min-h-screen pt-24 pb-12 sm:pt-32 sm:pb-20 text-gray-900 dark:text-gray-150 transition-colors duration-300">

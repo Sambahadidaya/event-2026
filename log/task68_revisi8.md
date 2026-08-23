@@ -1,0 +1,2 @@
+saya ingin pada pengembangan itu dipisahkan antara site pkkmb dan site pose. yang berada difile src/api/supabase/public/pengembangan.js, src/api/supabase/admin/pengembangan.js, dan src/app/components/public/PengembangBarrier.js dan src/app/panitia/admin/pengembang/page.js
+nah dihalaman panitianya saya ingin bisa mengatur atau mensetting halaman mana saja yg di lock dan mana saja yg tidak, dan sesuai sitenya juga

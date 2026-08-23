@@ -6,7 +6,7 @@ export default async function PkkmbPanduan() {
     const data = await getPanduanBySite('pkkmb');
 
     return (
-        <PengembangBarrier>
+        <PengembangBarrier site="pkkmb" route="/panduan">
 
             <PanduanPage
                 site="pkkmb"

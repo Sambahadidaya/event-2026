@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowRight, Trophy, Image as ImageIcon, ArrowUp, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import PageHero from '@/components/public/PageHero';
 import ScheduleBarrier from '@/components/public/ScheduleBarrier';
+import PengembangBarrier from '@/components/public/PengembangBarrier';
 
 function HorizontalScrollRow({ children }) {
     const rowRef = useRef(null);
@@ -158,73 +159,75 @@ export default function PoseSubmitPage() {
     );
 
     return (
-        <ScheduleBarrier pageType="jadwal">
-            <div className="min-h-screen pt-24 pb-12 sm:pt-32 sm:pb-20 bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-150 transition-colors duration-300">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <PageHero
-                        title="Pengumpulan Karya"
-                        subtitle="Pilih cabang lomba kreativitas dan kumpulkan hasil karya terbaikmu di sini!"
-                        icon={Trophy}
-                    />
+        <PengembangBarrier site="pose" route="/submission">
+            <ScheduleBarrier pageType="jadwal">
+                <div className="min-h-screen pt-24 pb-12 sm:pt-32 sm:pb-20 bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-150 transition-colors duration-300">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <PageHero
+                            title="Pengumpulan Karya"
+                            subtitle="Pilih cabang lomba kreativitas dan kumpulkan hasil karya terbaikmu di sini!"
+                            icon={Trophy}
+                        />
 
-                    {/* Search Bar */}
-                    <div className="mt-8 flex justify-end">
-                        <div className="relative w-full md:w-80">
-                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={16} />
-                            <input
-                                type="text"
-                                placeholder="Cari cabang lomba kreativitas..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-sm focus:ring-1 focus:ring-black dark:focus:ring-white outline-none transition-all placeholder-gray-400"
-                            />
+                        {/* Search Bar */}
+                        <div className="mt-8 flex justify-end">
+                            <div className="relative w-full md:w-80">
+                                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={16} />
+                                <input
+                                    type="text"
+                                    placeholder="Cari cabang lomba kreativitas..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-sm focus:ring-1 focus:ring-black dark:focus:ring-white outline-none transition-all placeholder-gray-400"
+                                />
+                            </div>
                         </div>
-                    </div>
 
-                    {loading ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8 animate-pulse">
-                            {[1, 2, 3].map(n => (
-                                <div key={n} className="bg-white dark:bg-gray-900 rounded-3xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-xs">
-                                    <div className="h-48 bg-gray-200 dark:bg-gray-800 w-full" />
-                                    <div className="p-6 space-y-4">
-                                        <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/3" />
-                                        <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded w-3/4" />
-                                        <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded-xl w-full mt-4" />
+                        {loading ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8 animate-pulse">
+                                {[1, 2, 3].map(n => (
+                                    <div key={n} className="bg-white dark:bg-gray-900 rounded-3xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-xs">
+                                        <div className="h-48 bg-gray-200 dark:bg-gray-800 w-full" />
+                                        <div className="p-6 space-y-4">
+                                            <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/3" />
+                                            <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded w-3/4" />
+                                            <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded-xl w-full mt-4" />
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : filteredForms.length === 0 ? (
-                        <div className="text-center mt-12 p-12 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl">
-                            <Trophy size={48} className="mx-auto text-gray-400 mb-4" />
-                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Belum Ada Pengumpulan</h3>
-                            <p className="text-gray-500 dark:text-gray-400">Tidak ada pengumpulan karya yang cocok dengan pencarian Anda saat ini.</p>
-                        </div>
-                    ) : (
-                        <div className="mt-8 space-y-4">
-                            <span className="text-sm font-bold text-gray-400 dark:text-gray-500 block uppercase tracking-wider md:text-left">
-                                Daftar Lomba Kreativitas
-                            </span>
-                            <HorizontalScrollRow>
-                                {filteredForms.map((form) => (
-                                    <FormCard key={form.link_id || form.id} form={form} />
                                 ))}
-                            </HorizontalScrollRow>
-                        </div>
-                    )}
+                            </div>
+                        ) : filteredForms.length === 0 ? (
+                            <div className="text-center mt-12 p-12 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl">
+                                <Trophy size={48} className="mx-auto text-gray-400 mb-4" />
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Belum Ada Pengumpulan</h3>
+                                <p className="text-gray-500 dark:text-gray-400">Tidak ada pengumpulan karya yang cocok dengan pencarian Anda saat ini.</p>
+                            </div>
+                        ) : (
+                            <div className="mt-8 space-y-4">
+                                <span className="text-sm font-bold text-gray-400 dark:text-gray-500 block uppercase tracking-wider md:text-left">
+                                    Daftar Lomba Kreativitas
+                                </span>
+                                <HorizontalScrollRow>
+                                    {filteredForms.map((form) => (
+                                        <FormCard key={form.link_id || form.id} form={form} />
+                                    ))}
+                                </HorizontalScrollRow>
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </div>
 
-            {showScrollTop && (
-                <button
-                    onClick={scrollToTop}
-                    className="fixed bottom-24 right-8 z-50 p-3.5 rounded-full bg-black hover:bg-gray-900 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-black shadow-xl transition-all duration-300 hover:scale-105 flex items-center justify-center border border-gray-200 dark:border-gray-800"
-                    aria-label="Scroll to top"
-                >
-                    <ArrowUp size={20} />
-                </button>
-            )}
-        </ScheduleBarrier>
+                {showScrollTop && (
+                    <button
+                        onClick={scrollToTop}
+                        className="fixed bottom-24 right-8 z-50 p-3.5 rounded-full bg-black hover:bg-gray-900 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-black shadow-xl transition-all duration-300 hover:scale-105 flex items-center justify-center border border-gray-200 dark:border-gray-800"
+                        aria-label="Scroll to top"
+                    >
+                        <ArrowUp size={20} />
+                    </button>
+                )}
+            </ScheduleBarrier>
+        </PengembangBarrier>
     );
 }
 

@@ -131,7 +131,7 @@ export default function PkkmbKelompok() {
 
     return (
         <div className="min-h-screen pt-24 pb-12 sm:pt-32 sm:pb-20 text-gray-900 dark:text-gray-150 transition-colors duration-300">
-            <PengembangBarrier>
+        <PengembangBarrier site="pkkmb" route="/kelompok">
 
                 <div className="max-w-7xl mx-auto px-4 md:px-8 space-y-8 pb-20">
                     <PageHero site="pkkmb" icon={Users} title="Kelompok PKKMB" subtitle="Informasi pembagian kelompok dan anggota peserta PKKMB 2026" />

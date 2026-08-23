@@ -22,7 +22,7 @@ export default function PkkmbJadwalPage() {
     }, []);
 
     return (
-        <PengembangBarrier>
+        <PengembangBarrier site="pkkmb" route="/jadwal">
 
             <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32">
                 <div className="text-center mb-16 animate-in fade-in slide-in-from-bottom-5 duration-700">

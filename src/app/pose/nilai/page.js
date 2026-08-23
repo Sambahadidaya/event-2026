@@ -36,7 +36,7 @@ export default function CekNilaiPage() {
     };
 
     return (
-        <PengembangBarrier>
+        <PengembangBarrier site="pose" route="/nilai">
             <ScheduleBarrier pageType="jadwal">
                 <div className="max-w-4xl mx-auto px-4 md:px-8 py-8 md:py-12 animate-in fade-in duration-500 space-y-8 pb-24">
                     <PageHero

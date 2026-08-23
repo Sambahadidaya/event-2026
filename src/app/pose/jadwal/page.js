@@ -147,7 +147,7 @@ export default function PoseJadwal() {
     }, [team, mainFilter, subFilter]);
 
     return (
-        <PengembangBarrier>
+        <PengembangBarrier site="pose" route="/jadwal">
             <ScheduleBarrier pageType="jadwal">
                 <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 md:py-12 animate-in fade-in duration-500 space-y-8 pb-20">
                     <PageHero site="pose" icon={Calendar} title="Jadwal & Tim" subtitle="Jadwal pertandingan dan daftar tim perlombaan" />

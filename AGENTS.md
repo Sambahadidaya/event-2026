@@ -905,6 +905,14 @@ VALUES
   ('MA015', '1005', 'Piutang','Asset','pkkmb')
   ON CONFLICT (kode_akun) DO NOTHING;
 
+CREATE TABLE pengembangan (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    kunci BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.pengembangan ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read pengembangan" ON public.pengembangan FOR SELECT TO public USING (true);
+CREATE POLICY "auth all pengembangan" ON public.pengembangan FOR ALL TO authenticated USING (true) WITH CHECK (true);
 ```
 
 ---

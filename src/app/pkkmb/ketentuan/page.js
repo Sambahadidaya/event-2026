@@ -6,7 +6,7 @@ export default async function PkkmbKetentuan() {
     const data = await getKetentuanBySite('pkkmb');
 
     return (
-        <PengembangBarrier>
+        <PengembangBarrier site="pkkmb" route="/ketentuan">
             <KetentuanPage
                 site="pkkmb"
                 data={data}

@@ -127,7 +127,8 @@ export const lombaPoseList = [
         linkKetentuan: '/pose/ketentuan#dance',
         kategori: 'Team (Maks 5)',
         contacts: [
-            { name: 'Kak Indri', link: 'https://wa.me/6285607415547' }
+            { name: 'Kak Santi', link: 'https://wa.me/6285794210263' },
+            { name: 'Kak Indri', link: 'https://wa.me/6283836123793' }
         ]
     },
     {
