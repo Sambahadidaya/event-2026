@@ -10,10 +10,25 @@ const ALLOWED_MIME_TYPES = [
     'application/zip', 'application/x-zip-compressed', 'application/x-rar-compressed', 'application/vnd.rar'
 ];
 
-import sharp from 'sharp';
+let _sharp = null;
+const getSharp = async () => {
+    if (_sharp === null) {
+        try {
+            const module = await import('sharp');
+            _sharp = module.default || module;
+        } catch (err) {
+            console.warn("Sharp module not available, image compression disabled:", err.message);
+            _sharp = false;
+        }
+    }
+    return _sharp || null;
+};
 
 const compressImage = async (buffer, mime) => {
     try {
+        const sharp = await getSharp();
+        if (!sharp) return buffer;
+
         let imagePipeline = sharp(buffer, { animated: mime === 'image/gif' });
         const metadata = await imagePipeline.metadata();
 
