@@ -1,0 +1,3 @@
+fokus ke halaman register utama yang berada di src/app/pose/register/[id]/page.js atau di components src/components/public/FormRegister.js
+saya ingin untuk formnya itukan yang kategori mahasiswa lp3i datanya diambil dari form wajib nah saya ingin div nominal harganya itu pada kategori mahasiswa lp3i disembunyikan saja karna yaa itukan dari form wajib.
+bacalah api yang relevan yang di src/api/ dan components yang relevan
