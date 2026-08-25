@@ -1,0 +1,2 @@
+fokus ke halaman berikut yaitu di src/app/panitia/keuangan/verifikasi dan src/app/panitia/keuangan/dashboard dan src/app/panitia/pj_lomba/peserta_wajib. saya ingin menambah filter urutan nim.
+terus dihalaman src/app/panitia/pj_lomba/form_register saya ingin pada kolom pencarian atau search itu bukan cuman dari nama tim tapi dari nama atau NIM/Kode pada data Detail Peserta Tim juga.

@@ -101,6 +101,14 @@ export const insertTeamPublic = async (teamPayload) => {
         return { success: true, data };
     } catch (error) {
         console.error("Internal Log - Error inserting team (public):", error);
+        if (
+            error?.code === '23505' ||
+            error?.message?.includes('duplicate key') ||
+            error?.message?.includes('unique_title_team') ||
+            error?.details?.includes('already exists')
+        ) {
+            return { success: false, error: 'Nama Team/Perwakilan sudah digunakan' };
+        }
         return { success: false, error: 'Terjadi kesalahan internal pada server.' };
     }
 };

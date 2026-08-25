@@ -430,7 +430,7 @@ export default function FormRegisterLanjutStandalone({ formConfig }) {
                 formConfig,
                 statusWajib,
                 kategori,
-                teamName: isIndividu ? members[0]?.nama : finalTeamName,
+                teamName: finalTeamName,
                 teamContent: finalTeamContent,
                 members,
                 buktiUrl,

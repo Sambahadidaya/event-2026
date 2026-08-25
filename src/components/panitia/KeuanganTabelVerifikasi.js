@@ -17,6 +17,7 @@ export default function KeuanganTabelVerifikasi({
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('wajib'); // 'wajib' | 'register'
   const [currentPage, setCurrentPage] = useState(1);
+  const [nimSortOrder, setNimSortOrder] = useState('none');
 
   const isPkkmbAdmin = Boolean(adminRole && adminRole.includes('pkkmb'));
 
@@ -30,10 +31,10 @@ export default function KeuanganTabelVerifikasi({
   // Reset page on filter change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, activeTab]);
+  }, [searchQuery, activeTab, nimSortOrder]);
 
   const filteredData = useMemo(() => {
-    return pesertaLunas.filter(item => {
+    const result = pesertaLunas.filter(item => {
       // Filter by activeTab (wajib vs register)
       if (activeTab === 'wajib' && item.jenis_form !== 'wajib') return false;
       if (activeTab === 'register' && item.jenis_form !== 'register') return false;
@@ -50,7 +51,19 @@ export default function KeuanganTabelVerifikasi({
 
       return true;
     });
-  }, [pesertaLunas, activeTab, searchQuery]);
+
+    if (nimSortOrder !== 'none') {
+      result.sort((a, b) => {
+        const nimA = a.nim || '';
+        const nimB = b.nim || '';
+        if (nimSortOrder === 'asc') return nimA.localeCompare(nimB, undefined, { numeric: true });
+        if (nimSortOrder === 'desc') return nimB.localeCompare(nimA, undefined, { numeric: true });
+        return 0;
+      });
+    }
+
+    return result;
+  }, [pesertaLunas, activeTab, searchQuery, nimSortOrder]);
 
   const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE) || 1;
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -118,15 +131,30 @@ export default function KeuanganTabelVerifikasi({
           </div>
         </div>
 
-        <div className="relative">
-          <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Cari nama, nim, kategori, atau kampus..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm text-slate-800 dark:text-white placeholder:text-slate-400"
-          />
+        <div className="flex flex-col sm:flex-row gap-3 items-center">
+          <div className="relative flex-1 w-full">
+            <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Cari nama, nim, kategori, atau kampus..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm text-slate-800 dark:text-white placeholder:text-slate-400"
+            />
+          </div>
+
+          <div className="relative w-full sm:w-52 shrink-0">
+            <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <select
+              value={nimSortOrder}
+              onChange={(e) => setNimSortOrder(e.target.value)}
+              className="w-full pl-9 pr-7 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-xs sm:text-sm text-slate-800 dark:text-white appearance-none cursor-pointer font-medium"
+            >
+              <option value="none">Urutan NIM: Default</option>
+              <option value="asc">NIM: Terkecil → Terbesar</option>
+              <option value="desc">NIM: Terbesar → Terkecil</option>
+            </select>
+          </div>
         </div>
       </div>
 

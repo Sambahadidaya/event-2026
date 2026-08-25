@@ -31,9 +31,11 @@ export default function AdminPesertaWajibLomba() {
     const [searchQuery, setSearchQuery] = useState('');
     const [kampusFilter, setKampusFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [nimSortOrder, setNimSortOrder] = useState('none');
     const [currentPage, setCurrentPage] = useState(1);
     const [kampusFilterOpen, setKampusFilterOpen] = useState(false);
     const [statusFilterOpen, setStatusFilterOpen] = useState(false);
+    const [nimSortOpen, setNimSortOpen] = useState(false);
 
     // Auth check
     useEffect(() => {
@@ -82,7 +84,7 @@ export default function AdminPesertaWajibLomba() {
 
     // ------- COMPUTED DATA -------
     const filteredData = useMemo(() => {
-        let result = data;
+        let result = [...data];
         if (searchQuery) {
             const q = searchQuery.toLowerCase();
             result = result.filter(p =>
@@ -101,8 +103,19 @@ export default function AdminPesertaWajibLomba() {
         } else if (statusFilter === 'dua') {
             result = result.filter(p => p.total_lomba >= 2);
         }
+
+        if (nimSortOrder !== 'none') {
+            result.sort((a, b) => {
+                const nimA = a.nim || '';
+                const nimB = b.nim || '';
+                if (nimSortOrder === 'asc') return nimA.localeCompare(nimB, undefined, { numeric: true });
+                if (nimSortOrder === 'desc') return nimB.localeCompare(nimA, undefined, { numeric: true });
+                return 0;
+            });
+        }
+
         return result;
-    }, [data, searchQuery, kampusFilter, statusFilter]);
+    }, [data, searchQuery, kampusFilter, statusFilter, nimSortOrder]);
 
     const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
     const pagedData = useMemo(() => {
@@ -343,6 +356,34 @@ export default function AdminPesertaWajibLomba() {
                                         type="button"
                                         onClick={() => { setStatusFilter(val); setCurrentPage(1); setStatusFilterOpen(false); }}
                                         className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 ${statusFilter === val ? 'font-bold text-violet-600' : 'text-gray-700 dark:text-gray-300'}`}
+                                    >{label}</button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* NIM Sort Dropdown */}
+                    <div className="relative">
+                        <button
+                            type="button"
+                            onClick={() => setNimSortOpen(!nimSortOpen)}
+                            className="flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        >
+                            <span>{{ none: 'Urutan NIM: Default', asc: 'NIM: Terkecil → Terbesar', desc: 'NIM: Terbesar → Terkecil' }[nimSortOrder]}</span>
+                            <ChevronDown size={14} />
+                        </button>
+                        {nimSortOpen && (
+                            <div className="absolute z-20 mt-1 w-52 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg">
+                                {[
+                                    ['none', 'Urutan NIM: Default'],
+                                    ['asc', 'NIM: Terkecil → Terbesar'],
+                                    ['desc', 'NIM: Terbesar → Terkecil']
+                                ].map(([val, label]) => (
+                                    <button
+                                        key={val}
+                                        type="button"
+                                        onClick={() => { setNimSortOrder(val); setCurrentPage(1); setNimSortOpen(false); }}
+                                        className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 ${nimSortOrder === val ? 'font-bold text-violet-600' : 'text-gray-700 dark:text-gray-300'}`}
                                     >{label}</button>
                                 ))}
                             </div>

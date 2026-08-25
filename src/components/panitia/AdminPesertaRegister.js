@@ -329,7 +329,16 @@ export default function AdminPesertaRegister() {
         if (searchQuery) {
             result = result.filter(item =>
                 (item.title && item.title.toLowerCase().includes(searchLower)) ||
-                (item.team_members && item.team_members.some(m => m.nama?.toLowerCase().includes(searchLower)))
+                (item.team_members && item.team_members.some(m =>
+                    m.nama?.toLowerCase().includes(searchLower) ||
+                    m.kode?.toLowerCase().includes(searchLower)
+                )) ||
+                (item.peserta && item.peserta.some(p =>
+                    p.nama?.toLowerCase().includes(searchLower) ||
+                    p.nim?.toLowerCase().includes(searchLower) ||
+                    p.kode_form?.toLowerCase().includes(searchLower) ||
+                    p.email_wa?.toLowerCase().includes(searchLower)
+                ))
             );
         }
 

@@ -84,8 +84,8 @@ export const submitRegisterLanjut = async ({
         });
 
         if (!teamRes.success) {
-            if (teamRes.error && (teamRes.error.includes('unique_title_team') || teamRes.error.includes('duplicate key') || teamRes.error.includes('duplicate'))) {
-                throw new Error("Nama tim/peserta sudah dipakai. Mohon gunakan nama yang lain.");
+            if (teamRes.error && (teamRes.error.includes('unique_title_team') || teamRes.error.includes('duplicate key') || teamRes.error.includes('duplicate') || teamRes.error.includes('sudah digunakan') || teamRes.error.includes('sudah dipakai') || teamRes.error.includes('Nama Team/Perwakilan'))) {
+                throw new Error("Nama Team/Perwakilan sudah digunakan");
             }
             throw new Error(teamRes.error || 'Gagal menyimpan data tim.');
         }

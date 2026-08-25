@@ -39,6 +39,7 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
     const [jenisBayarFilter, setJenisBayarFilter] = useState('semua');
     const [kategoriFilter, setKategoriFilter] = useState('semua');
     const [kampusFilter, setKampusFilter] = useState('semua');
+    const [nimSortOrder, setNimSortOrder] = useState('none');
 
     useEffect(() => {
         if (isPkkmbAdmin) {
@@ -127,7 +128,7 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
 
     // Filter data Form Wajib
     const filteredWajib = useMemo(() => {
-        return data.filter(item => {
+        const result = data.filter(item => {
             if (item.jenis_form !== 'wajib') return false;
 
             // Filter by statusPembayaran
@@ -158,11 +159,23 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
 
             return true;
         });
-    }, [data, statusFilter, activeSite, kelasFilter, jenisBayarFilter, kategoriFilter, kampusFilter, searchQuery]);
+
+        if (nimSortOrder !== 'none') {
+            result.sort((a, b) => {
+                const nimA = a.nim || '';
+                const nimB = b.nim || '';
+                if (nimSortOrder === 'asc') return nimA.localeCompare(nimB, undefined, { numeric: true });
+                if (nimSortOrder === 'desc') return nimB.localeCompare(nimA, undefined, { numeric: true });
+                return 0;
+            });
+        }
+
+        return result;
+    }, [data, statusFilter, activeSite, kelasFilter, jenisBayarFilter, kategoriFilter, kampusFilter, searchQuery, nimSortOrder]);
 
     // Filter data Form Register
     const filteredRegister = useMemo(() => {
-        return data.filter(item => {
+        const result = data.filter(item => {
             if (item.jenis_form !== 'register') return false;
 
             // Filter by statusPembayaran
@@ -187,7 +200,19 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
 
             return true;
         });
-    }, [data, statusFilter, kategoriFilter, kampusFilter, searchQuery]);
+
+        if (nimSortOrder !== 'none') {
+            result.sort((a, b) => {
+                const nimA = a.nim || '';
+                const nimB = b.nim || '';
+                if (nimSortOrder === 'asc') return nimA.localeCompare(nimB, undefined, { numeric: true });
+                if (nimSortOrder === 'desc') return nimB.localeCompare(nimA, undefined, { numeric: true });
+                return 0;
+            });
+        }
+
+        return result;
+    }, [data, statusFilter, kategoriFilter, kampusFilter, searchQuery, nimSortOrder]);
 
     // Active filtered data for displaying in table
     const filteredData = useMemo(() => {
@@ -200,7 +225,7 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchQuery, statusFilter, activeTab, activeSite, kelasFilter, jenisBayarFilter, kategoriFilter, kampusFilter]);
+    }, [searchQuery, statusFilter, activeTab, activeSite, kelasFilter, jenisBayarFilter, kategoriFilter, kampusFilter, nimSortOrder]);
 
     // Format Columns and Data for TombolCetak (PDF & Excel)
     const isPkkmbWajibTable = activeSite === 'pkkmb' && activeTab === 'wajib';
@@ -544,6 +569,20 @@ export default function AdminVerifikasiKeuangan({ siteType = 'all', adminRole = 
                                 <option value="pending">Pending</option>
                                 <option value="lunas">Lunas</option>
                                 <option value="ditolak">Ditolak</option>
+                            </select>
+                        </div>
+
+                        {/* Dropdown Urutan NIM */}
+                        <div className="relative w-full sm:w-44 shrink-0">
+                            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                            <select
+                                value={nimSortOrder}
+                                onChange={(e) => setNimSortOrder(e.target.value)}
+                                className="w-full pl-9 pr-7 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500/30 text-gray-900 dark:text-white appearance-none cursor-pointer font-medium"
+                            >
+                                <option value="none">Urutan NIM: Default</option>
+                                <option value="asc">NIM: Terkecil → Terbesar</option>
+                                <option value="desc">NIM: Terbesar → Terkecil</option>
                             </select>
                         </div>
 

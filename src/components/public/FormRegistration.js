@@ -617,8 +617,8 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                 });
 
                 if (!teamRes.success) {
-                    if (teamRes.error && (teamRes.error.includes('unique_title_team') || teamRes.error.includes('duplicate key') || teamRes.error.includes('duplicate'))) {
-                        throw new Error("Nama tim/peserta sudah dipakai");
+                    if (teamRes.error && (teamRes.error.includes('unique_title_team') || teamRes.error.includes('duplicate key') || teamRes.error.includes('duplicate') || teamRes.error.includes('sudah digunakan') || teamRes.error.includes('sudah dipakai') || teamRes.error.includes('Nama Team/Perwakilan'))) {
+                        throw new Error("Nama Team/Perwakilan sudah digunakan");
                     }
                     throw new Error(teamRes.error);
                 }
