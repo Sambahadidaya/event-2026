@@ -483,6 +483,13 @@ export const panduanData = {
         },
         updateVersi: [
             {
+                versi: 'versi 2026.2.4',
+                tanggal: '25 Agustus 2026 18.33 WIB',
+                judul: 'Rilis Versi 2.4 — Perbaikan Link Register POSE',
+                isi: 'Perbaikan link register POSE.',
+                imageKey: 'versi2.4'
+            },
+            {
                 versi: 'versi 2026.2.3',
                 tanggal: '25 Agustus 2026',
                 judul: 'Rilis Versi 2.3 — Perbaikan Sistem POSE, Duplikat Nama Team, Optimasi sistem',
