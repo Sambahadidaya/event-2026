@@ -32,7 +32,7 @@
     "react-markdown": "^10.1.0",
     "react-pdf": "^10.4.1",
     "remark-gfm": "^4.0.1",
-    "sharp": "^0.35.3",
+    "sharp": "^0.32.6",
     "tree-node-cli": "^3.0.0",
     "xlsx": "^0.18.5"
   },
@@ -41,8 +41,5 @@
     "babel-plugin-react-compiler": "1.0.0",
     "puppeteer": "^25.4.0",
     "tailwindcss": "^4"
-  },
-  "optionalDependencies": {
-    "@img/sharp-linux-x64": "^0.35.3"
   }
 }
