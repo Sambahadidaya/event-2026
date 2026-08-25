@@ -483,8 +483,15 @@ export const panduanData = {
         },
         updateVersi: [
             {
+                versi: 'versi 2026.2.3',
+                tanggal: '25 Agustus 2026',
+                judul: 'Rilis Versi 2.3 — Perbaikan Sistem POSE, Duplikat Nama Team, Optimasi sistem',
+                isi: 'Perbaikan duplikat nama team. \nOptimasi Sistem POSE.',
+                imageKey: 'versi2.3'
+            },
+            {
                 versi: 'versi 2026.2.2',
-                tanggal: '23 Agustus 2026',
+                tanggal: '24 Agustus 2026',
                 judul: 'Rilis Versi 2.2 — Penambahan Halaman Panduan',
                 isi: 'Penambahan halaman panduan pada portal POSE 2026. \n Dan memperbaiki desain sekaligus sistem form lanjutan dan nilai',
                 imageKey: 'versi2.2'

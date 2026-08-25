@@ -16,17 +16,16 @@ export const updateVersionConfig = {
         ]
     },
     pose: {
-        currentVersion: '2026.2.1',
+        currentVersion: '2026.2.3',
         storageKey: 'pose_last_seen_version',
         updates: [
             {
-                version: '2026.2.1',
-                date: '23 Agustus 2026',
-                title: 'Rilis Versi 2.1 — Modul Panduan & Perbaikan UI/UX & Sistem POSE',
+                version: '2026.2.3',
+                date: '25 Agustus 2026',
+                title: 'Rilis Versi 2.3 — Perbaiki Sistem POSE, Duplikat Nama Team, Optimasi sistem',
                 highlights: [
-                    'Modul Panduan Penggunaan Portal POSE 2026 secara menyeluruh',
-                    'Perbaikan UI/UX Portal POSE 2026 & optimasi navigasi',
-                    'Perbaikan sistem POSE & optimasi sistem'
+                    'Perbaikan duplikat nama team',
+                    'Optimasi Sistem POSE'
                 ]
             }
         ]
