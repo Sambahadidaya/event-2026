@@ -95,10 +95,11 @@ export default function AdminPesertaRegister() {
 
     useEffect(() => {
         if (registerForms && registerForms.length > 0) {
-            import('@/api/supabase/admin/finance').then(async ({ getFormRegisterPricingAdmin }) => {
+            import('@/api/supabase/admin/finance').then(async ({ getFormRegisterPricingAdmin, getKuotaKampusByForm }) => {
                 const statusList = [];
                 for (const form of registerForms) {
                     const pricing = await getFormRegisterPricingAdmin(form.id);
+                    const kuotaKampus = await getKuotaKampusByForm(form.id);
                     const formTeams = data.filter(t =>
                         t.nama_lomba?.toLowerCase().trim() === form.nama_lomba?.toLowerCase().trim() &&
                         t.verivikasi !== false &&
@@ -106,17 +107,22 @@ export default function AdminPesertaRegister() {
                     );
                     let isFull = true;
                     if (pricing && pricing.length > 0) {
-                        let totalMaks = 0;
-                        let totalRegistered = 0;
-                        for (const p of pricing) {
-                            totalMaks += (p.maks_team || 0);
-                            const registered = formTeams.filter(t =>
-                                (t.peserta && t.peserta.some(pe => pe.kategori === p.kategori)) ||
-                                t.peserta?.[0]?.kategori === p.kategori
-                            ).length;
-                            totalRegistered += registered;
+                        let bandungMaks = 0;
+                        let bandungReg = 0;
+                        const p = pricing.find(pr => pr.kategori === 'Mahasiswa LP3I');
+                        if (p) {
+                            const bandungKuota = kuotaKampus?.find(k => k.nama_kampus?.toLowerCase().includes('bandung'));
+                            bandungMaks = bandungKuota ? (bandungKuota.maks_team || 0) : 0;
+                            
+                            bandungReg = formTeams.filter(t => {
+                                const checkMatch = (pe) => {
+                                    if (!pe) return false;
+                                    return pe.kategori === 'Mahasiswa LP3I' && pe.kampus && pe.kampus.toLowerCase().includes('bandung');
+                                };
+                                return (t.peserta && t.peserta.some(checkMatch)) || checkMatch(t.peserta?.[0]);
+                            }).length;
                         }
-                        isFull = totalRegistered >= totalMaks;
+                        isFull = bandungMaks > 0 ? (bandungReg >= bandungMaks) : false;
                     } else {
                         isFull = false;
                     }
@@ -495,19 +501,25 @@ export default function AdminPesertaRegister() {
 
         let sisaKuotaSemua = null;
         if (activeFormPricing.length > 0) {
-            let totalMaks = 0;
-            let totalRegistered = 0;
-            activeFormPricing.forEach(p => {
-                totalMaks += (p.maks_team || 0);
-                const registered = data.filter(t =>
-                    t.nama_lomba?.toLowerCase().trim() === currentLombaName?.toLowerCase().trim() &&
-                    t.verivikasi !== false &&
-                    ((t.peserta && t.peserta.some(pe => pe.kategori === p.kategori)) || t.peserta?.[0]?.kategori === p.kategori) &&
-                    (!activeForm?.kode_form || (t.kode_form && t.kode_form.toLowerCase().startsWith(activeForm.kode_form.toLowerCase())))
-                ).length;
-                totalRegistered += registered;
-            });
-            sisaKuotaSemua = Math.max(0, totalMaks - totalRegistered);
+            let bandungMaks = 0;
+            let bandungReg = 0;
+            const p = activeFormPricing.find(pr => pr.kategori === 'Mahasiswa LP3I');
+            if (p) {
+                const bandungKuota = kampusQuotaData?.find(k => k.nama_kampus?.toLowerCase().includes('bandung'));
+                bandungMaks = bandungKuota ? (bandungKuota.maks_team || 0) : 0;
+                bandungReg = data.filter(t => {
+                    const isNameMatch = t.nama_lomba?.toLowerCase().trim() === currentLombaName?.toLowerCase().trim();
+                    const isCodeMatch = !activeForm?.kode_form || (t.kode_form && t.kode_form.toLowerCase().startsWith(activeForm.kode_form.toLowerCase()));
+                    if (!isNameMatch || t.verivikasi === false || !isCodeMatch) return false;
+
+                    const checkMatch = (pe) => {
+                        if (!pe) return false;
+                        return pe.kategori === 'Mahasiswa LP3I' && pe.kampus && pe.kampus.toLowerCase().includes('bandung');
+                    };
+                    return (t.peserta && t.peserta.some(checkMatch)) || checkMatch(t.peserta?.[0]);
+                }).length;
+            }
+            sisaKuotaSemua = Math.max(0, bandungMaks - bandungReg);
         }
         const subtextSisa = sisaKuotaSemua !== null ? `Sisa Kuota: ${sisaKuotaSemua}` : undefined;
 

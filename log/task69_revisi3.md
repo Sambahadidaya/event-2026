@@ -1,0 +1,2 @@
+fokus ke halaman src/app/panitia/pj_lomba/form_register
+saya ingin isian di div Status Seluruh Lomba Dari HTM Wajib dan Status Seluruh Lomba Dari HTM Lanjutan itu lebih di spesifikkan lagi, kan awalnya cuman mahasiswa lp3i (dalam arti seluruh kampus) nah saya ingin menjadi hanya kampus bandung saja.
