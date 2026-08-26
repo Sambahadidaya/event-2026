@@ -139,7 +139,8 @@ export const KAMPUS_PRODI_CODES = {
         '02': 'Manajemen Informatika',
         '03': 'Akuntansi',
         '04': 'Hubungan Masyarakat',
-        '41': 'Bisnis Digital'
+        '41': 'Bisnis Digital',
+        '42': 'Akuntansi Perpajakan'
     }
 };
 

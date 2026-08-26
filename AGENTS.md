@@ -913,6 +913,35 @@ CREATE TABLE pengembangan (
 ALTER TABLE public.pengembangan ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "public read pengembangan" ON public.pengembangan FOR SELECT TO public USING (true);
 CREATE POLICY "auth all pengembangan" ON public.pengembangan FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.form_pengumpulan 
+ADD COLUMN gambar VARCHAR DEFAULT NULL;
+
+-- Hapus row global lama
+DELETE FROM public.pengembangan;
+
+-- Tambah kolom baru
+ALTER TABLE public.pengembangan 
+    ADD COLUMN site site_type,
+    ADD COLUMN route VARCHAR(255),
+    ADD COLUMN label VARCHAR(255);
+
+-- Tambah unique constraint
+ALTER TABLE public.pengembangan 
+    ADD CONSTRAINT pengembangan_site_route_unique UNIQUE(site, route);
+
+-- Insert per-halaman per-site
+INSERT INTO public.pengembangan (site, route, label, kunci) VALUES
+    ('pkkmb', '/kelompok',  'Kelompok',              false),
+    ('pkkmb', '/jadwal',    'Jadwal',                 false),
+    ('pkkmb', '/materi',    'Materi',                 false),
+    ('pkkmb', '/ketentuan', 'Ketentuan',              false),
+    ('pkkmb', '/panduan',   'Panduan',                false),
+    ('pose',  '/team',      'Team / Pendaftaran',     false),
+    ('pose',  '/jadwal',    'Jadwal Pertandingan',    false),
+    ('pose',  '/nilai',     'Nilai / Penilaian',      false),
+    ('pose',  '/ketentuan', 'Ketentuan',              false);
+
 ```
 
 ---

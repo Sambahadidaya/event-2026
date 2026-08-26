@@ -271,7 +271,7 @@ export default function FormWajib({ formConfig }) {
                     }
 
                     const nimYear = parseInt(m.nim.substring(0, 4), 10);
-                    if (!isNaN(nimYear) && nimYear <= 2024) {
+                    if (!isNaN(nimYear) && nimYear <= 2023) {
                         return window.alert("Pendaftaran ditolak: Anda tidak diizinkan mengikuti kegiatan ini.");
                     }
                 }
@@ -287,13 +287,13 @@ export default function FormWajib({ formConfig }) {
                     if (!m.kampus || !m.prodi || !m.semester) return window.alert("Mohon lengkapi Kampus, Prodi, dan Semester.");
 
                     const semVal = parseInt(m.semester, 10);
-                    if (isNaN(semVal) || semVal > 4) {
+                    if (isNaN(semVal) || semVal > 6) {
                         return window.alert("Pendaftaran ditolak: Anda tidak diizinkan mengikuti kegiatan ini.");
                     }
 
                     const angkatan = semesterToAngkatan(m.semester);
                     const angkatanYear = parseInt(angkatan, 10);
-                    if (isNaN(angkatanYear) || angkatanYear <= 2024) {
+                    if (isNaN(angkatanYear) || angkatanYear <= 2023) {
                         return window.alert("Pendaftaran ditolak: Anda tidak diizinkan mengikuti kegiatan ini.");
                     }
                 }
@@ -521,7 +521,7 @@ export default function FormWajib({ formConfig }) {
                     Pendaftaran berhasil dan sedang dalam verifikasi. Jika valid maka akan dikirim pemberitahuan ke email atau whatsapp yang sudah dimasukan tadi.
                 </p>
                 <div className="space-y-3">
-                    <Link href="/" className="inline-flex items-center justify-center w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-colors">
+                    <Link href={formConfig?.site === 'pkkmb' ? '/pkkmb' : formConfig?.site === 'pose' ? '/pose' : '/'} className="inline-flex items-center justify-center w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-colors">
                         Kembali ke Beranda
                     </Link>
                 </div>
@@ -575,7 +575,7 @@ export default function FormWajib({ formConfig }) {
             )}
 
             <form onSubmit={handleSubmit} className="p-6 sm:p-10 relative">
-                
+
                 {/* Form Overlay pas Submit */}
                 {submitting && (
                     <div className="absolute inset-0 z-50 bg-slate-900/40 backdrop-blur-sm rounded-3xl flex items-center justify-center pointer-events-auto">
@@ -585,11 +585,11 @@ export default function FormWajib({ formConfig }) {
                         </div>
                     </div>
                 )}
-                
+
                 <fieldset disabled={submitting} className="space-y-8">
 
-                {/* Switch Kategori */}
-                {/* <div className="p-6 rounded-3xl bg-gray-50/50 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-800">
+                    {/* Switch Kategori */}
+                    {/* <div className="p-6 rounded-3xl bg-gray-50/50 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-800">
                     <h4 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                         <span className="w-1.5 h-5 bg-blue-500 rounded-full"></span>
                         Kategori Pendaftar
@@ -611,226 +611,304 @@ export default function FormWajib({ formConfig }) {
                     </div>
                 </div> */}
 
-                {/* PKKMB: Kelas & Jenis Bayar Selector */}
-                {formConfig?.site === 'pkkmb' && (
-                    <div className="p-6 rounded-3xl bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 space-y-5">
-                        <h4 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                            <span className="w-1.5 h-5 bg-indigo-500 rounded-full"></span>
-                            Kelas &amp; Jenis Pembayaran
-                        </h4>
+                    {/* PKKMB: Kelas & Jenis Bayar Selector */}
+                    {formConfig?.site === 'pkkmb' && (
+                        <div className="p-6 rounded-3xl bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 space-y-5">
+                            <h4 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <span className="w-1.5 h-5 bg-indigo-500 rounded-full"></span>
+                                Kelas &amp; Jenis Pembayaran
+                            </h4>
 
-                        {/* Kelas */}
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Kelas *</label>
-                            <select
-                                required
-                                value={selectedKelas}
-                                onChange={(e) => setSelectedKelas(e.target.value)}
-                                className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                            >
-                                <option value="" disabled>Pilih Kelas</option>
-                                <option value="Reguler">Reguler</option>
-                                <option value="NonReguler">Non Reguler</option>
-                                <option value="KIP">KIP (Kartu Indonesia Pintar)</option>
-                            </select>
-                        </div>
-
-                        {/* Jenis Bayar */}
-                        {selectedKelas && selectedKelas !== 'KIP' && (
+                            {/* Kelas */}
                             <div>
-                                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Jenis Pembayaran *</label>
+                                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Kelas *</label>
                                 <select
                                     required
-                                    value={jenisBayar}
-                                    onChange={(e) => {
-                                        setJenisBayar(e.target.value);
-                                        setTahapan('');
-                                    }}
+                                    value={selectedKelas}
+                                    onChange={(e) => setSelectedKelas(e.target.value)}
                                     className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
                                 >
-                                    <option value="" disabled>Pilih Jenis Pembayaran</option>
-                                    <option value="langsung">Langsung Full</option>
-                                    <option value="bertahap">Bertahap (Cicil)</option>
+                                    <option value="" disabled>Pilih Kelas</option>
+                                    <option value="Reguler">Reguler</option>
+                                    <option value="NonReguler">Non Reguler</option>
+                                    <option value="KIP">KIP (Kartu Indonesia Pintar)</option>
                                 </select>
                             </div>
-                        )}
 
-                        {/* KIP info: forced to full */}
-                        {selectedKelas === 'KIP' && (
-                            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 rounded-xl text-sm flex items-start gap-2">
-                                <Info size={16} className="mt-0.5 shrink-0" />
-                                <p>Kelas KIP hanya dapat melakukan pembayaran <strong>Full</strong> sekaligus.</p>
-                            </div>
-                        )}
-
-                        {/* Tahapan Selector */}
-                        {jenisBayar && selectedKelas && (() => {
-                            const tahapanOptions = selectedKelas === 'KIP'
-                                ? [{ label: 'Full (Lunas Sekaligus)', value: 'full' }]
-                                : jenisBayar === 'langsung'
-                                    ? [{ label: 'Full (Lunas Sekaligus)', value: 'full' }]
-                                    : [
-                                        { label: 'Tahap 1 (DP)', value: 'tahap 1' },
-                                        { label: 'Tahap 2 (Pelunasan)', value: 'tahap 2' }
-                                    ];
-
-                            const activePricing = pricingList.find(p => p.kelas === selectedKelas && p.jenis_tahapan === tahapan);
-                            const nominalDisplay = activePricing ? activePricing.nominal : null;
-
-                            return (
-                                <div className="space-y-3">
-                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Tahapan *</label>
-                                    <div className="flex gap-2">
-                                        {tahapanOptions.map(opt => (
-                                            <button
-                                                key={opt.value}
-                                                type="button"
-                                                onClick={() => setTahapan(opt.value)}
-                                                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all ${tahapan === opt.value
-                                                    ? 'bg-indigo-600 text-white border-indigo-600 shadow'
-                                                    : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-indigo-400'
-                                                    }`}
-                                            >
-                                                {opt.label}
-                                            </button>
-                                        ))}
-                                    </div>
-
-                                    {nominalDisplay !== null && (
-                                        <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl text-indigo-800 dark:text-indigo-300 text-sm font-semibold">
-                                            Nominal: <span className="text-lg">Rp {nominalDisplay.toLocaleString('id-ID')}</span>
-                                        </div>
-                                    )}
-
-                                    {/* NIM input for Tahap 2 */}
-                                    {tahapan === 'tahap 2' && (
-                                        <div className="space-y-2">
-                                            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400">NIM (dari Pendaftaran Tahap 1) *</label>
-                                            <div className="relative">
-                                                <input
-                                                    type="text"
-                                                    value={nimTahap2}
-                                                    onChange={(e) => setNimTahap2(e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 9))}
-                                                    placeholder="Masukkan NIM 9 karakter"
-                                                    maxLength={9}
-                                                    className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                                                />
-                                                {validatingNim && (
-                                                    <div className="absolute right-3 top-3.5 animate-spin h-4 w-4 border-2 border-indigo-500 border-t-transparent rounded-full"></div>
-                                                )}
-                                            </div>
-                                            {firstSubmissionData && (
-                                                <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-xl text-green-800 dark:text-green-300 text-xs">
-                                                    ✅ <strong>{firstSubmissionData.nama}</strong> ditemukan. Data akan otomatis terisi.
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
+                            {/* Jenis Bayar */}
+                            {selectedKelas && selectedKelas !== 'KIP' && (
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Jenis Pembayaran *</label>
+                                    <select
+                                        required
+                                        value={jenisBayar}
+                                        onChange={(e) => {
+                                            setJenisBayar(e.target.value);
+                                            setTahapan('');
+                                        }}
+                                        className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    >
+                                        <option value="" disabled>Pilih Jenis Pembayaran</option>
+                                        <option value="langsung">Langsung Full</option>
+                                        <option value="bertahap">Bertahap (Cicil)</option>
+                                    </select>
                                 </div>
-                            );
-                        })()}
-                    </div>
-                )}
+                            )}
 
-                {/* Data Pendaftar - hide if Tahap 2 (auto-filled) */}
-                {formConfig?.site !== 'pkkmb' || tahapan !== 'tahap 2' ? (
-                    <div className="space-y-6">
-                        <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-2">
-                            <div className="flex items-center gap-3">
-                                <Users className="text-purple-500" size={20} />
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Data Pendaftar</h3>
-                            </div>
-                        </div>
+                            {/* KIP info: forced to full */}
+                            {selectedKelas === 'KIP' && (
+                                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 rounded-xl text-sm flex items-start gap-2">
+                                    <Info size={16} className="mt-0.5 shrink-0" />
+                                    <p>Kelas KIP hanya dapat melakukan pembayaran <strong>Full</strong> sekaligus.</p>
+                                </div>
+                            )}
 
-                        {members.map((member, index) => (
-                            <div key={index} className="p-5 sm:p-6 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 rounded-2xl relative group transition-all">
+                            {/* Tahapan Selector */}
+                            {jenisBayar && selectedKelas && (() => {
+                                const tahapanOptions = selectedKelas === 'KIP'
+                                    ? [{ label: 'Full (Lunas Sekaligus)', value: 'full' }]
+                                    : jenisBayar === 'langsung'
+                                        ? [{ label: 'Full (Lunas Sekaligus)', value: 'full' }]
+                                        : [
+                                            { label: 'Tahap 1 (DP)', value: 'tahap 1' },
+                                            { label: 'Tahap 2 (Pelunasan)', value: 'tahap 2' }
+                                        ];
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 font-semibold">Nama Lengkap *</label>
-                                        <input
-                                            type="text" required value={member.nama} onChange={(e) => handleMemberChange(index, 'nama', e.target.value)}
-                                            className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                                        />
-                                    </div>
+                                const activePricing = pricingList.find(p => p.kelas === selectedKelas && p.jenis_tahapan === tahapan);
+                                const nominalDisplay = activePricing ? activePricing.nominal : null;
 
-                                    {requiresBukti && (
-                                        <div>
-                                            <div className="flex items-center justify-between mb-1">
-                                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">WhatsApp / Email *</label>
-                                                <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleMemberChange(index, 'kontakType', 'whatsapp')}
-                                                        className={`px-2 py-1 text-[10px] font-semibold rounded-md transition-all ${member.kontakType === 'whatsapp' ? 'bg-white dark:bg-gray-700 text-green-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                                                    >
-                                                        WhatsApp
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleMemberChange(index, 'kontakType', 'email')}
-                                                        className={`px-2 py-1 text-[10px] font-semibold rounded-md transition-all ${member.kontakType === 'email' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                                                    >
-                                                        Email
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            <input
-                                                type="text" required value={member.email_wa} onChange={(e) => handleMemberChange(index, 'email_wa', e.target.value)}
-                                                placeholder={member.kontakType === 'whatsapp' ? "Contoh: 08123456789" : "Contoh: nama@email.com"}
-                                                maxLength={member.kontakType === 'whatsapp' ? 15 : 30}
-                                                className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 transition-all"
-                                            />
+                                return (
+                                    <div className="space-y-3">
+                                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Tahapan *</label>
+                                        <div className="flex gap-2">
+                                            {tahapanOptions.map(opt => (
+                                                <button
+                                                    key={opt.value}
+                                                    type="button"
+                                                    onClick={() => setTahapan(opt.value)}
+                                                    className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all ${tahapan === opt.value
+                                                        ? 'bg-indigo-600 text-white border-indigo-600 shadow'
+                                                        : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-indigo-400'
+                                                        }`}
+                                                >
+                                                    {opt.label}
+                                                </button>
+                                            ))}
                                         </div>
-                                    )}
 
-                                    {kategori === 'Umum' && (
-                                        <div className="col-span-1 sm:col-span-2 pt-2 border-t border-gray-100 dark:border-gray-800 mt-2 flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
-                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Apakah Anda Mahasiswa?</span>
-                                            <div className="flex bg-gray-200 dark:bg-gray-700 p-1 rounded-lg gap-1">
-                                                <button type="button" onClick={() => handleMemberChange(index, 'isStudent', false)} className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${!member.isStudent ? 'bg-white dark:bg-gray-600 shadow text-gray-800 dark:text-white' : 'text-gray-500 hover:text-gray-700'}`}>Tidak</button>
-                                                <button type="button" onClick={() => handleMemberChange(index, 'isStudent', true)} className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${member.isStudent ? 'bg-white dark:bg-gray-600 shadow text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700'}`}>Ya</button>
+                                        {nominalDisplay !== null && (
+                                            <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl text-indigo-800 dark:text-indigo-300 text-sm font-semibold">
+                                                Nominal: <span className="text-lg">Rp {nominalDisplay.toLocaleString('id-ID')}</span>
                                             </div>
-                                        </div>
-                                    )}
+                                        )}
 
-                                    {(isMhsLP3I || isAlumniLP3I || kategori === 'Dosen') && (
-                                        <>
-                                            <div>
-                                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Kampus *</label>
-                                                {formConfig?.site === 'pkkmb' ? (
+                                        {/* NIM input for Tahap 2 */}
+                                        {tahapan === 'tahap 2' && (
+                                            <div className="space-y-2">
+                                                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400">NIM (dari Pendaftaran Tahap 1) *</label>
+                                                <div className="relative">
                                                     <input
                                                         type="text"
-                                                        value="Kampus Bandung"
-                                                        readOnly
-                                                        disabled
-                                                        className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                                                        value={nimTahap2}
+                                                        onChange={(e) => setNimTahap2(e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 9))}
+                                                        placeholder="Masukkan NIM 9 karakter"
+                                                        maxLength={9}
+                                                        className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
                                                     />
-                                                ) : (
-                                                    <>
-                                                        <select
-                                                            required value={member.kampus} onChange={(e) => handleMemberChange(index, 'kampus', e.target.value)}
-                                                            className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                                                        >
-                                                            <option value="" disabled>Pilih Kampus</option>
-                                                            {KAMPUS_DATA.filter(k => (isMhsLP3I || isAlumniLP3I) ? true : k !== 'Lainnya').map(k => <option key={k} value={k}>{k}</option>)}
-                                                        </select>
-                                                        {(isMhsLP3I || isAlumniLP3I) && member.kampus === 'Lainnya' && (
-                                                            <input
-                                                                type="text" required value={member.kampusLainnya || ''} onChange={(e) => handleMemberChange(index, 'kampusLainnya', e.target.value)}
-                                                                placeholder="Sebutkan nama kampus"
-                                                                className="w-full px-3 py-2 mt-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                                                            />
-                                                        )}
-                                                    </>
+                                                    {validatingNim && (
+                                                        <div className="absolute right-3 top-3.5 animate-spin h-4 w-4 border-2 border-indigo-500 border-t-transparent rounded-full"></div>
+                                                    )}
+                                                </div>
+                                                {firstSubmissionData && (
+                                                    <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-xl text-green-800 dark:text-green-300 text-xs">
+                                                        ✅ <strong>{firstSubmissionData.nama}</strong> ditemukan. Data akan otomatis terisi.
+                                                    </div>
                                                 )}
                                             </div>
-                                        </>
-                                    )}
-                                    {isAlumniLP3I && (
-                                        <>
+                                        )}
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    )}
+
+                    {/* Data Pendaftar - hide if Tahap 2 (auto-filled) */}
+                    {formConfig?.site !== 'pkkmb' || tahapan !== 'tahap 2' ? (
+                        <div className="space-y-6">
+                            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-2">
+                                <div className="flex items-center gap-3">
+                                    <Users className="text-purple-500" size={20} />
+                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">Data Pendaftar</h3>
+                                </div>
+                            </div>
+
+                            {members.map((member, index) => (
+                                <div key={index} className="p-5 sm:p-6 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 rounded-2xl relative group transition-all">
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 font-semibold">Nama Lengkap *</label>
+                                            <input
+                                                type="text" required value={member.nama} onChange={(e) => handleMemberChange(index, 'nama', e.target.value)}
+                                                className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </div>
+
+                                        {requiresBukti && (
                                             <div>
-                                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 font-semibold">Program Studi *</label>
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">WhatsApp / Email *</label>
+                                                    <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleMemberChange(index, 'kontakType', 'whatsapp')}
+                                                            className={`px-2 py-1 text-[10px] font-semibold rounded-md transition-all ${member.kontakType === 'whatsapp' ? 'bg-white dark:bg-gray-700 text-green-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                                        >
+                                                            WhatsApp
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleMemberChange(index, 'kontakType', 'email')}
+                                                            className={`px-2 py-1 text-[10px] font-semibold rounded-md transition-all ${member.kontakType === 'email' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                                        >
+                                                            Email
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <input
+                                                    type="text" required value={member.email_wa} onChange={(e) => handleMemberChange(index, 'email_wa', e.target.value)}
+                                                    placeholder={member.kontakType === 'whatsapp' ? "Contoh: 08123456789" : "Contoh: nama@email.com"}
+                                                    maxLength={member.kontakType === 'whatsapp' ? 15 : 30}
+                                                    className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 transition-all"
+                                                />
+                                            </div>
+                                        )}
+
+                                        {kategori === 'Umum' && (
+                                            <div className="col-span-1 sm:col-span-2 pt-2 border-t border-gray-100 dark:border-gray-800 mt-2 flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
+                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Apakah Anda Mahasiswa?</span>
+                                                <div className="flex bg-gray-200 dark:bg-gray-700 p-1 rounded-lg gap-1">
+                                                    <button type="button" onClick={() => handleMemberChange(index, 'isStudent', false)} className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${!member.isStudent ? 'bg-white dark:bg-gray-600 shadow text-gray-800 dark:text-white' : 'text-gray-500 hover:text-gray-700'}`}>Tidak</button>
+                                                    <button type="button" onClick={() => handleMemberChange(index, 'isStudent', true)} className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${member.isStudent ? 'bg-white dark:bg-gray-600 shadow text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700'}`}>Ya</button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {(isMhsLP3I || isAlumniLP3I || kategori === 'Dosen') && (
+                                            <>
+                                                <div>
+                                                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Kampus *</label>
+                                                    {formConfig?.site === 'pkkmb' ? (
+                                                        <input
+                                                            type="text"
+                                                            value="Kampus Bandung"
+                                                            readOnly
+                                                            disabled
+                                                            className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                                                        />
+                                                    ) : (
+                                                        <>
+                                                            <select
+                                                                required value={member.kampus} onChange={(e) => handleMemberChange(index, 'kampus', e.target.value)}
+                                                                className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                                            >
+                                                                <option value="" disabled>Pilih Kampus</option>
+                                                                {KAMPUS_DATA.filter(k => (isMhsLP3I || isAlumniLP3I) ? true : k !== 'Lainnya').map(k => <option key={k} value={k}>{k}</option>)}
+                                                            </select>
+                                                            {(isMhsLP3I || isAlumniLP3I) && member.kampus === 'Lainnya' && (
+                                                                <input
+                                                                    type="text" required value={member.kampusLainnya || ''} onChange={(e) => handleMemberChange(index, 'kampusLainnya', e.target.value)}
+                                                                    placeholder="Sebutkan nama kampus"
+                                                                    className="w-full px-3 py-2 mt-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                                                />
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </>
+                                        )}
+                                        {isAlumniLP3I && (
+                                            <>
+                                                <div>
+                                                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 font-semibold">Program Studi *</label>
+                                                    {member.isProdiLainnya ? (
+                                                        <div className="flex gap-2">
+                                                            <input
+                                                                type="text"
+                                                                required
+                                                                value={member.prodi || ''}
+                                                                onChange={(e) => handleMemberChange(index, 'prodi', e.target.value)}
+                                                                placeholder="Sebutkan Program Studi"
+                                                                className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                                            />
+                                                            <button type="button" onClick={() => { handleMemberChange(index, 'prodi', ''); handleMemberChange(index, 'isProdiLainnya', false); }} className="text-gray-500 hover:text-red-500 font-bold px-2">X</button>
+                                                        </div>
+                                                    ) : (
+                                                        <select
+                                                            required
+                                                            value={member.prodi || ''}
+                                                            onChange={(e) => {
+                                                                if (e.target.value === 'Lainnya') {
+                                                                    handleMemberChange(index, 'isProdiLainnya', true);
+                                                                    handleMemberChange(index, 'prodi', '');
+                                                                } else {
+                                                                    handleMemberChange(index, 'prodi', e.target.value);
+                                                                }
+                                                            }}
+                                                            className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                                        >
+                                                            <option value="" disabled>Pilih Prodi</option>
+                                                            {((member.kampus === 'Kampus Bandung' ? ['Administrasi Bisnis', 'Manajemen Informatika', 'Akuntansi', 'Hubungan Masyarakat', 'Bisnis Digital'] : (PRODI_DATA[member.kampus] || []))).map(p => (
+                                                                <option key={p} value={p}>{p}</option>
+                                                            ))}
+                                                            <option value="Lainnya">Lainnya</option>
+                                                        </select>
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Angkatan *</label>
+                                                    <input
+                                                        type="text" required value={member.angkatan || ''} onChange={(e) => handleMemberChange(index, 'angkatan', e.target.value)}
+                                                        placeholder="Contoh: 2022"
+                                                        className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                                    />
+                                                </div>
+                                            </>
+                                        )}
+                                        {((kategori === 'Umum' && member.isStudent) || kategori === 'Siswa') && (
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                                                    {kategori === 'Siswa' ? 'Nama Sekolah *' : 'Kampus *'}
+                                                </label>
+                                                <input
+                                                    type="text" required value={member.kampus} onChange={(e) => handleMemberChange(index, 'kampus', e.target.value)}
+                                                    placeholder={kategori === 'Siswa' ? "Contoh: SMAN 1 Bandung" : "Contoh: Universitas Indonesia"}
+                                                    className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            </div>
+                                        )}
+
+                                        {isMhsLP3I && (
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">NIM *</label>
+                                                <input
+                                                    type="text" required value={member.nim} onChange={(e) => handleMemberChange(index, 'nim', e.target.value)}
+                                                    placeholder="Contoh: 202502014"
+                                                    minLength={9}
+                                                    maxLength={9}
+                                                    className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                                />
+                                                {member.nim.length >= 9 && member.kampus === 'Kampus Bandung' && parseNIM(member.nim, member.kampus) && (
+                                                    <p className="text-xs text-green-600 mt-1">
+                                                        Terdeteksi: {parseNIM(member.nim, member.kampus).prodiName} ({parseNIM(member.nim, member.kampus).angkatan})
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {isMhsLP3I && member.kampus && member.kampus !== 'Kampus Bandung' && member.kampus !== 'Lainnya' && (formConfig?.butuh_bukti !== false) && !(formConfig?.site === 'pkkmb') && (
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Prodi *</label>
                                                 {member.isProdiLainnya ? (
                                                     <div className="flex gap-2">
                                                         <input
@@ -858,348 +936,270 @@ export default function FormWajib({ formConfig }) {
                                                         className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                                                     >
                                                         <option value="" disabled>Pilih Prodi</option>
-                                                        {((member.kampus === 'Kampus Bandung' ? ['Administrasi Bisnis', 'Manajemen Informatika', 'Akuntansi', 'Hubungan Masyarakat', 'Bisnis Digital'] : (PRODI_DATA[member.kampus] || []))).map(p => (
+                                                        {(PRODI_DATA[member.kampus] || []).map(p => (
                                                             <option key={p} value={p}>{p}</option>
                                                         ))}
                                                         <option value="Lainnya">Lainnya</option>
                                                     </select>
                                                 )}
                                             </div>
+                                        )}
+
+                                        {isMhsLP3I && member.kampus === 'Lainnya' && (formConfig?.butuh_bukti !== false) && !(formConfig?.site === 'pkkmb') && (
                                             <div>
-                                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Angkatan *</label>
+                                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Prodi *</label>
                                                 <input
-                                                    type="text" required value={member.angkatan || ''} onChange={(e) => handleMemberChange(index, 'angkatan', e.target.value)}
-                                                    placeholder="Contoh: 2022"
+                                                    type="text"
+                                                    required
+                                                    value={member.prodi || ''}
+                                                    onChange={(e) => handleMemberChange(index, 'prodi', e.target.value)}
+                                                    placeholder="Sebutkan Program Studi"
                                                     className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                                                 />
                                             </div>
-                                        </>
-                                    )}
-                                    {((kategori === 'Umum' && member.isStudent) || kategori === 'Siswa') && (
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                                                {kategori === 'Siswa' ? 'Nama Sekolah *' : 'Kampus *'}
-                                            </label>
-                                            <input
-                                                type="text" required value={member.kampus} onChange={(e) => handleMemberChange(index, 'kampus', e.target.value)}
-                                                placeholder={kategori === 'Siswa' ? "Contoh: SMAN 1 Bandung" : "Contoh: Universitas Indonesia"}
-                                                className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                                            />
-                                        </div>
-                                    )}
+                                        )}
 
-                                    {isMhsLP3I && (
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">NIM *</label>
-                                            <input
-                                                type="text" required value={member.nim} onChange={(e) => handleMemberChange(index, 'nim', e.target.value)}
-                                                placeholder="Contoh: 202502014"
-                                                minLength={9}
-                                                maxLength={9}
-                                                className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                                            />
-                                            {member.nim.length >= 9 && member.kampus === 'Kampus Bandung' && parseNIM(member.nim, member.kampus) && (
-                                                <p className="text-xs text-green-600 mt-1">
-                                                    Terdeteksi: {parseNIM(member.nim, member.kampus).prodiName} ({parseNIM(member.nim, member.kampus).angkatan})
-                                                </p>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {isMhsLP3I && member.kampus && member.kampus !== 'Kampus Bandung' && member.kampus !== 'Lainnya' && (formConfig?.butuh_bukti !== false) && !(formConfig?.site === 'pkkmb') && (
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Prodi *</label>
-                                            {member.isProdiLainnya ? (
-                                                <div className="flex gap-2">
-                                                    <input
-                                                        type="text"
-                                                        required
-                                                        value={member.prodi || ''}
-                                                        onChange={(e) => handleMemberChange(index, 'prodi', e.target.value)}
-                                                        placeholder="Sebutkan Program Studi"
-                                                        className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                                                    />
-                                                    <button type="button" onClick={() => { handleMemberChange(index, 'prodi', ''); handleMemberChange(index, 'isProdiLainnya', false); }} className="text-gray-500 hover:text-red-500 font-bold px-2">X</button>
-                                                </div>
-                                            ) : (
-                                                <select
-                                                    required
-                                                    value={member.prodi || ''}
-                                                    onChange={(e) => {
-                                                        if (e.target.value === 'Lainnya') {
-                                                            handleMemberChange(index, 'isProdiLainnya', true);
-                                                            handleMemberChange(index, 'prodi', '');
-                                                        } else {
-                                                            handleMemberChange(index, 'prodi', e.target.value);
-                                                        }
-                                                    }}
+                                        {((kategori === 'Umum' && member.isStudent) || kategori === 'Siswa') && (
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                                                    {kategori === 'Siswa' ? 'Jurusan *' : 'Prodi *'}
+                                                </label>
+                                                <input
+                                                    type="text" required value={member.prodi} onChange={(e) => handleMemberChange(index, 'prodi', e.target.value)}
+                                                    placeholder={kategori === 'Siswa' ? "Contoh: IPA / IPS" : "Contoh: Sistem Informasi"}
                                                     className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                                                >
-                                                    <option value="" disabled>Pilih Prodi</option>
-                                                    {(PRODI_DATA[member.kampus] || []).map(p => (
-                                                        <option key={p} value={p}>{p}</option>
-                                                    ))}
-                                                    <option value="Lainnya">Lainnya</option>
-                                                </select>
-                                            )}
-                                        </div>
-                                    )}
+                                                />
+                                            </div>
+                                        )}
+                                        {((isMhsLP3I && (formConfig?.butuh_bukti !== false) && (member.kampus !== 'Kampus Bandung') && !(formConfig?.site === 'pkkmb')) || kategori === 'Siswa' || (kategori === 'Umum' && member.isStudent)) && (
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Semester *</label>
+                                                <input
+                                                    type="number" min="1" required value={member.semester} onChange={(e) => handleMemberChange(index, 'semester', e.target.value)}
+                                                    placeholder="Contoh: 3"
+                                                    className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
 
-                                    {isMhsLP3I && member.kampus === 'Lainnya' && (formConfig?.butuh_bukti !== false) && !(formConfig?.site === 'pkkmb') && (
+                            {/* Form Tambahan Medis PKKMB */}
+                            {formConfig?.site === 'pkkmb' && (
+                                <div className="p-5 sm:p-6 bg-red-50/20 dark:bg-red-950/10 border border-red-100/50 dark:border-red-900/30 rounded-2xl space-y-4">
+                                    <h4 className="text-md font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                                        <span className="w-1.5 h-5 bg-red-500 rounded-full"></span>
+                                        Data Medis & Kontak Darurat (Wajib Diisi)
+                                    </h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Prodi *</label>
+                                            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Riwayat Penyakit (Jika ada)</label>
+                                            <input
+                                                type="text"
+                                                value={riwayatPenyakit}
+                                                onChange={(e) => setRiwayatPenyakit(e.target.value.replace(/[^a-zA-Z\s-,]/g, ''))}
+                                                placeholder="Contoh: Asma, Jantung, atau tulis '-'"
+                                                className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Alergi (Jika ada)</label>
+                                            <input
+                                                type="text"
+                                                value={alergi}
+                                                onChange={(e) => setAlergi(e.target.value.replace(/[^a-zA-Z\s-,]/g, ''))}
+                                                placeholder="Contoh: Alergi Makanan Laut, atau tulis '-'"
+                                                className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </div>
+                                        <div className="sm:col-span-2">
+                                            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Penanganan Medis Khusus</label>
+                                            <textarea
+                                                value={penanganan}
+                                                onChange={(e) => setPenanganan(e.target.value.replace(/[^a-zA-Z\s-,]/g, ''))}
+                                                placeholder="Tulis instruksi khusus jika penyakit kambuh, obat pribadi, dsb."
+                                                rows={2}
+                                                className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Nama Orang Tua / Wali *</label>
                                             <input
                                                 type="text"
                                                 required
-                                                value={member.prodi || ''}
-                                                onChange={(e) => handleMemberChange(index, 'prodi', e.target.value)}
-                                                placeholder="Sebutkan Program Studi"
+                                                value={namaOrtuWali}
+                                                onChange={(e) => setNamaOrtuWali(e.target.value.replace(/[^a-zA-Z\s-,]/g, ''))}
+                                                placeholder="Nama lengkap orang tua/wali"
                                                 className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                                             />
                                         </div>
-                                    )}
-
-                                    {((kategori === 'Umum' && member.isStudent) || kategori === 'Siswa') && (
                                         <div>
-                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                                                {kategori === 'Siswa' ? 'Jurusan *' : 'Prodi *'}
-                                            </label>
+                                            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">No. WA Orang Tua / Wali *</label>
                                             <input
-                                                type="text" required value={member.prodi} onChange={(e) => handleMemberChange(index, 'prodi', e.target.value)}
-                                                placeholder={kategori === 'Siswa' ? "Contoh: IPA / IPS" : "Contoh: Sistem Informasi"}
+                                                type="text"
+                                                required
+                                                value={noWaOrtuWali}
+                                                onChange={(e) => setNoWaOrtuWali(e.target.value.replace(/[^0-9+]/g, ''))}
+                                                placeholder="Contoh: 08123456789"
+                                                maxLength={15}
                                                 className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                                             />
                                         </div>
-                                    )}
-                                    {((isMhsLP3I && (formConfig?.butuh_bukti !== false) && (member.kampus !== 'Kampus Bandung') && !(formConfig?.site === 'pkkmb')) || kategori === 'Siswa' || (kategori === 'Umum' && member.isStudent)) && (
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Semester *</label>
-                                            <input
-                                                type="number" min="1" required value={member.semester} onChange={(e) => handleMemberChange(index, 'semester', e.target.value)}
-                                                placeholder="Contoh: 3"
-                                                className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-
-                        {/* Form Tambahan Medis PKKMB */}
-                        {formConfig?.site === 'pkkmb' && (
-                            <div className="p-5 sm:p-6 bg-red-50/20 dark:bg-red-950/10 border border-red-100/50 dark:border-red-900/30 rounded-2xl space-y-4">
-                                <h4 className="text-md font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                                    <span className="w-1.5 h-5 bg-red-500 rounded-full"></span>
-                                    Data Medis & Kontak Darurat (Wajib Diisi)
-                                </h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Riwayat Penyakit (Jika ada)</label>
-                                        <input
-                                            type="text"
-                                            value={riwayatPenyakit}
-                                            onChange={(e) => setRiwayatPenyakit(e.target.value.replace(/[^a-zA-Z\s-,]/g, ''))}
-                                            placeholder="Contoh: Asma, Jantung, atau tulis '-'"
-                                            className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Alergi (Jika ada)</label>
-                                        <input
-                                            type="text"
-                                            value={alergi}
-                                            onChange={(e) => setAlergi(e.target.value.replace(/[^a-zA-Z\s-,]/g, ''))}
-                                            placeholder="Contoh: Alergi Makanan Laut, atau tulis '-'"
-                                            className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                                        />
-                                    </div>
-                                    <div className="sm:col-span-2">
-                                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Penanganan Medis Khusus</label>
-                                        <textarea
-                                            value={penanganan}
-                                            onChange={(e) => setPenanganan(e.target.value.replace(/[^a-zA-Z\s-,]/g, ''))}
-                                            placeholder="Tulis instruksi khusus jika penyakit kambuh, obat pribadi, dsb."
-                                            rows={2}
-                                            className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Nama Orang Tua / Wali *</label>
-                                        <input
-                                            type="text"
-                                            required
-                                            value={namaOrtuWali}
-                                            onChange={(e) => setNamaOrtuWali(e.target.value.replace(/[^a-zA-Z\s-,]/g, ''))}
-                                            placeholder="Nama lengkap orang tua/wali"
-                                            className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">No. WA Orang Tua / Wali *</label>
-                                        <input
-                                            type="text"
-                                            required
-                                            value={noWaOrtuWali}
-                                            onChange={(e) => setNoWaOrtuWali(e.target.value.replace(/[^0-9+]/g, ''))}
-                                            placeholder="Contoh: 08123456789"
-                                            maxLength={15}
-                                            className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                                        />
                                     </div>
                                 </div>
-                            </div>
-                        )}
-                    </div>
-                ) : null}
-
-                {/* Bukti Pembayaran */}
-                {requiresBukti && (
-                    <div className="p-6 rounded-3xl bg-gray-50/50 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-800 space-y-6">
-                        <h4 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                            <span className="w-1.5 h-5 bg-amber-500 rounded-full"></span>
-                            Pembayaran & Berkas
-                        </h4>
-
-                        <div className="flex flex-col md:flex-row items-start md:items-end gap-4 w-full">
-                            <div className="w-full md:w-1/2">
-                                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 truncate">Upload Bukti Pembayaran *</label>
-                                <div className="relative">
-                                    <input
-                                        type="file" required accept="image/*,application/pdf" onChange={(e) => setBuktiBayarFile(e.target.files[0])}
-                                        className="w-full text-[10px] sm:text-sm text-gray-500 file:mr-2 sm:file:mr-4 file:py-2 sm:file:py-3 file:px-2 sm:file:px-4 file:rounded-xl file:border-0 file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/30 dark:file:text-blue-400 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900 transition-all cursor-pointer"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="w-full md:w-1/2">
-                                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 truncate">Metode Pembayaran *</label>
-                                {(() => {
-                                    const siteKey = (formConfig?.site || 'pose').toLowerCase();
-                                    const staticMetodeOptions = Array.isArray(METODE_BAYAR_DATA)
-                                        ? METODE_BAYAR_DATA
-                                        : (METODE_BAYAR_DATA[siteKey] || METODE_BAYAR_DATA.pose || []);
-
-                                    return (
-                                        <select
-                                            required
-                                            value={metodePembayaran}
-                                            onChange={(e) => setMetodePembayaran(e.target.value)}
-                                            className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer"
-                                        >
-                                            <option value="" disabled>Pilih Metode Pembayaran</option>
-                                            {metodeList.length > 0 ? (
-                                                metodeList.map(m => (
-                                                    <option key={m.id} value={m.nama}>{m.nama}</option>
-                                                ))
-                                            ) : (
-                                                staticMetodeOptions.map(m => <option key={m} value={m}>{m}</option>)
-                                            )}
-                                        </select>
-                                    );
-                                })()}
-                            </div>
+                            )}
                         </div>
+                    ) : null}
 
-                        {/* Detail Info Rekening / QRIS yang dipilih */}
-                        {(() => {
-                            const selectedMetode = metodeList.find(m => m.nama === metodePembayaran);
-                            if (!selectedMetode) return null;
+                    {/* Bukti Pembayaran */}
+                    {requiresBukti && (
+                        <div className="p-6 rounded-3xl bg-gray-50/50 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-800 space-y-6">
+                            <h4 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <span className="w-1.5 h-5 bg-amber-500 rounded-full"></span>
+                                Pembayaran & Berkas
+                            </h4>
 
-                            return (
-                                <div className="p-4 rounded-2xl bg-blue-50/70 dark:bg-blue-900/20 border border-blue-200/70 dark:border-blue-800/40 text-blue-900 dark:text-blue-200 space-y-3 animate-fadeIn">
-                                    <div className="flex items-center gap-2 font-bold text-sm">
-                                        <Info size={18} className="text-blue-600 dark:text-blue-400" />
-                                        Detail Pembayaran: {selectedMetode.nama}
+                            <div className="flex flex-col md:flex-row items-start md:items-end gap-4 w-full">
+                                <div className="w-full md:w-1/2">
+                                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 truncate">Upload Bukti Pembayaran *</label>
+                                    <div className="relative">
+                                        <input
+                                            type="file" required accept="image/*,application/pdf" onChange={(e) => setBuktiBayarFile(e.target.files[0])}
+                                            className="w-full text-[10px] sm:text-sm text-gray-500 file:mr-2 sm:file:mr-4 file:py-2 sm:file:py-3 file:px-2 sm:file:px-4 file:rounded-xl file:border-0 file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/30 dark:file:text-blue-400 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900 transition-all cursor-pointer"
+                                        />
                                     </div>
-
-                                    {selectedMetode.nomor_rekening && (
-                                        <div className="bg-white dark:bg-gray-900 p-3 rounded-xl border border-blue-100 dark:border-gray-800 flex justify-between items-center">
-                                            <div>
-                                                <p className="text-xs text-gray-500">Nomor Rekening / No HP</p>
-                                                <p className="font-mono text-base font-bold text-gray-900 dark:text-white">{selectedMetode.nomor_rekening}</p>
-                                                {selectedMetode.nama_pemilik && (
-                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Atas Nama: <strong>{selectedMetode.nama_pemilik}</strong></p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {selectedMetode.qris_image && (
-                                        <div className="text-center bg-white dark:bg-gray-900 p-4 rounded-xl border border-blue-100 dark:border-gray-800">
-                                            <p className="text-xs text-gray-500 mb-2 font-semibold">Scan QRIS di bawah ini untuk membayar:</p>
-                                            <img src={selectedMetode.qris_image} alt="QRIS Code" className="max-w-[200px] h-auto mx-auto rounded-lg shadow-sm border" />
-                                        </div>
-                                    )}
-
-                                    {selectedMetode.keterangan && (
-                                        <p className="text-xs text-blue-800 dark:text-blue-300 leading-relaxed bg-blue-100/50 dark:bg-blue-900/40 p-2.5 rounded-lg">
-                                            {selectedMetode.keterangan}
-                                        </p>
-                                    )}
-
-                                    {selectedMetode.qris_image ? (
-                                        <button
-                                            type="button"
-                                            onClick={() => handleDownloadQRIS(selectedMetode.qris_image, `QRIS_${selectedMetode.nama.replace(/\s+/g, '_')}.png`)}
-                                            className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm text-sm"
-                                        >
-                                            <Download size={16} />
-                                            Unduh QRIS
-                                        </button>
-                                    ) : selectedMetode.nomor_rekening ? (
-                                        <button
-                                            type="button"
-                                            onClick={() => handleCopyRekening(selectedMetode.nomor_rekening)}
-                                            className={`w-full py-2.5 px-4 font-semibold rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm text-sm ${copied ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
-                                        >
-                                            {copied ? (
-                                                <>
-                                                    <CheckCircle2 size={16} />
-                                                    Tersalin!
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Copy size={16} />
-                                                    Salin Nomor Rekening
-                                                </>
-                                            )}
-                                        </button>
-                                    ) : null}
                                 </div>
-                            );
-                        })()}
+
+                                <div className="w-full md:w-1/2">
+                                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 truncate">Metode Pembayaran *</label>
+                                    {(() => {
+                                        const siteKey = (formConfig?.site || 'pose').toLowerCase();
+                                        const staticMetodeOptions = Array.isArray(METODE_BAYAR_DATA)
+                                            ? METODE_BAYAR_DATA
+                                            : (METODE_BAYAR_DATA[siteKey] || METODE_BAYAR_DATA.pose || []);
+
+                                        return (
+                                            <select
+                                                required
+                                                value={metodePembayaran}
+                                                onChange={(e) => setMetodePembayaran(e.target.value)}
+                                                className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer"
+                                            >
+                                                <option value="" disabled>Pilih Metode Pembayaran</option>
+                                                {metodeList.length > 0 ? (
+                                                    metodeList.map(m => (
+                                                        <option key={m.id} value={m.nama}>{m.nama}</option>
+                                                    ))
+                                                ) : (
+                                                    staticMetodeOptions.map(m => <option key={m} value={m}>{m}</option>)
+                                                )}
+                                            </select>
+                                        );
+                                    })()}
+                                </div>
+                            </div>
+
+                            {/* Detail Info Rekening / QRIS yang dipilih */}
+                            {(() => {
+                                const selectedMetode = metodeList.find(m => m.nama === metodePembayaran);
+                                if (!selectedMetode) return null;
+
+                                return (
+                                    <div className="p-4 rounded-2xl bg-blue-50/70 dark:bg-blue-900/20 border border-blue-200/70 dark:border-blue-800/40 text-blue-900 dark:text-blue-200 space-y-3 animate-fadeIn">
+                                        <div className="flex items-center gap-2 font-bold text-sm">
+                                            <Info size={18} className="text-blue-600 dark:text-blue-400" />
+                                            Detail Pembayaran: {selectedMetode.nama}
+                                        </div>
+
+                                        {selectedMetode.nomor_rekening && (
+                                            <div className="bg-white dark:bg-gray-900 p-3 rounded-xl border border-blue-100 dark:border-gray-800 flex justify-between items-center">
+                                                <div>
+                                                    <p className="text-xs text-gray-500">Nomor Rekening / No HP</p>
+                                                    <p className="font-mono text-base font-bold text-gray-900 dark:text-white">{selectedMetode.nomor_rekening}</p>
+                                                    {selectedMetode.nama_pemilik && (
+                                                        <p className="text-xs text-gray-600 dark:text-gray-400">Atas Nama: <strong>{selectedMetode.nama_pemilik}</strong></p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {selectedMetode.qris_image && (
+                                            <div className="text-center bg-white dark:bg-gray-900 p-4 rounded-xl border border-blue-100 dark:border-gray-800">
+                                                <p className="text-xs text-gray-500 mb-2 font-semibold">Scan QRIS di bawah ini untuk membayar:</p>
+                                                <img src={selectedMetode.qris_image} alt="QRIS Code" className="max-w-[200px] h-auto mx-auto rounded-lg shadow-sm border" />
+                                            </div>
+                                        )}
+
+                                        {selectedMetode.keterangan && (
+                                            <p className="text-xs text-blue-800 dark:text-blue-300 leading-relaxed bg-blue-100/50 dark:bg-blue-900/40 p-2.5 rounded-lg">
+                                                {selectedMetode.keterangan}
+                                            </p>
+                                        )}
+
+                                        {selectedMetode.qris_image ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDownloadQRIS(selectedMetode.qris_image, `QRIS_${selectedMetode.nama.replace(/\s+/g, '_')}.png`)}
+                                                className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm text-sm"
+                                            >
+                                                <Download size={16} />
+                                                Unduh QRIS
+                                            </button>
+                                        ) : selectedMetode.nomor_rekening ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleCopyRekening(selectedMetode.nomor_rekening)}
+                                                className={`w-full py-2.5 px-4 font-semibold rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm text-sm ${copied ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+                                            >
+                                                {copied ? (
+                                                    <>
+                                                        <CheckCircle2 size={16} />
+                                                        Tersalin!
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Copy size={16} />
+                                                        Salin Nomor Rekening
+                                                    </>
+                                                )}
+                                            </button>
+                                        ) : null}
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    )}
+
+                    {/* Checkbox Persetujuan Syarat & Ketentuan */}
+                    <div className="p-4 rounded-2xl bg-amber-50/70 dark:bg-amber-900/10 border border-amber-200/80 dark:border-amber-800/30 flex items-start gap-3">
+                        <input
+                            type="checkbox"
+                            id="syarat-ketentuan-check"
+                            checked={setujuSK}
+                            onChange={(e) => setSetujuSK(e.target.checked)}
+                            className="mt-1 w-5 h-5 accent-blue-600 rounded cursor-pointer shrink-0"
+                        />
+                        <label htmlFor="syarat-ketentuan-check" className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed cursor-pointer select-none">
+                            Saya menyatakan bahwa seluruh data yang diisi adalah benar dan akurat. <strong className="text-blue-600 dark:text-blue-400">Saya Setuju Dengan Syarat & Ketentuan yang berlaku</strong>.
+                        </label>
                     </div>
-                )}
 
-                {/* Checkbox Persetujuan Syarat & Ketentuan */}
-                <div className="p-4 rounded-2xl bg-amber-50/70 dark:bg-amber-900/10 border border-amber-200/80 dark:border-amber-800/30 flex items-start gap-3">
-                    <input
-                        type="checkbox"
-                        id="syarat-ketentuan-check"
-                        checked={setujuSK}
-                        onChange={(e) => setSetujuSK(e.target.checked)}
-                        className="mt-1 w-5 h-5 accent-blue-600 rounded cursor-pointer shrink-0"
-                    />
-                    <label htmlFor="syarat-ketentuan-check" className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed cursor-pointer select-none">
-                        Saya menyatakan bahwa seluruh data yang diisi adalah benar dan akurat. <strong className="text-blue-600 dark:text-blue-400">Saya Setuju Dengan Syarat & Ketentuan yang berlaku</strong>.
-                    </label>
-                </div>
-
-                <div className="pt-2">
-                    <button
-                        type="submit"
-                        disabled={submitting || !setujuSK}
-                        className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl font-bold text-lg flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                    >
-                        {submitting ? (
-                            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-white"></div>
-                        ) : (
-                            <>
-                                <Send size={20} /> Kirim Pendaftaran
-                            </>
-                        )}
-                    </button>
-                </div>
+                    <div className="pt-2">
+                        <button
+                            type="submit"
+                            disabled={submitting || !setujuSK}
+                            className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl font-bold text-lg flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                        >
+                            {submitting ? (
+                                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-white"></div>
+                            ) : (
+                                <>
+                                    <Send size={20} /> Kirim Pendaftaran
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </fieldset>
             </form>
         </div>
