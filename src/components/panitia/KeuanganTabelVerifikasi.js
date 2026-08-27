@@ -79,9 +79,11 @@ export default function KeuanganTabelVerifikasi({
   };
 
   const getNominal = (peserta) => {
-    if (peserta.nominal || peserta.nominal_pembayaran) {
-      return peserta.nominal || peserta.nominal_pembayaran || 0;
+    if (peserta.nominal !== undefined && peserta.nominal !== null && peserta.nominal !== '') {
+      return Number(peserta.nominal) || 0;
     }
+    if (peserta.nominal_pembayaran) return peserta.nominal_pembayaran;
+    
     if (!peserta.kode_form) return 0;
     const kodeFormFull = peserta.kode_form;
     const kodeFormBase = peserta.kode_form.length > 4 ? peserta.kode_form.slice(0, -4) : peserta.kode_form;
@@ -90,10 +92,7 @@ export default function KeuanganTabelVerifikasi({
       const match = formWajibMap[kodeFormFull] || formWajibMap[kodeFormBase];
       if (match) return match.nominal || 0;
     }
-    if (peserta.jenis_form === 'register') {
-      const match = formRegisterMap[kodeFormFull] || formRegisterMap[kodeFormBase];
-      if (match) return match.nominal || 0;
-    }
+    
     return 0;
   };
 

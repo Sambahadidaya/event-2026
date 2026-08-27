@@ -942,6 +942,92 @@ INSERT INTO public.pengembangan (site, route, label, kunci) VALUES
     ('pose',  '/nilai',     'Nilai / Penilaian',      false),
     ('pose',  '/ketentuan', 'Ketentuan',              false);
 
+
+--ngurut dari 0
+SELECT
+    id,
+    kode_id AS kode_lama,
+    'JE' || LPAD(
+        ROW_NUMBER() OVER (
+            ORDER BY journal_date ASC, transaction_id ASC, created_at ASC, id ASC
+        )::text,
+        3,
+        '0'
+    ) AS kode_baru,
+    journal_date,
+    transaction_id,
+    debit,
+    credit
+FROM journal_entry
+ORDER BY
+    journal_date ASC,
+    transaction_id ASC,
+    created_at ASC,
+    id ASC;
+
+
+-- done lah rubah kode_id
+WITH numbered AS (
+    SELECT
+        id,
+        ROW_NUMBER() OVER (
+            ORDER BY journal_date ASC, transaction_id ASC, created_at ASC, id ASC
+        ) AS nomor
+    FROM journal_entry
+)
+UPDATE journal_entry je
+SET kode_id = 'JE' || LPAD(numbered.nomor::text, 3, '0')
+FROM numbered
+WHERE je.id = numbered.id;
+
+--ngurut dari 0
+SELECT
+    id,
+    kode_id AS kode_lama,
+    'TF' || LPAD(
+        ROW_NUMBER() OVER (
+            ORDER BY tanggal_transaksi ASC, created_at ASC, id ASC
+        )::text,
+        3,
+        '0'
+    ) AS kode_baru,
+    tanggal_transaksi,
+    created_at,
+    nama_payer,
+    nominal
+FROM transaction_finance
+ORDER BY tanggal_transaksi ASC, created_at ASC, id ASC;
+
+--done
+WITH numbered AS (
+    SELECT
+        id,
+        ROW_NUMBER() OVER (
+            ORDER BY tanggal_transaksi ASC, created_at ASC, id ASC
+        ) AS nomor
+    FROM transaction_finance
+)
+UPDATE transaction_finance tf
+SET kode_id = 'TF' || LPAD(numbered.nomor::text, 3, '0')
+FROM numbered
+WHERE tf.id = numbered.id;
+
+-- Sequence untuk Transaction Finance (TF)
+CREATE SEQUENCE IF NOT EXISTS tf_kode_seq START WITH 1 INCREMENT BY 1;
+-- Sequence untuk Journal Entry (JE)
+CREATE SEQUENCE IF NOT EXISTS je_kode_seq START WITH 1 INCREMENT BY 1;
+ALTER SEQUENCE tf_kode_seq RESTART WITH 74;
+ALTER SEQUENCE je_kode_seq RESTART WITH 133;
+
+CREATE OR REPLACE FUNCTION get_next_kode(seq_name TEXT)
+RETURNS BIGINT
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN nextval(seq_name);
+END;
+$$;
+
 ```
 
 ---

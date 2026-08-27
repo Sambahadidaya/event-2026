@@ -2,7 +2,29 @@
 
 import { supabaseAdmin } from '@/lib/supabase';
 import { checkAdminAuth, insertAuditLog } from './audit';
-import { nanoid } from 'nanoid';
+
+/**
+ * Generate kode_id unik menggunakan PostgreSQL SEQUENCE di Supabase.
+ * Format: PREFIX + 3 digit zero-padded (misal: TF074, JE133)
+ * Hanya untuk prefix 'TF' dan 'JE' — MA/MT dihandle manual.
+ */
+const getNextKode = async (prefix) => {
+    const seqMap = {
+        'TF': 'tf_kode_seq',
+        'JE': 'je_kode_seq',
+    };
+    const seqName = seqMap[prefix];
+    if (!seqName) throw new Error(`Unknown kode prefix: ${prefix}`);
+
+    const { data, error } = await supabaseAdmin
+        .rpc('get_next_kode', { seq_name: seqName });
+
+    if (error || data === null || data === undefined) {
+        throw new Error(`Gagal generate ${prefix} kode: ${error?.message || 'No data'}`);
+    }
+
+    return `${prefix}${String(data).padStart(3, '0')}`;
+};
 
 // ============================================================================
 // 1. MASTER ACCOUNT (Chart of Accounts)
@@ -217,7 +239,7 @@ export const createTransactionFinance = async (payload) => {
         const { user, adminNama, error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
-        const kode_id = `TF${Math.floor(100 + Math.random() * 900)}`;
+        const kode_id = await getNextKode('TF');
         const { data, error } = await supabaseAdmin
             .from('transaction_finance')
             .insert([{ ...payload, kode_id }])
@@ -355,7 +377,7 @@ export const createFormTransaksiPengeluaran = async (payload) => {
         if (formError) throw formError;
 
         // 2. Auto-insert to transaction_finance (Expense)
-        const kode_id = `TF${Math.floor(100 + Math.random() * 900)}`;
+        const kode_id = await getNextKode('TF');
         const { data: tf, error: tfError } = await supabaseAdmin
             .from('transaction_finance')
             .insert([{
@@ -380,8 +402,8 @@ export const createFormTransaksiPengeluaran = async (payload) => {
 
         // 3. Create 2 journal entries if accounts are selected
         if (akun_beban_id && akun_pembayaran_id) {
-            const je1_kode = `JE${Math.floor(100 + Math.random() * 900)}`;
-            const je2_kode = `JE${Math.floor(100 + Math.random() * 900)}`;
+            const je1_kode = await getNextKode('JE');
+            const je2_kode = await getNextKode('JE');
 
             await supabaseAdmin.from('journal_entry').insert([
                 {
@@ -448,15 +470,39 @@ export const autoCreateTransactionFromPeserta = async (peserta, userEmail = 'sys
         if (!peserta || !peserta.id) return { success: false, error: 'Invalid peserta data' };
 
         const site = peserta.site_type || 'pkkmb';
-        let kodePayer = peserta.nim || peserta.email_wa || peserta.nama;
+        const rawKodeForm = peserta.kode_form;
+        const kodeFormBase = rawKodeForm
+            ? (rawKodeForm.length > 4 ? rawKodeForm.slice(0, -4) : rawKodeForm)
+            : null;
 
-        // For PKKMB bertahap, we make kode_payer unique by appending tahapan
+        let kodePayer;
         if (site === 'pkkmb' && peserta.jenis_form === 'wajib' && peserta._pembayaran_tahapan) {
             kodePayer = `${peserta.nim}-${peserta._pembayaran_tahapan}`;
+        } else if (site === 'pose') {
+            const identifier = peserta.nim || peserta.email_wa || peserta.nama;
+            kodePayer = kodeFormBase
+                ? `${identifier}_${kodeFormBase}`
+                : `${identifier}_${peserta.jenis_form || 'form'}`;
+        } else {
+            kodePayer = peserta.nim || peserta.email_wa || peserta.nama;
         }
 
         // 1. Check Deduplication for POSE (if email_wa + bukti_bayar match or kode_payer match)
         if (site === 'pose') {
+            if (peserta.jenis_form === 'register' && kodeFormBase) {
+                const { data: existingByKodeForm } = await supabaseAdmin
+                    .from('transaction_finance')
+                    .select('id')
+                    .eq('site', 'pose')
+                    .ilike('kode_payer', `%_${kodeFormBase}`)
+                    .limit(1);
+
+                if (existingByKodeForm && existingByKodeForm.length > 0) {
+                    console.log(`[Auto-Finance] Team dedup: kode_form ${kodeFormBase} sudah punya transaksi. Skip untuk ${peserta.nama}.`);
+                    return { success: true, duplicate: true };
+                }
+            }
+
             const { data: existingTF } = await supabaseAdmin
                 .from('transaction_finance')
                 .select('id')
@@ -489,8 +535,7 @@ export const autoCreateTransactionFromPeserta = async (peserta, userEmail = 'sys
         let formCategoryName = 'Iuran Wajib';
         let formRegisterId = null;
 
-        const rawKodeForm = peserta.kode_form;
-        const searchKode = rawKodeForm ? (rawKodeForm.length > 4 ? rawKodeForm.slice(0, -4) : rawKodeForm) : null;
+        const searchKode = kodeFormBase;
 
         const isPkkmbWajibStaged = site === 'pkkmb' && peserta.jenis_form === 'wajib' && peserta._pembayaran_tahapan;
         let requiredFullNominal = 500000;
@@ -640,7 +685,7 @@ export const autoCreateTransactionFromPeserta = async (peserta, userEmail = 'sys
         }
 
         // 5. Insert to transaction_finance
-        const kode_id = `TF${Math.floor(100 + Math.random() * 900)}`;
+        const kode_id = await getNextKode('TF');
         const { data: tf, error: tfError } = await supabaseAdmin
             .from('transaction_finance')
             .insert([{
@@ -668,8 +713,8 @@ export const autoCreateTransactionFromPeserta = async (peserta, userEmail = 'sys
 
         // 6. Create Journal Entries (Double-Entry)
         if (assetAccount && revenueAccount && tf) {
-            const je1_kode = `JE${Math.floor(100 + Math.random() * 900)}`;
-            const je2_kode = `JE${Math.floor(100 + Math.random() * 900)}`;
+            const je1_kode = await getNextKode('JE');
+            const je2_kode = await getNextKode('JE');
 
             const utangAccount = accounts?.find(a => a.kode_akun === '2002');
             const bebanAccount = accounts?.find(a => a.kode_akun === '5005');
@@ -679,6 +724,7 @@ export const autoCreateTransactionFromPeserta = async (peserta, userEmail = 'sys
                 if (pkkmbTahapan === 'tahap 1') {
                     // Tahap 1: Debit Kas, Debit Piutang, Credit Revenue
                     const piutangNominal = requiredFullNominal - pkkmbNominal;
+                    const jePiutang_kode = await getNextKode('JE');
                     await supabaseAdmin.from('journal_entry').insert([
                         {
                             kode_id: je1_kode,
@@ -691,7 +737,7 @@ export const autoCreateTransactionFromPeserta = async (peserta, userEmail = 'sys
                             site: site
                         },
                         {
-                            kode_id: `JE${Math.floor(100 + Math.random() * 900)}`,
+                            kode_id: jePiutang_kode,
                             transaction_id: tf.id,
                             account_id: piutangAccount ? piutangAccount.id : assetAccount.id, // DEBIT Piutang (or asset fallback)
                             debit: piutangNominal,
@@ -762,6 +808,8 @@ export const autoCreateTransactionFromPeserta = async (peserta, userEmail = 'sys
                 }
             } else if (salesEntry && salesEntry.nominal > 0 && utangAccount && bebanAccount) {
                 // 4 Entries: Asset, Revenue, Beban Komisi (5005), Utang Komisi (2002)
+                const jeBeban_kode = await getNextKode('JE');
+                const jeUtang_kode = await getNextKode('JE');
                 await supabaseAdmin.from('journal_entry').insert([
                     {
                         kode_id: je1_kode,
@@ -784,7 +832,7 @@ export const autoCreateTransactionFromPeserta = async (peserta, userEmail = 'sys
                         site: site
                     },
                     {
-                        kode_id: `JE${Math.floor(100 + Math.random() * 900)}`,
+                        kode_id: jeBeban_kode,
                         transaction_id: tf.id,
                         account_id: bebanAccount.id, // DEBIT Beban Komisi Sales
                         debit: salesEntry.nominal,
@@ -794,7 +842,7 @@ export const autoCreateTransactionFromPeserta = async (peserta, userEmail = 'sys
                         site: site
                     },
                     {
-                        kode_id: `JE${Math.floor(100 + Math.random() * 900)}`,
+                        kode_id: jeUtang_kode,
                         transaction_id: tf.id,
                         account_id: utangAccount.id, // CREDIT Utang Komisi Sales
                         debit: 0,
@@ -847,14 +895,21 @@ export const autoDeleteTransactionFromPeserta = async (peserta) => {
         if (!peserta) return { success: false };
 
         const site = peserta.site_type || 'pkkmb';
-        const kodePayer = peserta.nim || peserta.email_wa || peserta.nama;
+        const identifier = peserta.nim || peserta.email_wa || peserta.nama;
+        const rawKodeForm = peserta.kode_form;
+        const kodeFormBase = rawKodeForm
+            ? (rawKodeForm.length > 4 ? rawKodeForm.slice(0, -4) : rawKodeForm)
+            : null;
+        const newFormatKode = kodeFormBase
+            ? `${identifier}_${kodeFormBase}`
+            : `${identifier}_${peserta.jenis_form || 'form'}`;
 
         // Find transaction finance row
         const { data: existing } = await supabaseAdmin
             .from('transaction_finance')
             .select('id')
             .eq('site', site)
-            .or(`kode_payer.eq.${kodePayer},kode_payer.ilike.${kodePayer}-%`);
+            .or(`kode_payer.eq.${newFormatKode},kode_payer.eq.${identifier},kode_payer.ilike.${identifier}-%`);
 
         if (existing && existing.length > 0) {
             const ids = existing.map(e => e.id);
@@ -890,7 +945,7 @@ export const createFormTransaksiPemasukan = async (payload) => {
         }
 
         // 1. Create transaction_finance (Income)
-        const kode_id = `TF${Math.floor(100 + Math.random() * 900)}`;
+        const kode_id = await getNextKode('TF');
         const { data: tf, error: tfError } = await supabaseAdmin
             .from('transaction_finance')
             .insert([{
@@ -915,8 +970,8 @@ export const createFormTransaksiPemasukan = async (payload) => {
 
         // 2. Create journal entries (Double-Entry: Debit Asset, Credit Revenue)
         if (akun_pembayaran_id && akun_pendapatan_id) {
-            const je1_kode = `JE${Math.floor(100 + Math.random() * 900)}`;
-            const je2_kode = `JE${Math.floor(100 + Math.random() * 900)}`;
+            const je1_kode = await getNextKode('JE');
+            const je2_kode = await getNextKode('JE');
 
             await supabaseAdmin.from('journal_entry').insert([
                 {
