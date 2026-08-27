@@ -90,7 +90,9 @@ export default function AdminPesertaWajibLomba() {
             result = result.filter(p =>
                 p.nama?.toLowerCase().includes(q) ||
                 p.nim?.toLowerCase().includes(q) ||
-                p.kampus?.toLowerCase().includes(q)
+                p.kampus?.toLowerCase().includes(q) ||
+                p.email_wa?.toLowerCase().includes(q) ||
+                p.prodi?.toLowerCase().includes(q)
             );
         }
         if (kampusFilter !== 'all') {
@@ -101,7 +103,9 @@ export default function AdminPesertaWajibLomba() {
         } else if (statusFilter === 'satu') {
             result = result.filter(p => p.total_lomba === 1);
         } else if (statusFilter === 'dua') {
-            result = result.filter(p => p.total_lomba >= 2);
+            result = result.filter(p => p.total_lomba === 2);
+        } else if (statusFilter === 'tiga') {
+            result = result.filter(p => p.total_lomba >= 3);
         }
 
         if (nimSortOrder !== 'none') {
@@ -123,17 +127,18 @@ export default function AdminPesertaWajibLomba() {
         return filteredData.slice(start, start + ITEMS_PER_PAGE);
     }, [filteredData, currentPage]);
 
-    // Doughnut chart: distribusi 0/1/2 lomba
+    // Doughnut chart: distribusi 0/1/2/3 lomba
     const doughnutData = useMemo(() => {
         const belum = data.filter(p => p.total_lomba === 0).length;
         const satu = data.filter(p => p.total_lomba === 1).length;
-        const dua = data.filter(p => p.total_lomba >= 2).length;
+        const dua = data.filter(p => p.total_lomba === 2).length;
+        const tiga = data.filter(p => p.total_lomba >= 3).length;
         return {
-            labels: ['Belum Ikut Lomba', 'Ikut 1 Lomba', 'Ikut 2 Lomba'],
+            labels: ['Belum Ikut Lomba', 'Ikut 1 Lomba', 'Ikut 2 Lomba', 'Ikut 3 Lomba'],
             datasets: [{
-                data: [belum, satu, dua],
-                backgroundColor: ['#f87171', '#fbbf24', '#34d399'],
-                borderColor: ['#ef4444', '#f59e0b', '#10b981'],
+                data: [belum, satu, dua, tiga],
+                backgroundColor: ['#f87171', '#fbbf24', '#60a5fa', '#34d399'],
+                borderColor: ['#ef4444', '#f59e0b', '#3b82f6', '#10b981'],
                 borderWidth: 2,
             }]
         };
@@ -182,10 +187,10 @@ export default function AdminPesertaWajibLomba() {
         const total = data.length;
         const sudahIkut = data.filter(p => p.total_lomba > 0).length;
         const belumIkut = data.filter(p => p.total_lomba === 0).length;
-        const penuh = data.filter(p => p.total_lomba >= 2).length;
+        const penuh = data.filter(p => p.total_lomba >= 3).length;
         return [
             { label: 'Total Peserta Wajib', value: total, icon: Users, iconBg: 'bg-blue-50 dark:bg-blue-900/20', iconClass: 'text-blue-500' },
-            { label: 'Sudah Ikut Lomba', value: sudahIkut, icon: UserCheck, iconBg: 'bg-green-50 dark:bg-green-900/20', iconClass: 'text-green-500', subtext: `${penuh} sudah maks (2 lomba)`, subtextClass: 'text-emerald-600' },
+            { label: 'Sudah Ikut Lomba', value: sudahIkut, icon: UserCheck, iconBg: 'bg-green-50 dark:bg-green-900/20', iconClass: 'text-green-500', subtext: `${penuh} sudah maks (3 lomba)`, subtextClass: 'text-emerald-600' },
             { label: 'Belum Ikut Lomba', value: belumIkut, icon: Users, iconBg: 'bg-red-50 dark:bg-red-900/20', iconClass: 'text-red-500', subtext: `${total > 0 ? ((belumIkut / total) * 100).toFixed(1) : 0}% dari total`, subtextClass: 'text-red-500' },
         ];
     }, [data]);
@@ -196,6 +201,7 @@ export default function AdminPesertaWajibLomba() {
             'Nama': p.nama || '-',
             'Kampus': p.kampus || '-',
             'Prodi': p.prodi || '-',
+            'Kontak': p.email_wa || '-',
             'Status Bayar': p.status_pembayaran || '-',
             'Total Lomba': p.total_lomba || 0,
             'Lomba Diikuti': (p.lomba_diikuti || []).join(', ') || '-',
@@ -345,12 +351,12 @@ export default function AdminPesertaWajibLomba() {
                             onClick={() => setStatusFilterOpen(!statusFilterOpen)}
                             className="flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                         >
-                            <span>{{ all: 'Semua Status', belum: 'Belum Lomba', satu: 'Ikut 1 Lomba', dua: 'Ikut 2 Lomba' }[statusFilter]}</span>
+                            <span>{{ all: 'Semua Status', belum: 'Belum Lomba', satu: 'Ikut 1 Lomba', dua: 'Ikut 2 Lomba', tiga: 'Ikut 3 Lomba' }[statusFilter]}</span>
                             <ChevronDown size={14} />
                         </button>
                         {statusFilterOpen && (
                             <div className="absolute z-20 mt-1 w-44 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg">
-                                {[['all', 'Semua Status'], ['belum', 'Belum Lomba'], ['satu', 'Ikut 1 Lomba'], ['dua', 'Ikut 2 Lomba']].map(([val, label]) => (
+                                {[['all', 'Semua Status'], ['belum', 'Belum Lomba'], ['satu', 'Ikut 1 Lomba'], ['dua', 'Ikut 2 Lomba'], ['tiga', 'Ikut 3 Lomba']].map(([val, label]) => (
                                     <button
                                         key={val}
                                         type="button"
@@ -405,6 +411,7 @@ export default function AdminPesertaWajibLomba() {
                         { key: 'nama', label: 'Nama' },
                         { key: 'kampus', label: 'Kampus' },
                         { key: 'prodi', label: 'Prodi' },
+                        { key: 'email_wa', label: 'Kontak' },
                         { key: 'created_at', label: 'Tanggal Input', format: 'datetime' },
                         { key: 'status_pembayaran', label: 'Status Bayar' },
                         { key: 'total_lomba', label: 'Total Lomba', align: 'center' },
@@ -415,6 +422,7 @@ export default function AdminPesertaWajibLomba() {
                         'Nama': p.nama || '-',
                         'Kampus': p.kampus || '-',
                         'Prodi': p.prodi || '-',
+                        'Kontak': p.email_wa || '-',
                         'Tanggal Input': p.created_at,
                         'Status Bayar': p.status_pembayaran || '-',
                         'Total Lomba': p.total_lomba || 0,
@@ -425,6 +433,7 @@ export default function AdminPesertaWajibLomba() {
                         { key: 'Nama', label: 'Nama' },
                         { key: 'Kampus', label: 'Kampus' },
                         { key: 'Prodi', label: 'Prodi' },
+                        { key: 'Kontak', label: 'Kontak' },
                         { key: 'Tanggal Input', label: 'Tanggal Input', format: 'datetime' },
                         { key: 'Status Bayar', label: 'Status Bayar' },
                         { key: 'Total Lomba', label: 'Total Lomba' },
@@ -448,7 +457,7 @@ export default function AdminPesertaWajibLomba() {
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full min-w-[700px]">
+                        <table className="w-full min-w-[800px]">
                             <thead className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
                                 <tr>
                                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">No</th>
@@ -456,6 +465,7 @@ export default function AdminPesertaWajibLomba() {
                                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Nama</th>
                                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Kampus</th>
                                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Prodi</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Kontak</th>
                                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Lomba Diikuti</th>
                                     <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Total</th>
                                 </tr>
@@ -468,6 +478,7 @@ export default function AdminPesertaWajibLomba() {
                                         <td className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-white">{p.nama || '-'}</td>
                                         <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{p.kampus || '-'}</td>
                                         <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 max-w-[160px] truncate" title={p.prodi}>{p.prodi || '-'}</td>
+                                        <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{p.email_wa || '-'}</td>
                                         <td className="px-4 py-3">
                                             {p.lomba_diikuti && p.lomba_diikuti.length > 0 ? (
                                                 <div className="flex flex-wrap gap-1">
@@ -485,9 +496,10 @@ export default function AdminPesertaWajibLomba() {
                                             <span className={`inline-block px-2 py-0.5 text-xs font-bold rounded-full ${
                                                 p.total_lomba === 0 ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
                                                 p.total_lomba === 1 ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' :
+                                                p.total_lomba === 2 ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
                                                 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
                                             }`}>
-                                                {p.total_lomba} / 2
+                                                {p.total_lomba} / 3
                                             </span>
                                         </td>
                                     </tr>

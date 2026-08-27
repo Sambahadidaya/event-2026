@@ -528,7 +528,7 @@ export const getPesertaWajibLombaData = async () => {
         // 1. Get all peserta wajib (Mahasiswa LP3I, site_type pose, jenis_form wajib)
         const { data: wajibPeserta, error: wajibError } = await supabaseAdmin
             .from('peserta')
-            .select('nim, nama, kampus, prodi, status_pembayaran')
+            .select('nim, nama, kampus, prodi, email_wa, status_pembayaran')
             .eq('jenis_form', 'wajib')
             .eq('site_type', 'pose')
             .eq('kategori', 'Mahasiswa LP3I');
@@ -593,6 +593,7 @@ export const getPesertaWajibLombaData = async () => {
                 nama: p.nama,
                 kampus: p.kampus,
                 prodi: p.prodi,
+                email_wa: p.email_wa,
                 status_pembayaran: p.status_pembayaran,
                 lomba_diikuti: lombas,
                 total_lomba: lombas.length

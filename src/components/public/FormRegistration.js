@@ -276,8 +276,8 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
             }
 
             if (isMhsLP3I && !requiresBukti) {
-                if (wajibLombaCount >= 2) {
-                    return window.alert(`Anda sudah mendaftar maksimal 2 lomba. Kuota lomba Anda sudah habis.`);
+                if (wajibLombaCount >= 3) {
+                    return window.alert(`Anda sudah mendaftar maksimal 3 lomba. Kuota lomba Anda sudah habis.`);
                 }
             }
 
@@ -824,7 +824,7 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
 
                 {/* UI Feedback Tahap 3: Maks Lomba */}
                 {!isWajib && isMhsLP3I && !requiresBukti && wajibLombaCount > 0 && (
-                    <div className={`p-4 rounded-2xl border flex gap-3 ${wajibLombaCount >= 2
+                    <div className={`p-4 rounded-2xl border flex gap-3 ${wajibLombaCount >= 3
                         ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'
                         : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300'
                         }`}>
@@ -833,12 +833,12 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                         </div>
                         <div>
                             <h4 className="font-bold text-sm">
-                                {wajibLombaCount >= 2 ? 'Kuota Lomba Penuh' : 'Informasi Kuota Lomba'}
+                                {wajibLombaCount >= 3 ? 'Kuota Lomba Penuh' : 'Informasi Kuota Lomba'}
                             </h4>
                             <p className="text-xs mt-1">
-                                {wajibLombaCount >= 2
-                                    ? 'Anda sudah mendaftar 2 lomba (maksimal). Anda tidak dapat mendaftar lomba ini.'
-                                    : `Anda sudah mendaftar ${wajibLombaCount} lomba. Sisa kuota Anda: ${2 - wajibLombaCount} lomba lagi.`}
+                                {wajibLombaCount >= 3
+                                    ? 'Anda sudah mendaftar 3 lomba (maksimal). Anda tidak dapat mendaftar lomba ini.'
+                                    : `Anda sudah mendaftar ${wajibLombaCount} lomba. Sisa kuota Anda: ${3 - wajibLombaCount} lomba lagi.`}
                             </p>
                         </div>
                     </div>
