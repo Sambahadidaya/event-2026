@@ -12,7 +12,7 @@ import { JENIS_LOMBA, NAMA_LOMBA, KODE_JENIS_LOMBA, KODE_NAMA_LOMBA, KAMPUS_DATA
 import { generateKodeFormWajib, generateKodeFormRegister } from '@/lib/kodeFormUtils';
 import { upsertFormWajib, upsertFormRegister } from '@/api/supabase/admin/peserta';
 import { upsertFormPengumpulan } from '@/api/supabase/admin/submission';
-import { upsertFormRegisterPricing, upsertFormRegisterKampusQuota, upsertFormWajibPricing } from '@/api/supabase/admin/finance';
+import { upsertFormRegisterPricing, upsertFormRegisterKampusQuota, upsertFormRegisterAngkatanQuota, getFormRegisterKampusQuota, upsertFormWajibPricing } from '@/api/supabase/admin/finance';
 import { uploadFile } from '@/api/supabase/storage';
 import { nanoid } from 'nanoid';
 
@@ -28,9 +28,24 @@ export default function UnifiedFormDashboard() {
     const [formSite, setFormSite] = useState('pose');
     const [judul, setJudul] = useState('');
     const [keterangan, setKeterangan] = useState('');
-    const [nominal, setNominal] = useState('');
-    const [imageFile, setImageFile] = useState(null);
+    const [gambarFile, setGambarFile] = useState(null);
     const [butuhBukti, setButuhBukti] = useState(true);
+
+    // Dynamic Pricing per Category
+    const [nominal, setNominal] = useState('');
+    const [kategoriPendaftar, setKategoriPendaftar] = useState(['Mahasiswa LP3I', 'Siswa', 'Dosen', 'Umum', 'Alumni LP3I']);
+    const [pricingKategoriMap, setPricingKategoriMap] = useState({});
+    const [individusKategoriMap, setIndividusKategoriMap] = useState({});
+    const [maksAnggotaKategoriMap, setMaksAnggotaKategoriMap] = useState({});
+    const [maksTeamKategoriMap, setMaksTeamKategoriMap] = useState({});
+    const [kampusQuotaEnabled, setKampusQuotaEnabled] = useState(false);
+    const [kampusQuotaMap, setKampusQuotaMap] = useState({});
+    const [selectedKampusList, setSelectedKampusList] = useState([]);
+    const [angkatanQuotaMap, setAngkatanQuotaMap] = useState({});
+    const [umumTypeMap, setUmumTypeMap] = useState({});
+    const [komisiLvl1KategoriMap, setKomisiLvl1KategoriMap] = useState({});
+    const [komisiLvl2KategoriMap, setKomisiLvl2KategoriMap] = useState({});
+    const [komisiLvl3KategoriMap, setKomisiLvl3KategoriMap] = useState({});
 
     // PKKMB Wajib Staged pricing states
     const [regulerTahap1, setRegulerTahap1] = useState('');
@@ -43,18 +58,6 @@ export default function UnifiedFormDashboard() {
 
     const [jenisLomba, setJenisLomba] = useState('');
     const [namaLomba, setNamaLomba] = useState('');
-    const [kategoriPendaftar, setKategoriPendaftar] = useState(['Mahasiswa LP3I', 'Siswa', 'Dosen', 'Umum', 'Alumni LP3I']);
-    const [pricingKategoriMap, setPricingKategoriMap] = useState({});
-    const [individusKategoriMap, setIndividusKategoriMap] = useState({});
-    const [maksAnggotaKategoriMap, setMaksAnggotaKategoriMap] = useState({});
-    const [maksTeamKategoriMap, setMaksTeamKategoriMap] = useState({});
-    const [kampusQuotaEnabled, setKampusQuotaEnabled] = useState(false);
-    const [kampusQuotaMap, setKampusQuotaMap] = useState({});
-    const [selectedKampusList, setSelectedKampusList] = useState([]);
-    const [umumTypeMap, setUmumTypeMap] = useState({});
-    const [komisiLvl1KategoriMap, setKomisiLvl1KategoriMap] = useState({});
-    const [komisiLvl2KategoriMap, setKomisiLvl2KategoriMap] = useState({});
-    const [komisiLvl3KategoriMap, setKomisiLvl3KategoriMap] = useState({});
 
     const [createLoading, setCreateLoading] = useState(false);
 
@@ -88,7 +91,7 @@ export default function UnifiedFormDashboard() {
         setJudul('');
         setKeterangan('');
         setNominal('');
-        setImageFile(null);
+        setGambarFile(null);
         setButuhBukti(true);
         setJenisLomba('');
         setNamaLomba('');
@@ -144,9 +147,9 @@ export default function UnifiedFormDashboard() {
         setCreateLoading(true);
 
         let gambarUrl = null;
-        if (imageFile) {
+        if (gambarFile) {
             const formDataForUpload = new FormData();
-            formDataForUpload.append('file', imageFile);
+            formDataForUpload.append('file', gambarFile);
 
             let bucket = formType === 'wajib' ? 'team-images' : 'images';
             let uploadRes;
@@ -155,7 +158,7 @@ export default function UnifiedFormDashboard() {
                 uploadRes = await uploadFile(formDataForUpload, 'team-images', 'form-headers/');
             } else {
                 formDataForUpload.append('bucket', 'images');
-                const fileExt = imageFile.name.split('.').pop();
+                const fileExt = gambarFile.name.split('.').pop();
                 const fileName = `${Math.random()}.${fileExt}`;
                 formDataForUpload.append('path', `form-headers/${fileName}`);
                 uploadRes = await uploadFile(formDataForUpload);
@@ -264,7 +267,16 @@ export default function UnifiedFormDashboard() {
                         })).filter(k => k.maks_team > 0);
 
                         if (kampusQuotaList.length > 0) {
-                            await upsertFormRegisterKampusQuota(pricingLP3I.id, kampusQuotaList);
+                            const quotaRes = await upsertFormRegisterKampusQuota(pricingLP3I.id, kampusQuotaList);
+                            if (quotaRes.success) {
+                                const createdQuotas = await getFormRegisterKampusQuota(pricingLP3I.id);
+                                for (const q of (createdQuotas || [])) {
+                                    const listForKampus = angkatanQuotaMap[q.nama_kampus] || [];
+                                    if (listForKampus.length > 0) {
+                                        await upsertFormRegisterAngkatanQuota(q.id, listForKampus);
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -697,22 +709,92 @@ export default function UnifiedFormDashboard() {
                                                                          </div>
 
                                                                          {selectedKampusList.length > 0 && (
-                                                                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-2 bg-blue-50/20 dark:bg-blue-900/10 border border-blue-100/50 dark:border-blue-800/30 rounded-xl">
-                                                                                 {selectedKampusList.map(kampusName => (
-                                                                                     <div key={`input-quota-${kat}-${kampusName}`}>
-                                                                                         <label className="block text-[9px] text-gray-500 truncate mb-1" title={kampusName}>
-                                                                                             {kampusName}
-                                                                                         </label>
-                                                                                         <input
-                                                                                             type="number"
-                                                                                             min="1"
-                                                                                             placeholder="Maks"
-                                                                                             value={kampusQuotaMap[kampusName] !== undefined ? kampusQuotaMap[kampusName] : ''}
-                                                                                             onChange={(e) => setKampusQuotaMap({ ...kampusQuotaMap, [kampusName]: e.target.value })}
-                                                                                             className="w-full px-2 py-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg text-[11px] outline-none focus:ring-1 focus:ring-blue-500"
-                                                                                         />
-                                                                                     </div>
-                                                                                 ))}
+                                                                             <div className="space-y-2.5 p-2.5 bg-blue-50/20 dark:bg-blue-900/10 border border-blue-100/50 dark:border-blue-800/30 rounded-xl">
+                                                                                 {selectedKampusList.map(kampusName => {
+                                                                                     const currentAngkatanList = angkatanQuotaMap[kampusName] || [];
+                                                                                     return (
+                                                                                         <div key={`input-quota-${kat}-${kampusName}`} className="p-2 bg-white dark:bg-gray-900/80 rounded-xl border border-gray-200 dark:border-gray-700 space-y-2">
+                                                                                             <div className="flex items-center justify-between">
+                                                                                                 <label className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate" title={kampusName}>
+                                                                                                     {kampusName}
+                                                                                                 </label>
+                                                                                                 <div className="flex items-center gap-1.5">
+                                                                                                     <span className="text-[10px] text-gray-500 font-medium">Maks Total:</span>
+                                                                                                     <input
+                                                                                                         type="number"
+                                                                                                         min="1"
+                                                                                                         placeholder="Maks"
+                                                                                                         value={kampusQuotaMap[kampusName] !== undefined ? kampusQuotaMap[kampusName] : ''}
+                                                                                                         onChange={(e) => setKampusQuotaMap({ ...kampusQuotaMap, [kampusName]: e.target.value })}
+                                                                                                         className="w-16 px-2 py-0.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-500"
+                                                                                                     />
+                                                                                                 </div>
+                                                                                             </div>
+
+                                                                                             {/* Angkatan Quota Section */}
+                                                                                             <div className="pt-1.5 border-t border-gray-100 dark:border-gray-800">
+                                                                                                 <div className="flex items-center justify-between mb-1">
+                                                                                                     <span className="text-[10px] font-semibold text-gray-600 dark:text-gray-400">Limit Khusus Angkatan (Opsional)</span>
+                                                                                                     <button
+                                                                                                         type="button"
+                                                                                                         onClick={() => {
+                                                                                                             const newList = [...currentAngkatanList, { angkatan: '2026', maks_team: 1 }];
+                                                                                                             setAngkatanQuotaMap({ ...angkatanQuotaMap, [kampusName]: newList });
+                                                                                                         }}
+                                                                                                         className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                                                                                                     >
+                                                                                                         + Tambah Angkatan
+                                                                                                     </button>
+                                                                                                 </div>
+
+                                                                                                 {currentAngkatanList.length > 0 && (
+                                                                                                     <div className="space-y-1.5">
+                                                                                                         {currentAngkatanList.map((item, aIdx) => (
+                                                                                                             <div key={aIdx} className="flex items-center gap-2">
+                                                                                                                 <select
+                                                                                                                     value={item.angkatan}
+                                                                                                                     onChange={(e) => {
+                                                                                                                         const updated = [...currentAngkatanList];
+                                                                                                                         updated[aIdx].angkatan = e.target.value;
+                                                                                                                         setAngkatanQuotaMap({ ...angkatanQuotaMap, [kampusName]: updated });
+                                                                                                                     }}
+                                                                                                                     className="px-2 py-0.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md text-[11px]"
+                                                                                                                 >
+                                                                                                                     <option value="2026">2026</option>
+                                                                                                                     <option value="2025">2025</option>
+                                                                                                                     <option value="2024">2024</option>
+                                                                                                                     <option value="2023">2023</option>
+                                                                                                                 </select>
+                                                                                                                 <input
+                                                                                                                     type="number"
+                                                                                                                     min="1"
+                                                                                                                     placeholder="Maks Tim"
+                                                                                                                     value={item.maks_team}
+                                                                                                                     onChange={(e) => {
+                                                                                                                         const updated = [...currentAngkatanList];
+                                                                                                                         updated[aIdx].maks_team = e.target.value;
+                                                                                                                         setAngkatanQuotaMap({ ...angkatanQuotaMap, [kampusName]: updated });
+                                                                                                                     }}
+                                                                                                                     className="w-16 px-2 py-0.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md text-[11px]"
+                                                                                                                 />
+                                                                                                                 <button
+                                                                                                                     type="button"
+                                                                                                                     onClick={() => {
+                                                                                                                         const updated = currentAngkatanList.filter((_, i) => i !== aIdx);
+                                                                                                                         setAngkatanQuotaMap({ ...angkatanQuotaMap, [kampusName]: updated });
+                                                                                                                     }}
+                                                                                                                     className="text-red-500 hover:text-red-700 text-xs px-1"
+                                                                                                                 >
+                                                                                                                     ✕
+                                                                                                                 </button>
+                                                                                                             </div>
+                                                                                                         ))}
+                                                                                                     </div>
+                                                                                                 )}
+                                                                                             </div>
+                                                                                         </div>
+                                                                                     );
+                                                                                 })}
                                                                              </div>
                                                                          )}
                                                                      </div>
@@ -849,7 +931,7 @@ export default function UnifiedFormDashboard() {
                                 <input
                                     type="file"
                                     accept="image/*"
-                                    onChange={(e) => setImageFile(e.target.files[0])}
+                                    onChange={(e) => setGambarFile(e.target.files[0])}
                                     className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                                 />
                             </div>

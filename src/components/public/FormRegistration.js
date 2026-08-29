@@ -266,12 +266,27 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
         if (!isWajib) {
             // Validasi kuota kampus (termasuk jika maks_team = 0 berarti tidak ada kuota sama sekali)
             if (isMhsLP3I && kampusQuotaInfo) {
-                const maksKampus = kampusQuotaInfo.maks_team ?? 0;
-                if (maksKampus === 0) {
-                    return window.alert(`Maaf, kampus ${members[0]?.kampus} tidak memiliki kuota untuk lomba ini.`);
+                let matchedAngkatan = null;
+                if (selectedAngkatan && Array.isArray(kampusQuotaInfo.angkatanQuotas)) {
+                    matchedAngkatan = kampusQuotaInfo.angkatanQuotas.find(a => a.angkatan === selectedAngkatan);
                 }
-                if (kampusTeamCount >= maksKampus) {
-                    return window.alert(`Maaf, pendaftaran lomba untuk kategori Mahasiswa LP3I dari kampus ${members[0]?.kampus} sudah penuh (Maks: ${maksKampus} Tim).`);
+
+                if (matchedAngkatan) {
+                    const maksAngkatan = matchedAngkatan.maks_team ?? 0;
+                    if (maksAngkatan === 0) {
+                        return window.alert(`Maaf, kampus ${members[0]?.kampus} tidak memiliki kuota untuk Mahasiswa LP3I angkatan ${selectedAngkatan} pada lomba ini.`);
+                    }
+                    if (angkatanTeamCount >= maksAngkatan) {
+                        return window.alert(`Maaf, pendaftaran lomba untuk kategori Mahasiswa LP3I angkatan ${selectedAngkatan} dari kampus ${members[0]?.kampus} sudah penuh (Maks: ${maksAngkatan} Tim).`);
+                    }
+                } else {
+                    const maksKampus = kampusQuotaInfo.maks_team ?? 0;
+                    if (maksKampus === 0) {
+                        return window.alert(`Maaf, kampus ${members[0]?.kampus} tidak memiliki kuota untuk lomba ini.`);
+                    }
+                    if (kampusTeamCount >= maksKampus) {
+                        return window.alert(`Maaf, pendaftaran lomba untuk kategori Mahasiswa LP3I dari kampus ${members[0]?.kampus} sudah penuh (Maks: ${maksKampus} Tim).`);
+                    }
                 }
             }
 
@@ -1065,16 +1080,35 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                                                         {/* UI Feedback Tahap 3: Kampus Quota */}
                                                         {!isWajib && index === 0 && isMhsLP3I && members[0].kampus && (
                                                             <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${isCheckingKuota ? 'bg-gray-100 text-gray-500' :
-                                                                !kampusQuotaInfo ? 'bg-green-100 text-green-600' :
-                                                                    (kampusQuotaInfo.maks_team ?? 0) === 0 ? 'bg-red-100 text-red-600' :
-                                                                        kampusTeamCount >= kampusQuotaInfo.maks_team ? 'bg-red-100 text-red-600' :
-                                                                            kampusTeamCount >= kampusQuotaInfo.maks_team - 2 ? 'bg-yellow-100 text-yellow-600' :
-                                                                                'bg-green-100 text-green-600'
+                                                                (() => {
+                                                                    if (!kampusQuotaInfo) return 'bg-green-100 text-green-600';
+                                                                    const matched = selectedAngkatan ? (kampusQuotaInfo.angkatanQuotas || []).find(a => a.angkatan === selectedAngkatan) : null;
+                                                                    if (matched) {
+                                                                        if ((matched.maks_team ?? 0) === 0 || angkatanTeamCount >= matched.maks_team) return 'bg-red-100 text-red-600';
+                                                                        if (angkatanTeamCount >= matched.maks_team - 2) return 'bg-yellow-100 text-yellow-600';
+                                                                        return 'bg-green-100 text-green-600';
+                                                                    } else {
+                                                                        if ((kampusQuotaInfo.maks_team ?? 0) === 0 || kampusTeamCount >= kampusQuotaInfo.maks_team) return 'bg-red-100 text-red-600';
+                                                                        if (kampusTeamCount >= kampusQuotaInfo.maks_team - 2) return 'bg-yellow-100 text-yellow-600';
+                                                                        return 'bg-green-100 text-green-600';
+                                                                    }
+                                                                })()
                                                                 }`}>
                                                                 {isCheckingKuota ? 'Memeriksa...' :
-                                                                    !kampusQuotaInfo ? 'Tersedia' :
-                                                                        (kampusQuotaInfo.maks_team ?? 0) === 0 ? 'Tidak Ada Kuota' :
-                                                                            kampusTeamCount >= kampusQuotaInfo.maks_team ? 'Penuh' : `Tersedia`}
+                                                                    (() => {
+                                                                        if (!kampusQuotaInfo) return 'Tersedia';
+                                                                        const matched = selectedAngkatan ? (kampusQuotaInfo.angkatanQuotas || []).find(a => a.angkatan === selectedAngkatan) : null;
+                                                                        if (matched) {
+                                                                            if ((matched.maks_team ?? 0) === 0) return 'Tidak Ada Kuota Angkatan';
+                                                                            if (angkatanTeamCount >= matched.maks_team) return 'Penuh';
+                                                                            return 'Tersedia';
+                                                                        } else {
+                                                                            if ((kampusQuotaInfo.maks_team ?? 0) === 0) return 'Tidak Ada Kuota';
+                                                                            if (kampusTeamCount >= kampusQuotaInfo.maks_team) return 'Penuh';
+                                                                            return 'Tersedia';
+                                                                        }
+                                                                    })()
+                                                                }
                                                             </span>
                                                         )}
                                                     </div>

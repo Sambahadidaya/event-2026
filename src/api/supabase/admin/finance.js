@@ -1239,13 +1239,72 @@ export const getFormRegisterKampusQuota = async (pricingId) => {
 
         const { data, error } = await supabaseAdmin
             .from('form_register_kampus_quota')
-            .select('*')
+            .select('*, form_register_kampus_quota_angkatan(id, angkatan, maks_team)')
             .eq('pricing_id', pricingId);
 
         if (error) throw error;
         return data || [];
     } catch (error) {
         console.error("Internal Log - Error fetching form register kampus quota:", error);
+        return [];
+    }
+};
+
+export const upsertFormRegisterAngkatanQuota = async (quotaId, angkatanQuotaList) => {
+    try {
+        const { user, adminNama, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        if (!quotaId) throw new Error('quota_id is required');
+        if (!Array.isArray(angkatanQuotaList)) throw new Error('angkatanQuotaList must be an array');
+
+        await supabaseAdmin
+            .from('form_register_kampus_quota_angkatan')
+            .delete()
+            .eq('quota_id', quotaId);
+
+        if (angkatanQuotaList.length > 0) {
+            const rowsToInsert = angkatanQuotaList
+                .filter(item => item.angkatan)
+                .map(item => ({
+                    quota_id: quotaId,
+                    angkatan: item.angkatan.toString().trim(),
+                    maks_team: parseInt(item.maks_team, 10) || 0
+                }));
+
+            if (rowsToInsert.length > 0) {
+                const { error: insertError } = await supabaseAdmin
+                    .from('form_register_kampus_quota_angkatan')
+                    .insert(rowsToInsert);
+
+                if (insertError) throw insertError;
+            }
+        }
+
+        await insertAuditLog(user.email, 'UPSERT_ANGKATAN_QUOTA', quotaId, `Updated angkatan quota for campus quota ${quotaId}`, adminNama);
+        return { success: true };
+    } catch (error) {
+        console.error("Internal Log - Error upserting form register angkatan quota:", error);
+        return { success: false, error: error.message || 'Terjadi kesalahan internal pada server' };
+    }
+};
+
+export const getFormRegisterAngkatanQuota = async (quotaId) => {
+    try {
+        const { error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        if (!quotaId) return [];
+
+        const { data, error } = await supabaseAdmin
+            .from('form_register_kampus_quota_angkatan')
+            .select('*')
+            .eq('quota_id', quotaId);
+
+        if (error) throw error;
+        return data || [];
+    } catch (error) {
+        console.error("Internal Log - Error fetching form register angkatan quota:", error);
         return [];
     }
 };
@@ -1271,7 +1330,7 @@ export const getKuotaKampusByForm = async (formId) => {
         // Fetch kampus quotas
         const { data, error } = await supabaseAdmin
             .from('form_register_kampus_quota')
-            .select('id, pricing_id, nama_kampus, maks_team, form_register_pricing!inner(form_id, kategori)')
+            .select('id, pricing_id, nama_kampus, maks_team, form_register_pricing!inner(form_id, kategori), form_register_kampus_quota_angkatan(id, angkatan, maks_team)')
             .in('pricing_id', pricingIds);
 
         if (error) throw error;
@@ -1279,6 +1338,48 @@ export const getKuotaKampusByForm = async (formId) => {
     } catch (error) {
         console.error("Internal Log - Error fetching kuota kampus by form:", error);
         return [];
+    }
+};
+
+export const getFormRegisterDetailForEdit = async (formId) => {
+    try {
+        const { error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        if (!formId) return { success: false, error: 'formId is required' };
+
+        // 1. Fetch pricing rows
+        const { data: pricingData, error: pricingError } = await supabaseAdmin
+            .from('form_register_pricing')
+            .select('id, form_id, kategori, nominal, maks_anggota, maks_team, individu, komisi_sales_lvl1, komisi_sales_lvl2, komisi_sales_lvl3, umum_type')
+            .eq('form_id', formId);
+
+        if (pricingError) throw pricingError;
+
+        const pricingList = pricingData || [];
+        const pricingIds = pricingList.map(p => p.id);
+
+        let kampusQuotas = [];
+        if (pricingIds.length > 0) {
+            const { data: kqData, error: kqError } = await supabaseAdmin
+                .from('form_register_kampus_quota')
+                .select('id, pricing_id, nama_kampus, maks_team, form_register_kampus_quota_angkatan(id, quota_id, angkatan, maks_team)')
+                .in('pricing_id', pricingIds);
+
+            if (kqError) throw kqError;
+            kampusQuotas = kqData || [];
+        }
+
+        return {
+            success: true,
+            data: {
+                pricing: pricingList,
+                kampusQuotas: kampusQuotas
+            }
+        };
+    } catch (error) {
+        console.error("Internal Log - Error fetching form register detail for edit:", error);
+        return { success: false, error: error.message || 'Terjadi kesalahan server' };
     }
 };
 

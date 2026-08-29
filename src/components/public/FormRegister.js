@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { uploadFile as serverUploadFile } from '@/api/supabase/storage';
-import { checkPesertaPoseWajibByNimAndKampus, getMetodePembayaran, getFormRegisterPricing, getTeamCountsByForm, getFormRegisterKampusQuotaPublic, getTeamCountsByFormAndKampus, checkWajibPesertaLombaCount, checkPesertaRegisteredForLomba, insertPesertaBatch } from '@/api/supabase/public/peserta';
+import { checkPesertaPoseWajibByNimAndKampus, getMetodePembayaran, getFormRegisterPricing, getTeamCountsByForm, getFormRegisterKampusQuotaPublic, getTeamCountsByFormAndKampus, getTeamCountsByFormKampusAndAngkatan, checkWajibPesertaLombaCount, checkPesertaRegisteredForLomba, insertPesertaBatch } from '@/api/supabase/public/peserta';
 import { insertTeamPublic, insertTeamMembers } from '@/api/supabase/public/team';
 import { insertSalesPose } from '@/api/supabase/public/sales';
 import { Trophy, Plus, Trash2, Users, Send, Info, Image as ImageIcon, CheckCircle2, Download, Copy, AlertTriangle } from 'lucide-react';
@@ -61,6 +61,9 @@ export default function FormRegister({ formConfig, nominalOverride = null, requi
 
     const [kampusQuotaInfo, setKampusQuotaInfo] = useState(null);
     const [kampusTeamCount, setKampusTeamCount] = useState(0);
+    const [selectedAngkatan, setSelectedAngkatan] = useState('');
+    const [angkatanTeamCount, setAngkatanTeamCount] = useState(0);
+    const [isCheckingAngkatanKuota, setIsCheckingAngkatanKuota] = useState(false);
     const [wajibLombaCount, setWajibLombaCount] = useState(0);
     const [isCheckingKuota, setIsCheckingKuota] = useState(false);
 
@@ -107,6 +110,7 @@ export default function FormRegister({ formConfig, nominalOverride = null, requi
         }
         const defaultKampus = '';
         setMembers([{ nama: '', nim: '', kampus: defaultKampus, kampusLainnya: '', email_wa: '', kontakType: 'whatsapp', jabatan: '', isStudent: isStudentDefault, prodi: '', semester: '', kelas: '', isProdiLainnya: false }]);
+        setSelectedAngkatan('');
         setSumberLomba('');
         setNamaReferal('');
     }, [kategori, umumType]);
@@ -159,6 +163,21 @@ export default function FormRegister({ formConfig, nominalOverride = null, requi
     }, [formConfig?.id, formConfig?.kode_form, kategori, members[0]?.kampus]);
 
     useEffect(() => {
+        if (formConfig?.kode_form && kategori === 'Mahasiswa LP3I' && members[0]?.kampus && selectedAngkatan) {
+            setIsCheckingAngkatanKuota(true);
+            getTeamCountsByFormKampusAndAngkatan(formConfig.kode_form, members[0].kampus, selectedAngkatan)
+                .then(count => {
+                    setAngkatanTeamCount(count || 0);
+                })
+                .finally(() => {
+                    setIsCheckingAngkatanKuota(false);
+                });
+        } else {
+            setAngkatanTeamCount(0);
+        }
+    }, [formConfig?.kode_form, kategori, members[0]?.kampus, selectedAngkatan]);
+
+    useEffect(() => {
         if (kategori === 'Mahasiswa LP3I' && !requiresBukti && members[0]?.nim && members[0]?.kampus) {
             if (members[0].nim.length >= 8) {
                 checkWajibPesertaLombaCount(members[0].nim, members[0].kampus).then(res => {
@@ -193,8 +212,11 @@ export default function FormRegister({ formConfig, nominalOverride = null, requi
 
         if (field === 'nim' && value.length >= 9 && isMhsLP3I) {
             const parsed = parseNIM(value, newMembers[index].kampus);
-            if (parsed) {
-                // Parsing untuk informasi
+            if (parsed && parsed.angkatan) {
+                newMembers[index].angkatan = parsed.angkatan;
+                if (index === 0 && !selectedAngkatan) {
+                    setSelectedAngkatan(parsed.angkatan);
+                }
             }
         }
 
@@ -237,17 +259,36 @@ export default function FormRegister({ formConfig, nominalOverride = null, requi
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        if (isMhsLP3I && !selectedAngkatan) {
+            return window.alert("Mohon pilih Angkatan terlebih dahulu.");
+        }
+
         const finalTeamName = teamName;
         const finalTeamContent = teamContent || `Pendaftaran Individu Lomba ${formConfig.nama_lomba}`;
 
         // VALIDATION
         if (isMhsLP3I && kampusQuotaInfo) {
-            const maksKampus = kampusQuotaInfo.maks_team ?? 0;
-            if (maksKampus === 0) {
-                return window.alert(`Maaf, kampus ${members[0]?.kampus} tidak memiliki kuota untuk lomba ini.`);
+            let matchedAngkatan = null;
+            if (selectedAngkatan && Array.isArray(kampusQuotaInfo.angkatanQuotas)) {
+                matchedAngkatan = kampusQuotaInfo.angkatanQuotas.find(a => a.angkatan === selectedAngkatan);
             }
-            if (kampusTeamCount >= maksKampus) {
-                return window.alert(`Maaf, pendaftaran lomba untuk kategori Mahasiswa LP3I dari kampus ${members[0]?.kampus} sudah penuh (Maks: ${maksKampus} Tim).`);
+
+            if (matchedAngkatan) {
+                const maksAngkatan = matchedAngkatan.maks_team ?? 0;
+                if (maksAngkatan === 0) {
+                    return window.alert(`Maaf, kampus ${members[0]?.kampus} tidak memiliki kuota untuk Mahasiswa LP3I angkatan ${selectedAngkatan} pada lomba ini.`);
+                }
+                if (angkatanTeamCount >= maksAngkatan) {
+                    return window.alert(`Maaf, pendaftaran lomba untuk kategori Mahasiswa LP3I angkatan ${selectedAngkatan} dari kampus ${members[0]?.kampus} sudah penuh (Maks: ${maksAngkatan} Tim).`);
+                }
+            } else {
+                const maksKampus = kampusQuotaInfo.maks_team ?? 0;
+                if (maksKampus === 0) {
+                    return window.alert(`Maaf, kampus ${members[0]?.kampus} tidak memiliki kuota untuk lomba ini.`);
+                }
+                if (kampusTeamCount >= maksKampus) {
+                    return window.alert(`Maaf, pendaftaran lomba untuk kategori Mahasiswa LP3I dari kampus ${members[0]?.kampus} sudah penuh (Maks: ${maksKampus} Tim).`);
+                }
             }
         }
 
@@ -904,16 +945,35 @@ export default function FormRegister({ formConfig, nominalOverride = null, requi
                                                         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Kampus *</label>
                                                         {index === 0 && isMhsLP3I && members[0].kampus && (
                                                             <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${isCheckingKuota ? 'bg-gray-100 text-gray-500' :
-                                                                !kampusQuotaInfo ? 'bg-green-100 text-green-600' :
-                                                                    (kampusQuotaInfo.maks_team ?? 0) === 0 ? 'bg-red-100 text-red-600' :
-                                                                        kampusTeamCount >= kampusQuotaInfo.maks_team ? 'bg-red-100 text-red-600' :
-                                                                            kampusTeamCount >= kampusQuotaInfo.maks_team - 2 ? 'bg-yellow-100 text-yellow-600' :
-                                                                                'bg-green-100 text-green-600'
+                                                                (() => {
+                                                                    if (!kampusQuotaInfo) return 'bg-green-100 text-green-600';
+                                                                    const matched = selectedAngkatan ? (kampusQuotaInfo.angkatanQuotas || []).find(a => a.angkatan === selectedAngkatan) : null;
+                                                                    if (matched) {
+                                                                        if ((matched.maks_team ?? 0) === 0 || angkatanTeamCount >= matched.maks_team) return 'bg-red-100 text-red-600';
+                                                                        if (angkatanTeamCount >= matched.maks_team - 2) return 'bg-yellow-100 text-yellow-600';
+                                                                        return 'bg-green-100 text-green-600';
+                                                                    } else {
+                                                                        if ((kampusQuotaInfo.maks_team ?? 0) === 0 || kampusTeamCount >= kampusQuotaInfo.maks_team) return 'bg-red-100 text-red-600';
+                                                                        if (kampusTeamCount >= kampusQuotaInfo.maks_team - 2) return 'bg-yellow-100 text-yellow-600';
+                                                                        return 'bg-green-100 text-green-600';
+                                                                    }
+                                                                })()
                                                                 }`}>
                                                                 {isCheckingKuota ? 'Memeriksa...' :
-                                                                    !kampusQuotaInfo ? 'Tersedia' :
-                                                                        (kampusQuotaInfo.maks_team ?? 0) === 0 ? 'Tidak Ada Kuota' :
-                                                                            kampusTeamCount >= kampusQuotaInfo.maks_team ? 'Penuh' : `Tersedia`}
+                                                                    (() => {
+                                                                        if (!kampusQuotaInfo) return 'Tersedia';
+                                                                        const matched = selectedAngkatan ? (kampusQuotaInfo.angkatanQuotas || []).find(a => a.angkatan === selectedAngkatan) : null;
+                                                                        if (matched) {
+                                                                            if ((matched.maks_team ?? 0) === 0) return 'Tidak Ada Kuota Angkatan';
+                                                                            if (angkatanTeamCount >= matched.maks_team) return 'Penuh';
+                                                                            return 'Tersedia';
+                                                                        } else {
+                                                                            if ((kampusQuotaInfo.maks_team ?? 0) === 0) return 'Tidak Ada Kuota';
+                                                                            if (kampusTeamCount >= kampusQuotaInfo.maks_team) return 'Penuh';
+                                                                            return 'Tersedia';
+                                                                        }
+                                                                    })()
+                                                                }
                                                             </span>
                                                         )}
                                                     </div>
@@ -932,6 +992,45 @@ export default function FormRegister({ formConfig, nominalOverride = null, requi
                                                         />
                                                     )}
                                                 </div>
+
+                                                {isMhsLP3I && (
+                                                    <div>
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 font-semibold">Angkatan *</label>
+                                                            {index === 0 && selectedAngkatan && (
+                                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${isCheckingAngkatanKuota ? 'bg-gray-100 text-gray-500' :
+                                                                        (() => {
+                                                                            const matched = (kampusQuotaInfo?.angkatanQuotas || []).find(a => a.angkatan === selectedAngkatan);
+                                                                            if (!matched) return 'bg-blue-100 text-blue-600';
+                                                                            if ((matched.maks_team ?? 0) === 0 || angkatanTeamCount >= matched.maks_team) return 'bg-red-100 text-red-600';
+                                                                            return 'bg-green-100 text-green-600';
+                                                                        })()
+                                                                    }`}>
+                                                                    {isCheckingAngkatanKuota ? 'Memeriksa...' : (() => {
+                                                                        const matched = (kampusQuotaInfo?.angkatanQuotas || []).find(a => a.angkatan === selectedAngkatan);
+                                                                        if (!matched) return 'Tersedia';
+                                                                        if ((matched.maks_team ?? 0) === 0 || angkatanTeamCount >= matched.maks_team) return 'Angkatan Penuh';
+                                                                        return `Tersedia`;
+                                                                    })()}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <select
+                                                            required
+                                                            value={index === 0 ? selectedAngkatan : (member.angkatan || '')}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                if (index === 0) setSelectedAngkatan(val);
+                                                                handleMemberChange(index, 'angkatan', val);
+                                                            }}
+                                                            className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                                        >
+                                                            <option value="" disabled>Pilih Angkatan</option>
+                                                            <option value="2026">2026</option>
+                                                            <option value="2025">2025</option>
+                                                        </select>
+                                                    </div>
+                                                )}
                                             </>
                                         )}
                                         {isAlumniLP3I && (

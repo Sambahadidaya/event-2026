@@ -9,6 +9,7 @@ import {
     getTeamCountsByForm,
     getFormRegisterKampusQuotaPublic,
     getTeamCountsByFormAndKampus,
+    getTeamCountsByFormKampusAndAngkatan,
     checkWajibPesertaLombaCount,
     checkPesertaRegisteredForLomba
 } from '@/api/supabase/public/peserta';
@@ -30,9 +31,6 @@ export default function FormRegisterLanjutStandalone({ formConfig }) {
         : ['Mahasiswa LP3I', 'Siswa', 'Dosen', 'Umum', 'Alumni LP3I'];
 
     const [kategori, setKategori] = useState(availableKategori[0]);
-    const [statusWajib, setStatusWajib] = useState(''); // '' | 'belum' | 'sudah'
-    const [wajibNominal, setWajibNominal] = useState(45000);
-
     const [sumberLomba, setSumberLomba] = useState('');
     const [namaReferal, setNamaReferal] = useState('');
 
@@ -41,6 +39,7 @@ export default function FormRegisterLanjutStandalone({ formConfig }) {
     const [logoFile, setLogoFile] = useState(null);
     const [buktiBayarFile, setBuktiBayarFile] = useState(null);
 
+    const [statusWajib, setStatusWajib] = useState(''); // '' | 'belum' | 'sudah'
     const [members, setMembers] = useState([
         { nama: '', nim: '', kampus: '', kampusLainnya: '', email_wa: '', kontakType: 'whatsapp', jabatan: '', isStudent: false, prodi: '', semester: '', kelas: '', isProdiLainnya: false }
     ]);
@@ -58,8 +57,13 @@ export default function FormRegisterLanjutStandalone({ formConfig }) {
 
     const [kampusQuotaInfo, setKampusQuotaInfo] = useState(null);
     const [kampusTeamCount, setKampusTeamCount] = useState(0);
+    const [selectedAngkatan, setSelectedAngkatan] = useState('');
+    const [angkatanTeamCount, setAngkatanTeamCount] = useState(0);
+    const [isCheckingAngkatanKuota, setIsCheckingAngkatanKuota] = useState(false);
     const [wajibLombaCount, setWajibLombaCount] = useState(0);
     const [isCheckingKuota, setIsCheckingKuota] = useState(false);
+
+    const [wajibNominal, setWajibNominal] = useState(45000);
 
     const isKreativitas = formConfig?.jenis_lomba === 'Kreativitas';
     const currentCategoryPricing = pricingMap[kategori] || null;
@@ -80,10 +84,9 @@ export default function FormRegisterLanjutStandalone({ formConfig }) {
         nominalAktif = Math.max(0, baseNominal - wajibNominal);
     }
 
-    const requiresBukti = statusWajib === 'sudah' ? (nominalAktif > 0) : (formConfig?.butuh_bukti !== false || kategori !== 'Mahasiswa LP3I');
-
     const isMhsLP3I = kategori === 'Mahasiswa LP3I';
     const isAlumniLP3I = kategori === 'Alumni LP3I';
+    const requiresBukti = formConfig?.butuh_bukti !== false || kategori !== 'Mahasiswa LP3I';
 
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -129,9 +132,24 @@ export default function FormRegisterLanjutStandalone({ formConfig }) {
             else if (umumType === 'non_mahasiswa') isStudentDefault = false;
         }
         setMembers([{ nama: '', nim: '', kampus: '', kampusLainnya: '', email_wa: '', kontakType: 'whatsapp', jabatan: '', isStudent: isStudentDefault, prodi: '', semester: '', kelas: '', isProdiLainnya: false }]);
+        setSelectedAngkatan('');
         setSumberLomba('');
         setNamaReferal('');
     }, [kategori, umumType]);
+
+    useEffect(() => {
+        if (formConfig?.id) {
+            getFormRegisterPricing(formConfig.id).then(data => {
+                const map = {};
+                if (Array.isArray(data)) {
+                    data.forEach(item => {
+                        map[item.kategori] = item;
+                    });
+                }
+                setPricingMap(map);
+            });
+        }
+    }, [formConfig?.id]);
 
     useEffect(() => {
         if (formConfig?.kode_form) {
@@ -165,6 +183,21 @@ export default function FormRegisterLanjutStandalone({ formConfig }) {
             setKampusTeamCount(0);
         }
     }, [formConfig?.id, formConfig?.kode_form, kategori, members[0]?.kampus]);
+
+    useEffect(() => {
+        if (formConfig?.kode_form && kategori === 'Mahasiswa LP3I' && members[0]?.kampus && selectedAngkatan) {
+            setIsCheckingAngkatanKuota(true);
+            getTeamCountsByFormKampusAndAngkatan(formConfig.kode_form, members[0].kampus, selectedAngkatan)
+                .then(count => {
+                    setAngkatanTeamCount(count || 0);
+                })
+                .finally(() => {
+                    setIsCheckingAngkatanKuota(false);
+                });
+        } else {
+            setAngkatanTeamCount(0);
+        }
+    }, [formConfig?.kode_form, kategori, members[0]?.kampus, selectedAngkatan]);
 
     useEffect(() => {
         if (kategori === 'Mahasiswa LP3I' && !requiresBukti && members[0]?.nim && members[0]?.kampus) {
@@ -205,6 +238,9 @@ export default function FormRegisterLanjutStandalone({ formConfig }) {
                 newMembers[index].prodi = parsed.prodiName;
                 if (parsed.angkatan) {
                     newMembers[index].angkatan = parsed.angkatan;
+                    if (index === 0 && !selectedAngkatan) {
+                        setSelectedAngkatan(parsed.angkatan);
+                    }
                 }
             }
         }
@@ -251,6 +287,10 @@ export default function FormRegisterLanjutStandalone({ formConfig }) {
             return window.alert("Mohon pilih Status Form Wajib terlebih dahulu.");
         }
 
+        if (isMhsLP3I && !selectedAngkatan) {
+            return window.alert("Mohon pilih Angkatan terlebih dahulu.");
+        }
+
         const finalTeamName = teamName || members[0]?.nama;
         const finalTeamContent = teamContent || `Pendaftaran Form Register Lanjut Lomba ${formConfig.nama_lomba}`;
 
@@ -262,6 +302,19 @@ export default function FormRegisterLanjutStandalone({ formConfig }) {
             }
             if (kampusTeamCount >= maksKampus) {
                 return window.alert(`Maaf, pendaftaran lomba untuk kategori Mahasiswa LP3I dari kampus ${members[0]?.kampus} sudah penuh (Maks: ${maksKampus} Tim).`);
+            }
+
+            if (selectedAngkatan && Array.isArray(kampusQuotaInfo.angkatanQuotas)) {
+                const matchedAngkatan = kampusQuotaInfo.angkatanQuotas.find(a => a.angkatan === selectedAngkatan);
+                if (matchedAngkatan) {
+                    const maksAngkatan = matchedAngkatan.maks_team ?? 0;
+                    if (maksAngkatan === 0) {
+                        return window.alert(`Maaf, kampus ${members[0]?.kampus} tidak memiliki kuota untuk Mahasiswa LP3I angkatan ${selectedAngkatan} pada lomba ini.`);
+                    }
+                    if (angkatanTeamCount >= maksAngkatan) {
+                        return window.alert(`Maaf, pendaftaran lomba untuk kategori Mahasiswa LP3I angkatan ${selectedAngkatan} dari kampus ${members[0]?.kampus} sudah penuh (Maks: ${maksAngkatan} Tim).`);
+                    }
+                }
             }
         }
 
@@ -871,6 +924,50 @@ export default function FormRegisterLanjutStandalone({ formConfig }) {
                                                                 />
                                                             )}
                                                         </div>
+
+                                                        {isMhsLP3I && (
+                                                            <div>
+                                                                <div className="flex items-center gap-2 mb-1">
+                                                                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 font-semibold">Angkatan *</label>
+                                                                    {index === 0 && selectedAngkatan && (
+                                                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                                                                            isCheckingAngkatanKuota ? 'bg-gray-100 text-gray-500' :
+                                                                            (() => {
+                                                                                const matched = (kampusQuotaInfo?.angkatanQuotas || []).find(a => a.angkatan === selectedAngkatan);
+                                                                                if (!matched) return 'bg-blue-100 text-blue-600';
+                                                                                if ((matched.maks_team ?? 0) === 0 || angkatanTeamCount >= matched.maks_team) return 'bg-red-100 text-red-600';
+                                                                                return 'bg-green-100 text-green-600';
+                                                                            })()
+                                                                        }`}>
+                                                                            {isCheckingAngkatanKuota ? 'Memeriksa...' : (() => {
+                                                                                const matched = (kampusQuotaInfo?.angkatanQuotas || []).find(a => a.angkatan === selectedAngkatan);
+                                                                                if (!matched) return 'Tersedia';
+                                                                                if ((matched.maks_team ?? 0) === 0 || angkatanTeamCount >= matched.maks_team) return 'Angkatan Penuh';
+                                                                                return `Tersedia`;
+                                                                            })()}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <select
+                                                                    required
+                                                                    value={index === 0 ? selectedAngkatan : (member.angkatan || '')}
+                                                                    onChange={(e) => {
+                                                                        const val = e.target.value;
+                                                                        if (index === 0) setSelectedAngkatan(val);
+                                                                        handleMemberChange(index, 'angkatan', val);
+                                                                    }}
+                                                                    className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                                                >
+                                                                    <option value="" disabled>Pilih Angkatan</option>
+                                                                    <option value="2026">2026</option>
+                                                                    <option value="2025">2025</option>
+                                                                    <option value="2024">2024</option>
+                                                                    <option value="2023">2023</option>
+                                                                    <option value="2022">2022</option>
+                                                                    <option value="2021">2021</option>
+                                                                </select>
+                                                            </div>
+                                                        )}
                                                     </>
                                                 )}
                                                 {isAlumniLP3I && (

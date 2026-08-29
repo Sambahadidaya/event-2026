@@ -547,13 +547,17 @@ export const getFormRegisterKampusQuotaPublic = async (formId, kampus) => {
 
         const { data, error } = await supabaseAdmin
             .from('form_register_kampus_quota')
-            .select('maks_team')
+            .select('id, maks_team, form_register_kampus_quota_angkatan(id, angkatan, maks_team)')
             .eq('pricing_id', pricingData.id)
             .eq('nama_kampus', kampus)
             .single();
 
         if (error) return null;
-        return data;
+        return {
+            id: data.id,
+            maks_team: data.maks_team,
+            angkatanQuotas: data.form_register_kampus_quota_angkatan || []
+        };
     } catch (error) {
         console.error("Internal Log - Error fetching form register kampus quota public:", error);
         return null;
@@ -603,6 +607,54 @@ export const getTeamCountsByFormAndKampus = async (baseKodeForm, kampus) => {
         return validCount;
     } catch (error) {
         console.error("Internal Log - Error counting teams by kampus:", error);
+        return 0;
+    }
+};
+
+export const getTeamCountsByFormKampusAndAngkatan = async (baseKodeForm, kampus, angkatan) => {
+    try {
+        if (!baseKodeForm || !kampus || !angkatan) return 0;
+
+        // 1. Dapatkan semua peserta yang mendaftar form ini dengan kategori LP3I, kampus tsb, dan angkatan tsb
+        const { data: pesertaData, error: pesertaError } = await supabaseAdmin
+            .from('peserta')
+            .select('kode_form')
+            .eq('jenis_form', 'register')
+            .eq('kategori', 'Mahasiswa LP3I')
+            .eq('kampus', kampus)
+            .eq('angkatan', angkatan)
+            .like('kode_form', `${baseKodeForm}%`);
+
+        if (pesertaError) throw pesertaError;
+
+        // 2. Kumpulkan kode_form unik
+        const allKodeForms = new Set();
+        (pesertaData || []).forEach(p => {
+            if (p.kode_form) allKodeForms.add(p.kode_form);
+        });
+
+        if (allKodeForms.size === 0) return 0;
+
+        // 3. Cek status verivikasi dari tabel team untuk kode_form yang ditemukan
+        const kodeFormArray = Array.from(allKodeForms);
+        const { data: teamData, error: teamError } = await supabaseAdmin
+            .from('team')
+            .select('kode_form, verivikasi')
+            .in('kode_form', kodeFormArray);
+
+        if (teamError) throw teamError;
+
+        // 4. Hitung jumlah tim, abaikan yang rejected
+        let validCount = 0;
+        (teamData || []).forEach(t => {
+            if (t.verivikasi !== false) {
+                validCount++;
+            }
+        });
+
+        return validCount;
+    } catch (error) {
+        console.error("Internal Log - Error counting teams by kampus and angkatan:", error);
         return 0;
     }
 };
