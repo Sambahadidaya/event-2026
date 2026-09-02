@@ -1049,6 +1049,8 @@ $$;
 │   │   │   ├── panduanPdfAction.js
 │   │   │   ├── panitiaAuthLogic.js
 │   │   │   └── updateVersionLogic.js
+│   │   ├── sertifikat/
+│   │   │   └── route.js
 │   │   ├── pdf/
 │   │   │   └── route.js
 │   │   ├── supabase/
@@ -1060,6 +1062,7 @@ $$;
 │   │   │   │   ├── berita.js
 │   │   │   │   ├── finance.js
 │   │   │   │   ├── jadwal.js
+│   │   │   │   ├── juara.js
 │   │   │   │   ├── kelompok.js
 │   │   │   │   ├── materi.js
 │   │   │   │   ├── medis.jsjs
@@ -1069,12 +1072,14 @@ $$;
 │   │   │   │   ├── penilaian.js
 │   │   │   │   ├── peserta.js
 │   │   │   │   ├── sales.jsjs
+│   │   │   │   ├── sertifikat.js
 │   │   │   │   ├── submission.js
 │   │   │   │   └── team.js
 │   │   │   ├── public/
 │   │   │   │   ├── admin.js
 │   │   │   │   ├── berita.js
 │   │   │   │   ├── jadwal.js
+│   │   │   │   ├── juara.js
 │   │   │   │   ├── kelompok.jsjs
 │   │   │   │   ├── materi.js
 │   │   │   │   ├── medis.jsjs
@@ -1169,6 +1174,8 @@ $$;
 │   │   │   │   │   └── page.js 
 │   │   │   │   ├── jadwal_pertandingan/
 │   │   │   │   │   └── page.js 
+│   │   │   │   ├── juara/
+│   │   │   │   │   └── page.js 
 │   │   │   │   ├── penilaian/
 │   │   │   │   │   └── page.js 
 │   │   │   │   └── peserta_wajib/
@@ -1244,6 +1251,8 @@ $$;
 │   │       ├── page.js
 │   │       ├── contact/
 │   │       │   └── page.js
+│   │       ├── dashboard/
+│   │       │   └── page.js
 │   │       ├── form/
 │   │       │   └── [lynk_id]
 │   │       │       └── page.js
@@ -1271,6 +1280,8 @@ $$;
 │   │       │   │   ├── [id]
 │   │       │   │   │   └── page.js
 │   │       │   │   └── page.js
+│   │       │   └── page.js
+│   │       ├── sertifikat/
 │   │       │   └── page.js
 │   │       ├── submission/
 │   │       │   ├── [id]
@@ -1347,6 +1358,30 @@ $$;
 │   │   │   ├── software-developer.webp
 │   │   │   ├── tarik-tambang.webp
 │   │   │   └── tenis-meja.webp
+│   │   ├── sertifikat_pose/
+│   │   │   ├── contoh/
+│   │   │   │   ├── juara.pdf
+│   │   │   │   ├── nilai.pdf
+│   │   │   │   ├── partisipasi.pdf
+│   │   │   │   ├── peserta.pdf
+│   │   │   │   ├── juara.png
+│   │   │   │   ├── nilai.png
+│   │   │   │   ├── partisipasi.png
+│   │   │   │   └── peserta.png
+│   │   │   └── template/
+│   │   │       ├── template-juara.pdf
+│   │   │       ├── template-nilai.pdf
+│   │   │       ├── template-partisipasi.pdf
+│   │   │       ├── template-peserta.pdf
+│   │   │       ├── template-juara.png
+│   │   │       ├── template-nilai.png
+│   │   │       ├── template-partisipasi.png
+│   │   │       └── template-peserta.png
+│   │   ├── sponsor_pkkmb/
+│   │   ├── Sponsor_pose/
+│   │   │   ├── 1.png
+│   │   │   ├── 2.png
+│   │   │   └── 3.png
 │   │   ├── icon-poltek.png
 │   │   ├── logopkkmb.png
 │   │   ├── logopoltek.png
@@ -1380,6 +1415,7 @@ $$;
 │   │   │   ├── PublicFooter.js
 │   │   │   ├── ScheduleBarrier.js
 │   │   │   ├── SiteBackground.js
+│   │   │   ├── TombolCetakSertifikat.js
 │   │   │   ├── UpdateVersionModal.js
 │   │   │   └── WaveDivider.js
 │   │   └── panitia/
@@ -1414,6 +1450,7 @@ $$;
 │   │       ├── AdminFormRegister.js
 │   │       ├── AdminFormWajib.js
 │   │       ├── AdminJadwalPertandinganPJ.js
+│   │       ├── AdminJuaraLombaPJ.js
 │   │       ├── AdminKelompokManager.js
 │   │       ├── AdminKeuanganDashboard.js
 │   │       ├── AdminPenilaianPJ.js
@@ -1421,6 +1458,8 @@ $$;
 │   │       ├── AdminPesertaPengumpulan.js
 │   │       ├── AdminPesertaRegister.js
 │   │       ├── AdminPesertaWajib.js
+│   │       ├── AdminPesertaWajibLomba.js
+│   │       ├── AdminSertifikatPartisipasiModal.js
 │   │       ├── AdminVerifikasiKeuangan.js
 │   │       ├── TablePagination.js
 │   │       ├── DetailModal.js
@@ -1464,6 +1503,8 @@ $$;
 │       │   ├── penilaian.js
 │       │   ├── report.js
 │       │   ├── sales.js
+│       │   ├── sertifikatLayout.js
+│       │   ├── sertifikatPose.js
 │       │   ├── teamReport.js
 │       │   └── template.jsjs
 │       ├── qr/

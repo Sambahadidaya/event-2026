@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { FileText, Search, Plus, Link as LinkIcon, Trash2, Copy, Image as ImageIcon } from 'lucide-react';
+import { FileText, Search, Plus, Link as LinkIcon, Trash2, Copy, Image as ImageIcon, Award } from 'lucide-react';
 import { getFormWajib } from '@/api/supabase/public/peserta';
 import { upsertFormWajib, deleteFormWajib } from '@/api/supabase/admin/peserta';
 import { uploadFile } from '@/api/supabase/storage';
@@ -186,7 +186,7 @@ export default function AdminFormWajib({ siteType, hideCreateButton = false, ref
                                 <th className="px-4 py-3 font-medium">Judul Form</th>
                                 <th className="px-4 py-3 font-medium">Link Akses</th>
                                 <th className="px-4 py-3 font-medium w-44">Dibuat Pada</th>
-                                <th className="px-4 py-3 font-medium w-24 text-center">Aksi</th>
+                                <th className="px-4 py-3 font-medium w-36 text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -230,13 +230,16 @@ export default function AdminFormWajib({ siteType, hideCreateButton = false, ref
                                     </td>
                                     <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{formatDateTime(item.created_at)}</td>
                                     <td className="px-4 py-3 text-center">
-                                        <button
-                                            type="button"
-                                            onClick={() => handleDelete(item.id)}
-                                            className="inline-flex items-center justify-center p-1.5 text-xs font-medium rounded-lg hover:bg-red-50 text-red-500 transition-colors"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
+                                        <div className="flex items-center justify-center gap-1.5">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDelete(item.id)}
+                                                className="inline-flex items-center justify-center p-1.5 text-xs font-medium rounded-lg hover:bg-red-50 text-red-500 transition-colors"
+                                                title="Hapus Form"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}

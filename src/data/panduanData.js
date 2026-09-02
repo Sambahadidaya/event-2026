@@ -186,6 +186,13 @@ export const panduanData = {
         },
         updateVersi: [
             {
+                versi: 'versi 2026.3.1',
+                tanggal: '02 September 2026 10.00 WIB',
+                judul: 'Rilis Versi 3.1 — Perbaikan error pada sistem',
+                isi: 'Memperbaiki sebagian link yang tidak dapat mengirimkan form pendaftaran.',
+                imageKey: 'versi3.1'
+            },
+            {
                 versi: 'versi 2026.1.2',
                 tanggal: '10 Juli 2026',
                 judul: 'Rilis Versi 1.2 — Modul Panduan & Pusat Bantuan Terpadu',
@@ -482,6 +489,13 @@ export const panduanData = {
             content: 'Kebijakan perlindungan privasi data peserta, tim delegasi, dan sivitas akademika dalam kegiatan POSE 2026:\n- Data registrasi tim, kontak kapten, kartu identitas mahasiswa (NIM), serta bukti transaksi disimpan dengan standar keamanan enkripsi untuk verifikasi keabsahan peserta.\n- Data publikasi tim pada halaman Tim dan Jadwal dibatasi hanya pada Nama Tim, Cabang Lomba, Nama Anggota, dan Asal Kampus demi menjaga kenyamanan privasi peserta.\n- Seluruh dokumen bukti pembayaran, berkas karya submission, dan rekaman penilaian juri disimpan dalam storage server berkeamanan tinggi dan hanya dapat diakses oleh panitia penanggung jawab serta dewan juri.'
         },
         updateVersi: [
+            {
+                versi: 'versi 2026.3.1',
+                tanggal: '02 September 2026 10.00 WIB',
+                judul: 'Rilis Versi 3.1 — Penyederhanaan Navigasi Dashboard, Menambah Sponsor POSE',
+                isi: 'Menambahkan sponsor POSE pada footer. Memindahkan halaman dashboard pada navigasi. Menghapus navigasi submit, nilai, sertifikat. Memindahkan tombol submit, nilai, sertifikat ke halaman dashboard. Menyederhanakan navigasi dashboard. Memperbaiki sistem agar lebih cepat dimuat.',
+                imageKey: 'versi3.1'
+            },
             {
                 versi: 'versi 2026.2.4',
                 tanggal: '25 Agustus 2026 18.33 WIB',

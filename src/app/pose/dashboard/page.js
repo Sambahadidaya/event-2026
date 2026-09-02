@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { getUserTeams } from '@/api/supabase/public/team';
 import { getSubmissionLinksMap } from '@/api/supabase/public/submission';
-import { Trophy, ArrowLeft, Clock, CheckCircle2, XCircle, Search, Plus, ChevronDown, UserPlus, Layers, FileUp, Award } from 'lucide-react';
+import { Trophy, ArrowLeft, Clock, CheckCircle2, XCircle, Search, Plus, ChevronDown, UserPlus, Layers, FileUp, Award, ScrollText } from 'lucide-react';
 import Link from 'next/link';
 
 export default function PublicDashboardRegister() {
@@ -72,8 +72,8 @@ export default function PublicDashboardRegister() {
             <div className="max-w-4xl mx-auto px-4 sm:px-6">
 
                 <div className="flex items-center justify-between mb-8">
-                    <Link href="/pose/register" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors font-medium">
-                        <ArrowLeft size={16} /> Daftar Lomba
+                    <Link href="/pose" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors font-medium">
+                        <ArrowLeft size={16} /> Kembali Keberanda
                     </Link>
 
                     {/* Dropdown Pendaftaran Baru */}
@@ -191,6 +191,7 @@ export default function PublicDashboardRegister() {
                                 ? `/pose/submission/${linkId}?kode=${t.kode_form}`
                                 : `/pose/submission?kode=${t.kode_form}`;
                             const nilaiHref = `/pose/nilai?kode=${t.kode_form}`;
+                            const sertifikatHref = `/pose/sertifikat?kode=${t.kode_form}`;
 
                             return (
                                 <div key={t.id} className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 hover:shadow-md transition-shadow">
@@ -221,24 +222,33 @@ export default function PublicDashboardRegister() {
                                                 </div>
 
                                                 {/* Desktop Buttons (Dibawah Teks Detail) */}
-                                                {t.jenis_lomba === 'Kreativitas' && (
-                                                    <div className="mt-3 hidden sm:flex items-center gap-2">
-                                                        <Link
-                                                            href={submitHref}
-                                                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors"
-                                                        >
-                                                            <FileUp size={14} />
-                                                            <span>Submit Karya</span>
-                                                        </Link>
-                                                        <Link
-                                                            href={nilaiHref}
-                                                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-gray-100 text-white dark:text-slate-900 rounded-xl text-xs font-semibold shadow-xs transition-colors"
-                                                        >
-                                                            <Award size={14} />
-                                                            <span>Cek Nilai</span>
-                                                        </Link>
-                                                    </div>
-                                                )}
+                                                <div className="mt-3 hidden sm:flex items-center gap-2">
+                                                    {t.jenis_lomba === 'Kreativitas' && (
+                                                        <>
+                                                            <Link
+                                                                href={submitHref}
+                                                                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors"
+                                                            >
+                                                                <FileUp size={14} />
+                                                                <span>Submit Karya</span>
+                                                            </Link>
+                                                            <Link
+                                                                href={nilaiHref}
+                                                                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-gray-100 text-white dark:text-slate-900 rounded-xl text-xs font-semibold shadow-xs transition-colors"
+                                                            >
+                                                                <Award size={14} />
+                                                                <span>Cek Nilai</span>
+                                                            </Link>
+                                                        </>
+                                                    )}
+                                                    <Link
+                                                        href={sertifikatHref}
+                                                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors"
+                                                    >
+                                                        <ScrollText size={14} />
+                                                        <span>Sertifikat</span>
+                                                    </Link>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -249,24 +259,33 @@ export default function PublicDashboardRegister() {
                                             </div>
 
                                             {/* Mobile Buttons (Disamping Div Status) */}
-                                            {t.jenis_lomba === 'Kreativitas' && (
-                                                <div className="flex sm:hidden items-center gap-2">
-                                                    <Link
-                                                        href={submitHref}
-                                                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors"
-                                                    >
-                                                        <FileUp size={14} />
-                                                        <span>Submit Karya</span>
-                                                    </Link>
-                                                    <Link
-                                                        href={nilaiHref}
-                                                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-gray-100 text-white dark:text-slate-900 rounded-xl text-xs font-semibold shadow-xs transition-colors"
-                                                    >
-                                                        <Award size={14} />
-                                                        <span>Cek Nilai</span>
-                                                    </Link>
-                                                </div>
-                                            )}
+                                            <div className="flex sm:hidden items-center gap-2">
+                                                {t.jenis_lomba === 'Kreativitas' && (
+                                                    <>
+                                                        <Link
+                                                            href={submitHref}
+                                                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors"
+                                                        >
+                                                            <FileUp size={14} />
+                                                            <span>Submit Karya</span>
+                                                        </Link>
+                                                        <Link
+                                                            href={nilaiHref}
+                                                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-gray-100 text-white dark:text-slate-900 rounded-xl text-xs font-semibold shadow-xs transition-colors"
+                                                        >
+                                                            <Award size={14} />
+                                                            <span>Cek Nilai</span>
+                                                        </Link>
+                                                    </>
+                                                )}
+                                                <Link
+                                                    href={sertifikatHref}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors"
+                                                >
+                                                    <ScrollText size={14} />
+                                                    <span>Sertifikat</span>
+                                                </Link>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

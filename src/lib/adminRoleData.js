@@ -52,6 +52,7 @@ const PJ_LOMBA_ROUTES = [
   '/panitia/pj_lomba/dashboard',
   '/panitia/pj_lomba/form_register',
   '/panitia/pj_lomba/jadwal_pertandingan',
+  '/panitia/pj_lomba/juara',
   '/panitia/pj_lomba/penilaian',
   '/panitia/pj_lomba/form_submit',
   '/panitia/pj_lomba/peserta_wajib',
@@ -114,6 +115,7 @@ export const rolePermissions = {
     '/panitia/pj_lomba/dashboard',
     '/panitia/pj_lomba/form_register',
     '/panitia/pj_lomba/jadwal_pertandingan',
+    '/panitia/pj_lomba/juara',
     '/panitia/pj_lomba/penilaian',
     '/panitia/pj_lomba/peserta_wajib',
     '/panitia/keuangan/dashboard',
@@ -197,6 +199,7 @@ export const rolePermissions = {
     '/panitia/pj_lomba/dashboard',
     '/panitia/pj_lomba/form_register',
     '/panitia/pj_lomba/jadwal_pertandingan',
+    '/panitia/pj_lomba/juara',
     '/panitia/pj_lomba/penilaian',
   ],
 
@@ -216,6 +219,7 @@ export const rolePermissions = {
     '/panitia/pj_lomba/dashboard',
     '/panitia/pj_lomba/form_register',
     '/panitia/pj_lomba/jadwal_pertandingan',
+    '/panitia/pj_lomba/juara',
     '/panitia/pj_lomba/penilaian',
   ],
 
@@ -226,6 +230,7 @@ export const rolePermissions = {
     '/panitia/pj_lomba/dashboard',
     '/panitia/pj_lomba/form_register',
     '/panitia/pj_lomba/jadwal_pertandingan',
+    '/panitia/pj_lomba/juara',
     '/panitia/pj_lomba/penilaian',
   ],
   admin_pose_sekretaris_lomba_TarikTambang: [
@@ -235,6 +240,7 @@ export const rolePermissions = {
     '/panitia/pj_lomba/dashboard',
     '/panitia/pj_lomba/form_register',
     '/panitia/pj_lomba/jadwal_pertandingan',
+    '/panitia/pj_lomba/juara',
     '/panitia/pj_lomba/penilaian',
   ],
   admin_pkkmb_pj_medis: [
@@ -414,6 +420,7 @@ export const MENU_SECTION_ROUTES = {
     '/panitia/pj_lomba/dashboard',
     '/panitia/pj_lomba/form_register',
     '/panitia/pj_lomba/jadwal_pertandingan',
+    '/panitia/pj_lomba/juara',
     '/panitia/pj_lomba/penilaian',
     '/panitia/pj_lomba/form_submit',
     '/panitia/pj_lomba/peserta_wajib',

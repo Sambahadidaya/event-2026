@@ -30,6 +30,7 @@ import pkkmbPemberitahuan from '@/assets/panduan_pkkmb/pemberitahuan.png';
 import poseUpdate11 from '@/assets/update/pose/versi1.1.png';
 import poseUpdate21 from '@/assets/update/pose/versi2.1.png';
 import poseUpdate22 from '@/assets/update/pose/versi2.2.png';
+import poseUpdate31 from '@/assets/update/pose/versi3.1.png';
 
 import pkkmbUpdate11 from '@/assets/update/pkkmb/versi1.1.png';
 import pkkmbUpdate12 from '@/assets/update/pkkmb/versi1.2.png';
@@ -68,6 +69,7 @@ const updateImageMap = {
         'versi1.1': poseUpdate11,
         'versi2.1': poseUpdate21,
         'versi2.2': poseUpdate22,
+        'versi3.1': poseUpdate31
     },
     pkkmb: {
         'versi1.1': pkkmbUpdate11,

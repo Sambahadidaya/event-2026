@@ -30,6 +30,84 @@ const isValidInput = (str) => {
     return !regex.test(str);
 };
 
+// Compress image on client side using HTML5 Canvas to prevent timeout & payload limit on mobile networks
+const compressImageClient = async (file) => {
+    if (!file || !file.type || !file.type.startsWith('image/')) {
+        return file;
+    }
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                const MAX_WIDTH = 1200;
+                const MAX_HEIGHT = 1200;
+
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height = Math.round((height * MAX_WIDTH) / width);
+                        width = MAX_WIDTH;
+                    }
+                } else {
+                    if (height > MAX_HEIGHT) {
+                        width = Math.round((width * MAX_HEIGHT) / height);
+                        height = MAX_HEIGHT;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob(
+                    (blob) => {
+                        if (blob && blob.size < file.size) {
+                            const compressedFile = new File(
+                                [blob],
+                                file.name.replace(/\.[^/.]+$/, "") + ".jpg",
+                                { type: 'image/jpeg', lastModified: Date.now() }
+                            );
+                            resolve(compressedFile);
+                        } else {
+                            resolve(file);
+                        }
+                    },
+                    'image/jpeg',
+                    0.8
+                );
+            };
+            img.onerror = () => resolve(file);
+            img.src = e.target.result;
+        };
+        reader.onerror = () => resolve(file);
+        reader.readAsDataURL(file);
+    });
+};
+
+// Retry helper for server actions over unstable mobile connections
+const withRetry = async (fn, retries = 2, delay = 1000) => {
+    let lastError;
+    for (let i = 0; i <= retries; i++) {
+        try {
+            return await fn();
+        } catch (err) {
+            lastError = err;
+            const isFetchError = err?.message?.includes('Failed to fetch') || err?.name === 'TypeError';
+            if (i < retries && isFetchError) {
+                await new Promise((res) => setTimeout(res, delay * (i + 1)));
+                continue;
+            }
+            throw err;
+        }
+    }
+    throw lastError;
+};
+
 export default function FormWajib({ formConfig }) {
     const availableKategori = formConfig?.kategori_pendaftar
         ? formConfig.kategori_pendaftar.split(',')
@@ -42,10 +120,24 @@ export default function FormWajib({ formConfig }) {
     ]);
 
     const [submitting, setSubmitting] = useState(false);
+    const [submitStage, setSubmitStage] = useState('');
     const [success, setSuccess] = useState(false);
     const [metodePembayaran, setMetodePembayaran] = useState('');
     const [setujuSK, setSetujuSK] = useState(false);
     const [copied, setCopied] = useState(false);
+
+    // Prevent accidental navigation during submission
+    useEffect(() => {
+        const handleBeforeUnload = (e) => {
+            if (submitting) {
+                e.preventDefault();
+                e.returnValue = 'Proses pendaftaran sedang berlangsung, mohon jangan meninggalkan halaman ini.';
+                return e.returnValue;
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [submitting]);
 
     const [riwayatPenyakit, setRiwayatPenyakit] = useState('');
     const [penanganan, setPenanganan] = useState('');
@@ -185,10 +277,14 @@ export default function FormWajib({ formConfig }) {
     };
 
     const uploadFileHelper = async (file, bucketName) => {
-        const formData = new FormData();
-        formData.append('file', file);
+        setSubmitStage('Mengompres & memproses gambar...');
+        const compressedFile = await compressImageClient(file);
 
-        const result = await serverUploadFile(formData, bucketName, 'uploads/');
+        setSubmitStage('Mengunggah bukti pembayaran...');
+        const formData = new FormData();
+        formData.append('file', compressedFile);
+
+        const result = await withRetry(() => serverUploadFile(formData, bucketName, 'uploads/'));
         if (!result.success) throw new Error(result.error || 'Upload gagal');
         return result.url;
     };
@@ -361,12 +457,15 @@ export default function FormWajib({ formConfig }) {
         }
 
         setSubmitting(true);
+        setSubmitStage('Memproses Pendaftaran...');
 
         try {
             let buktiUrl = null;
             if (buktiBayarFile) {
                 buktiUrl = await uploadFileHelper(buktiBayarFile, 'bukti-bayar');
             }
+
+            setSubmitStage('Menyimpan data pendaftaran...');
 
             // INSERT KE peserta
             let pesertaPayload;
@@ -461,31 +560,45 @@ export default function FormWajib({ formConfig }) {
                 };
             }
 
-            const res = await insertPeserta(pesertaPayload);
+            const res = await withRetry(() => insertPeserta(pesertaPayload));
             if (!res.success) throw new Error(res.error);
 
             // SIMPAN DATA MEDIS (hanya site pkkmb dan bukan tahap 2)
             if (formConfig?.site === 'pkkmb' && !isTahap2) {
                 const insertedId = res.data?.id;
-                if (insertedId) {
-                    if (riwayatPenyakit.trim() || penanganan.trim() || alergi.trim()) {
-                        await insertDataMedis(insertedId, {
-                            riwayat_penyakit: riwayatPenyakit.trim(),
-                            penanganan: penanganan.trim(),
-                            alergi: alergi.trim()
-                        });
+                if (!insertedId) {
+                    throw new Error('Gagal mendapatkan ID pendaftaran untuk data medis.');
+                }
+
+                setSubmitStage('Menyimpan data medis & kontak darurat...');
+
+                if (riwayatPenyakit.trim() || penanganan.trim() || alergi.trim()) {
+                    const medisRes = await withRetry(() => insertDataMedis(insertedId, {
+                        riwayat_penyakit: riwayatPenyakit.trim(),
+                        penanganan: penanganan.trim(),
+                        alergi: alergi.trim()
+                    }));
+
+                    if (!medisRes || !medisRes.success) {
+                        throw new Error(medisRes?.error || 'Gagal menyimpan data medis.');
                     }
-                    if (namaOrtuWali.trim() || noWaOrtuWali.trim()) {
-                        await insertDataTambahan(insertedId, {
-                            nama_ortu_wali: namaOrtuWali.trim(),
-                            no_wa_ortu_wali: noWaOrtuWali.trim()
-                        });
+                }
+
+                if (namaOrtuWali.trim() || noWaOrtuWali.trim()) {
+                    const ortuRes = await withRetry(() => insertDataTambahan(insertedId, {
+                        nama_ortu_wali: namaOrtuWali.trim(),
+                        no_wa_ortu_wali: noWaOrtuWali.trim()
+                    }));
+
+                    if (!ortuRes || !ortuRes.success) {
+                        throw new Error(ortuRes?.error || 'Gagal menyimpan data orang tua/wali.');
                     }
                 }
             }
 
             // SIMPAN DATA PEMBAYARAN PKKMB (hanya site pkkmb)
             if (formConfig?.site === 'pkkmb') {
+                setSubmitStage('Menyimpan informasi pembayaran...');
                 const activePricing = pricingList.find(p => p.kelas === selectedKelas && p.jenis_tahapan === tahapan);
                 const nominalPembayaran = activePricing ? activePricing.nominal : 0;
 
@@ -496,7 +609,7 @@ export default function FormWajib({ formConfig }) {
                     nominal: nominalPembayaran,
                     status_pembayaran: 'pending'
                 };
-                const pembRes = await insertPembayaranPkkmb(pembPayload);
+                const pembRes = await withRetry(() => insertPembayaranPkkmb(pembPayload));
                 if (!pembRes.success) throw new Error(pembRes.error);
             }
 
@@ -504,9 +617,14 @@ export default function FormWajib({ formConfig }) {
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch (error) {
             console.error('Submission error:', error);
-            window.alert(`Pendaftaran gagal: ${error.message || 'Pastikan data sudah benar atau coba lagi nanti.'}`);
+            let errMsg = error.message || 'Pastikan data sudah benar atau coba lagi nanti.';
+            if (errMsg.includes('Failed to fetch') || error.name === 'TypeError') {
+                errMsg = 'Koneksi internet terputus atau tidak stabil saat mengirim data. Silakan periksa jaringan Anda dan coba Kirim Pendaftaran kembali.';
+            }
+            window.alert(`Pendaftaran gagal: ${errMsg}`);
         } finally {
             setSubmitting(false);
+            setSubmitStage('');
         }
     };
 
@@ -578,10 +696,17 @@ export default function FormWajib({ formConfig }) {
 
                 {/* Form Overlay pas Submit */}
                 {submitting && (
-                    <div className="absolute inset-0 z-50 bg-slate-900/40 backdrop-blur-sm rounded-3xl flex items-center justify-center pointer-events-auto">
-                        <div className="flex flex-col items-center gap-4 bg-white dark:bg-slate-800 px-8 py-6 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700">
-                            <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                            <span className="text-base font-bold text-slate-800 dark:text-white">Memproses Pendaftaran...</span>
+                    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+                        <div className="flex flex-col items-center gap-4 bg-white dark:bg-slate-800 px-8 py-6 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 max-w-sm text-center animate-fadeIn">
+                            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                            <div className="space-y-1">
+                                <span className="text-base font-bold text-slate-800 dark:text-white block">
+                                    {submitStage || 'Memproses Pendaftaran...'}
+                                </span>
+                                <span className="text-xs text-slate-500 dark:text-slate-400 block">
+                                    Mohon tunggu sebentar, jangan menutup atau menyegarkan halaman ini.
+                                </span>
+                            </div>
                         </div>
                     </div>
                 )}

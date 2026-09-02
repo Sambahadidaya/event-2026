@@ -64,8 +64,8 @@ export const uploadFile = async (formData, bucket, pathPrefix = '') => {
             return { success: false, error: 'Tipe file tidak valid atau berpotensi berbahaya.' };
         }
 
-        // Compress if file is an image
-        if (fileTypeResult.mime.startsWith('image/')) {
+        // Compress if file is an image and larger than 300KB
+        if (fileTypeResult.mime.startsWith('image/') && buffer.length > 300 * 1024) {
             const compressedBuffer = await compressImage(buffer, fileTypeResult.mime);
             const newTypeResult = await fileTypeFromBuffer(compressedBuffer);
             if (newTypeResult && ALLOWED_MIME_TYPES.includes(newTypeResult.mime)) {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { FileUp, ArrowLeft } from 'lucide-react';
 import { getFormPengumpulanByLink } from '@/api/supabase/public/submission';
@@ -12,6 +12,8 @@ import FormPengumpulan from '@/components/public/FormPengumpulan';
 
 export default function SubmissionPage() {
     const { id } = useParams();
+    const searchParams = useSearchParams();
+    const initialKode = searchParams?.get('kode') || '';
     const [form, setForm] = useState(null);
     const [loading, setLoading] = useState(true);
     const [notFound, setNotFound] = useState(false);
@@ -132,7 +134,7 @@ export default function SubmissionPage() {
                         <Link href="/pose" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 mb-6 transition-colors">
                             <ArrowLeft size={16} /> Kembali
                         </Link>
-                        <FormPengumpulan formData={form} />
+                        <FormPengumpulan formData={form} initialKode={initialKode} />
                     </div>
                 </ScheduleBarrier>
             </PengembangBarrier>

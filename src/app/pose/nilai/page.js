@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Search, Trophy, Calendar, UserCheck, AlertCircle, CheckCircle, FileText, Star, MessageSquare, Info, Award, BarChart2 } from 'lucide-react';
 import PageHero from '@/components/public/PageHero';
 import ScheduleBarrier from '@/components/public/ScheduleBarrier';
@@ -8,22 +9,25 @@ import { getNilaiByKodeForm } from '@/api/supabase/public/penilaian';
 import PengembangBarrier from '@/components/public/PengembangBarrier';
 
 export default function CekNilaiPage() {
-    const [kodeForm, setKodeForm] = useState('');
+    const searchParams = useSearchParams();
+    const queryKode = searchParams?.get('kode') || '';
+    const [kodeForm, setKodeForm] = useState(queryKode);
     const [verifying, setVerifying] = useState(false);
     const [result, setResult] = useState(null);
     const [errorMsg, setErrorMsg] = useState(null);
     const [verifyStatus, setVerifyStatus] = useState(null);
 
-    const handleVerify = async (e) => {
-        e.preventDefault();
-        if (!kodeForm.trim()) return;
+    const handleVerify = async (e, customKode) => {
+        if (e) e.preventDefault();
+        const codeToVerify = (customKode !== undefined ? customKode : kodeForm)?.trim();
+        if (!codeToVerify) return;
 
         setVerifying(true);
         setErrorMsg(null);
         setResult(null);
         setVerifyStatus(null);
 
-        const res = await getNilaiByKodeForm(kodeForm.trim());
+        const res = await getNilaiByKodeForm(codeToVerify);
         setVerifying(false);
 
         if (res.success) {
@@ -34,6 +38,15 @@ export default function CekNilaiPage() {
             setErrorMsg(res.error || 'Terjadi kesalahan saat memverifikasi kode.');
         }
     };
+
+    useEffect(() => {
+        if (queryKode && queryKode.trim()) {
+            const clean = queryKode.trim();
+            setKodeForm(clean);
+            handleVerify(null, clean);
+        }
+    }, [queryKode]);
+
 
     return (
         <PengembangBarrier site="pose" route="/nilai">

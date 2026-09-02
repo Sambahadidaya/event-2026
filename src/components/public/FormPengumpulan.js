@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Send, UploadCloud, Link as LinkIcon, CheckCircle2, AlertCircle } from 'lucide-react';
 import { submitPengumpulan, verifyKodeFormTeam } from '@/api/supabase/public/submission';
 import { uploadFile } from '@/api/supabase/storage';
 
-export default function FormPengumpulan({ formData }) {
-    const [kodeForm, setKodeForm] = useState('');
+export default function FormPengumpulan({ formData, initialKode = '' }) {
+    const [kodeForm, setKodeForm] = useState(initialKode);
     const [keterangan, setKeterangan] = useState('');
     const [isUrl, setIsUrl] = useState(false);
     const [fileLink, setFileLink] = useState('');
@@ -20,15 +20,16 @@ export default function FormPengumpulan({ formData }) {
     const [submitLoading, setSubmitLoading] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
 
-    const handleVerifyKode = async () => {
-        if (!kodeForm || kodeForm.trim().length < 5) return;
+    const handleVerifyKode = async (targetKode) => {
+        const code = (typeof targetKode === 'string' ? targetKode : kodeForm)?.trim();
+        if (!code || code.length < 5) return;
 
         setKodeLoading(true);
         setKodeError('');
         setKodeValid(null);
         setTeamData(null);
 
-        const res = await verifyKodeFormTeam(kodeForm.trim());
+        const res = await verifyKodeFormTeam(code);
         if (res.success) {
             if (res.data?.nama_lomba !== formData.form_register?.nama_lomba) {
                 setKodeValid(false);
@@ -43,6 +44,14 @@ export default function FormPengumpulan({ formData }) {
         }
         setKodeLoading(false);
     };
+
+    useEffect(() => {
+        if (initialKode && initialKode.trim().length >= 5 && formData) {
+            setKodeForm(initialKode);
+            handleVerifyKode(initialKode);
+        }
+    }, [initialKode, formData]);
+
 
     const handleFileChange = (e) => {
         if (e.target.files && e.target.files[0]) {

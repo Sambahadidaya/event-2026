@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Search, Filter, FileText } from 'lucide-react';
 import TablePagination from '@/components/panitia/TablePagination';
+import TombolCetakSertifikat from '@/components/public/TombolCetakSertifikat';
 import { formatDateTime } from '@/lib/dashboardUtils';
 
 const ITEMS_PER_PAGE = 10;
@@ -175,6 +176,9 @@ export default function KeuanganTabelVerifikasi({
                 <th className="px-6 py-4 font-semibold">Jenis Form</th>
                 <th className="px-6 py-4 font-semibold text-right">Nominal (Rp)</th>
                 <th className="px-6 py-4 font-semibold">Tanggal Pembayaran</th>
+                {(activeSite === 'pose' || activeSite === 'all') && activeTab === 'wajib' && (
+                  <th className="px-6 py-4 font-semibold text-center w-32">Aksi</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
@@ -207,6 +211,20 @@ export default function KeuanganTabelVerifikasi({
                   <td className="px-6 py-4">
                      <span className="text-slate-600 dark:text-slate-400 text-sm">{formatDateTime(item.created_at)}</span>
                   </td>
+                  {(activeSite === 'pose' || activeSite === 'all') && activeTab === 'wajib' && (
+                    <td className="px-6 py-4 text-center">
+                      {(item.site_type === 'pose' && item.jenis_form === 'wajib') ? (
+                        <TombolCetakSertifikat 
+                          type="partisipasi"
+                          pesertaId={item.id}
+                          label="Cetak Sertifikat"
+                          className="px-3 py-1.5 text-xs rounded-lg"
+                        />
+                      ) : (
+                        <span className="text-slate-400">-</span>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

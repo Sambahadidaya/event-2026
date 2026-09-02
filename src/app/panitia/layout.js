@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import ThemeToggle from '@/components/ThemeToggle';
-import { User, LayoutDashboard, FileText, ChevronDown, ChevronRight, LogOut, ShieldAlert, Menu, BarChart3, MessageCircle, Mail, Newspaper, Users, Monitor, Lock, Calendar, Settings, BookOpen, FileCheck, ClipboardList, Trophy, Wallet, Receipt, Tags, BookMarked, ArrowLeftRight, BookOpenCheck, TrendingUp, TrendingDown, Scale, Table2, PieChart, CreditCard, UserCheck } from 'lucide-react';
+import { User, LayoutDashboard, FileText, ChevronDown, ChevronRight, LogOut, ShieldAlert, Menu, BarChart3, MessageCircle, Mail, Newspaper, Users, Monitor, Lock, Calendar, Settings, BookOpen, FileCheck, ClipboardList, Trophy, Wallet, Receipt, Tags, BookMarked, ArrowLeftRight, BookOpenCheck, TrendingUp, TrendingDown, Scale, Table2, PieChart, CreditCard, UserCheck, Award } from 'lucide-react';
 import { logoutAdmin, getCurrentAdmin } from '@/api/supabase/admin/auth';
 import { setAdminOffline, logoutPanitiaAction } from '@/api/logic/panitiaAuthLogic';
 import { updateAdminStatus } from '@/api/supabase/admin/admin';
@@ -468,6 +468,7 @@ export default function PanitiaLayout({ children }) {
                                     <NavLink href="/panitia/pj_lomba/dashboard" icon={LayoutDashboard} label="Dashboard" colorTheme="violet" />
                                     <NavLink href="/panitia/pj_lomba/form_register" icon={Users} label="Manajemen Team" colorTheme="violet" />
                                     <NavLink href="/panitia/pj_lomba/jadwal_pertandingan" icon={Calendar} label="Jadwal Pertandingan" colorTheme="violet" />
+                                    <NavLink href="/panitia/pj_lomba/juara" icon={Award} label="Juara Lomba" colorTheme="violet" />
                                     <NavLink href="/panitia/pj_lomba/penilaian" icon={Trophy} label="Penilaian Lomba" colorTheme="violet" />
                                     <NavLink href="/panitia/pj_lomba/form_submit" icon={FileText} label="Manajemen Submit" colorTheme="violet" />
                                     <NavLink href="/panitia/pj_lomba/peserta_wajib" icon={UserCheck} label="Peserta Wajib & Lomba" colorTheme="violet" />

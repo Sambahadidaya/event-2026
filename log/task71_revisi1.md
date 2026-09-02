@@ -1,0 +1,3 @@
+fokus ke halaman form wajib yang di src/app/pose/form/[link_id]/page.js dan src/app/pkkmb/form/[link_id]/page.js
+kenapa ada beberapa orang yang mengalami error "Pendaftaran gagal: Failed to fetch" dan waktu aku liat di log vercel tidak ada error sama sekali. coba telusuri codingan yang relevan dengan halaman dan log itu.
+dan error ini udah ada beberapa orang yang mengalaminya tapi kebanyakan berhasil.

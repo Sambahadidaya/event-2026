@@ -29,7 +29,7 @@ import Carousel from '@/components/public/Carousel';
  *    - Tombol "Lihat Filosofi Logo" BISA DIKLIK untuk membuka Modal Filosofi Logo.
  * =========================================================================================
  */
-const IS_PKKMB_LOGO_REVEALED = false;
+const IS_PKKMB_LOGO_REVEALED = true;
 
 // Get Lucide Icon Component dynamically from serialized name
 const getLucideIcon = (name) => {
@@ -440,9 +440,9 @@ const LombaCard = ({ lomba, theme, lombaKategori, openPosterModal }) => {
                     <h3 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white leading-snug">
                         {lomba.nama}
                     </h3>
-                    <p className="text-sm md:text-base font-bold text-orange-600 dark:text-orange-400">
+                    {/* <p className="text-sm md:text-base font-bold text-orange-600 dark:text-orange-400">
                         Total Uang Pembinaan: {lomba.hadiah}
-                    </p>
+                    </p> */}
                 </div>
 
                 <p className="text-gray-600 dark:text-gray-300 text-sm md:text-base leading-relaxed line-clamp-3 md:line-clamp-4">
@@ -612,18 +612,17 @@ export default function HomeLanding({ site, content, logoSlides, mascotInfo, lom
                                 <div className="md:hidden w-full flex flex-col items-center">
                                     <div className={`relative glass p-6 rounded-[2rem] shadow-2xl ${theme.ring} mb-4 w-56 flex flex-col items-center justify-center group hover:scale-[1.02] transition-transform duration-500 overflow-hidden`}>
                                         <div className={`absolute -inset-4 rounded-[3.5rem] blur-2xl opacity-40 ${theme.blob1} group-hover:opacity-60 transition-opacity`} />
-                                        
+
                                         {/* Gambar Logo (Disamarkan jika IS_PKKMB_LOGO_REVEALED = false) */}
                                         <Image
                                             src={content.logo}
                                             alt={`Logo ${content.title}`}
                                             width={200}
                                             height={200}
-                                            className={`relative w-32 h-32 object-contain drop-shadow-2xl transition-all duration-500 ${
-                                                !IS_PKKMB_LOGO_REVEALED 
-                                                    ? 'blur-xl opacity-25 scale-95 select-none pointer-events-none' 
-                                                    : ''
-                                            }`}
+                                            className={`relative w-32 h-32 object-contain drop-shadow-2xl transition-all duration-500 ${!IS_PKKMB_LOGO_REVEALED
+                                                ? 'blur-xl opacity-25 scale-95 select-none pointer-events-none'
+                                                : ''
+                                                }`}
                                             priority
                                         />
 
@@ -645,11 +644,10 @@ export default function HomeLanding({ site, content, logoSlides, mascotInfo, lom
                                         onClick={() => IS_PKKMB_LOGO_REVEALED && openModal('logo')}
                                         disabled={!IS_PKKMB_LOGO_REVEALED}
                                         title={!IS_PKKMB_LOGO_REVEALED ? "Logo belum dirilis, filosofi belum bisa dibuka" : "Lihat Filosofi Logo"}
-                                        className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all shadow-sm ring-1 ring-black/5 dark:ring-white/10 ${
-                                            IS_PKKMB_LOGO_REVEALED 
-                                                ? 'text-gray-700 dark:text-gray-200 bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-700 backdrop-blur-md cursor-pointer active:scale-95' 
-                                                : 'text-gray-400 dark:text-gray-500 bg-gray-200/50 dark:bg-slate-800/40 opacity-60 cursor-not-allowed pointer-events-none'
-                                        }`}
+                                        className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all shadow-sm ring-1 ring-black/5 dark:ring-white/10 ${IS_PKKMB_LOGO_REVEALED
+                                            ? 'text-gray-700 dark:text-gray-200 bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-700 backdrop-blur-md cursor-pointer active:scale-95'
+                                            : 'text-gray-400 dark:text-gray-500 bg-gray-200/50 dark:bg-slate-800/40 opacity-60 cursor-not-allowed pointer-events-none'
+                                            }`}
                                     >
                                         {IS_PKKMB_LOGO_REVEALED ? <LucideIcons.ArrowUpWideNarrow size={16} /> : <LucideIcons.EyeOff size={16} />}
                                         Lihat Filosofi Logo
@@ -661,18 +659,17 @@ export default function HomeLanding({ site, content, logoSlides, mascotInfo, lom
                             <div className="hidden md:flex flex-col items-center w-72 lg:w-96 shrink-0">
                                 <div className={`relative glass p-10 rounded-[3rem] shadow-2xl ${theme.ring} mb-6 w-full flex flex-col items-center justify-center group hover:scale-[1.02] transition-transform duration-500 overflow-hidden`}>
                                     <div className={`absolute -inset-4 rounded-[3.5rem] blur-2xl opacity-40 ${theme.blob1} group-hover:opacity-60 transition-opacity`} />
-                                    
+
                                     {/* Gambar Logo (Disamarkan jika IS_PKKMB_LOGO_REVEALED = false) */}
                                     <Image
                                         src={content.logo}
                                         alt={`Logo ${content.title}`}
                                         width={240}
                                         height={240}
-                                        className={`relative w-56 h-56 object-contain drop-shadow-2xl transition-all duration-500 ${
-                                            !IS_PKKMB_LOGO_REVEALED 
-                                                ? 'blur-2xl opacity-25 scale-95 select-none pointer-events-none' 
-                                                : ''
-                                        }`}
+                                        className={`relative w-56 h-56 object-contain drop-shadow-2xl transition-all duration-500 ${!IS_PKKMB_LOGO_REVEALED
+                                            ? 'blur-2xl opacity-25 scale-95 select-none pointer-events-none'
+                                            : ''
+                                            }`}
                                         priority
                                     />
 
@@ -694,11 +691,10 @@ export default function HomeLanding({ site, content, logoSlides, mascotInfo, lom
                                     onClick={() => IS_PKKMB_LOGO_REVEALED && openModal('logo')}
                                     disabled={!IS_PKKMB_LOGO_REVEALED}
                                     title={!IS_PKKMB_LOGO_REVEALED ? "Logo belum dirilis, filosofi belum bisa dibuka" : "Lihat Filosofi Logo"}
-                                    className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold transition-all shadow-sm ring-1 ring-black/5 dark:ring-white/10 ${
-                                        IS_PKKMB_LOGO_REVEALED 
-                                            ? 'text-gray-700 dark:text-gray-200 bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-700 backdrop-blur-md cursor-pointer active:scale-95' 
-                                            : 'text-gray-400 dark:text-gray-500 bg-gray-200/50 dark:bg-slate-800/40 opacity-60 cursor-not-allowed pointer-events-none'
-                                    }`}
+                                    className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold transition-all shadow-sm ring-1 ring-black/5 dark:ring-white/10 ${IS_PKKMB_LOGO_REVEALED
+                                        ? 'text-gray-700 dark:text-gray-200 bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-700 backdrop-blur-md cursor-pointer active:scale-95'
+                                        : 'text-gray-400 dark:text-gray-500 bg-gray-200/50 dark:bg-slate-800/40 opacity-60 cursor-not-allowed pointer-events-none'
+                                        }`}
                                 >
                                     {IS_PKKMB_LOGO_REVEALED ? <LucideIcons.ArrowUpWideNarrow size={16} /> : <LucideIcons.EyeOff size={16} />}
                                     Lihat Filosofi Logo

@@ -1,0 +1,3 @@
+fokus ke halaman lendingpage yang dipose dan dipkkmb yang difile src/app/pose/page.js dan src/app/pkkmb/page.js tepatnya difile src//components/public/HomeLanding.js
+dibagian terakhir tepatnya sebelum footer saya ingin ada div baru atau section baru yang heightnya kecil aja karna div atau sction ini berisi tentang gambar sponsor, yang gambar sponsor ini akan berputar dari kanan ke kiri nonstop (infinite loop) dan fotona itu berada di src/assets/sponsor_pose/ dan src/assets/sponsor_pkkmb/ dan jika tidak ada gambar maka div atau sction itu disembunyiin dulu karna seperti dipkkmb sekarang itu belum ada gambar sponsor.
+bacalah codingan yang relevan agar tidak asumsi

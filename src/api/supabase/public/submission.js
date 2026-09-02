@@ -182,3 +182,65 @@ export const submitPengumpulan = async (payload) => {
         return { success: false, error: 'Terjadi kesalahan internal pada server' };
     }
 };
+
+export const getLinkIdByNamaLomba = async (namaLomba) => {
+    try {
+        if (!namaLomba) return null;
+
+        const { data, error } = await supabaseAdmin
+            .from('form_pengumpulan')
+            .select(`
+                link_id,
+                status,
+                form_register!inner (
+                    nama_lomba,
+                    site
+                )
+            `)
+            .eq('form_register.nama_lomba', namaLomba)
+            .eq('form_register.site', 'pose')
+            .eq('status', true)
+            .maybeSingle();
+
+        if (error) {
+            console.error("Internal Log - Error fetching link_id by nama_lomba:", error);
+            return null;
+        }
+
+        return data?.link_id || null;
+    } catch (error) {
+        console.error("Internal Log - Catch Error in getLinkIdByNamaLomba:", error);
+        return null;
+    }
+};
+
+export const getSubmissionLinksMap = async (eventCode = 'pose') => {
+    try {
+        const { data, error } = await supabaseAdmin
+            .from('form_pengumpulan')
+            .select(`
+                link_id,
+                status,
+                form_register!inner (
+                    nama_lomba,
+                    site
+                )
+            `)
+            .eq('form_register.site', eventCode)
+            .eq('status', true);
+
+        if (error) throw error;
+
+        const map = {};
+        (data || []).forEach(item => {
+            if (item.form_register?.nama_lomba && item.link_id) {
+                map[item.form_register.nama_lomba] = item.link_id;
+            }
+        });
+        return map;
+    } catch (error) {
+        console.error("Internal Log - Error fetching submission links map:", error);
+        return {};
+    }
+};
+

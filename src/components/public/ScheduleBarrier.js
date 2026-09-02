@@ -109,7 +109,7 @@ export default function ScheduleBarrier({ children, pageType }) {
             if (pageType === 'register') return; // ALLOW
 
             return block(
-                `Pendaftaran sedang berlangsung dan akan berakhir pada ${formatDate(pEnd)}`,
+                `Pendaftaran tahap 2 sedang berlangsung dan akan berakhir pada ${formatDate(pEnd)}`,
                 pEnd,
                 'Lanjut ke Halaman Pendaftaran',
                 '/pose/register'
@@ -122,7 +122,7 @@ export default function ScheduleBarrier({ children, pageType }) {
             if (pageType === 'team') return; // ALLOW
 
             return block(
-                `Pendaftaran telah selesai dan sedang tahap seleksi, acara akan dimulai pada ${formatDate(aStart)}`,
+                `Pendaftaran tahap 2 telah selesai dan sedang tahap seleksi, acara akan dimulai pada ${formatDate(aStart)}`,
                 aStart,
                 'Kembali ke Halaman Pemberitahuan',
                 '/pose/pemberitahuan'

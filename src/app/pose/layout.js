@@ -8,11 +8,13 @@ export default function PoseLayout({ children }) {
     const poseLinks = [
         { href: '/pose', label: 'Beranda' },
         { href: '/pose/pemberitahuan', label: 'Pemberitahuan' },
+        { href: '/pose/dashboard', label: 'Dashboard' },
+        // { href: '/pose/sertifikat', label: 'Sertifikat' },
         { href: '/pose/team', label: 'Tim' },
         { href: '/pose/jadwal', label: 'Jadwal' },
         { href: '/pose/register', label: 'Daftar' },
-        { href: '/pose/submission', label: 'Submit' },
-        { href: '/pose/nilai', label: 'Nilai' },
+        // { href: '/pose/submission', label: 'Submit' },
+        // { href: '/pose/nilai', label: 'Nilai' },
         { href: '/pose/contact', label: 'Kontak' },
         { href: '/pose/ketentuan', label: 'S&K Lomba' },
         { href: '/pose/panduan', label: 'Panduan & Privasi' }

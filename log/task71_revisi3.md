@@ -1,0 +1,3 @@
+fokus dihalaman panitia pj lomba tepatnya di src/app/panitia/pj_lomba/
+saya ingin ada halaman baru yaitu halaman juara yang dimana logika atau tampilannya itu tidak jauh beda seperti pada halaman jadwal_pertandingan yang halamannya itu dimuat sesuai admin yang login terus ada tombol tambah juara dan ketika ditekan akan muncul pop up atau modal yang memilih teamnya dan nomor juaranya. dan untuk databasenya saya ingin belum punya jadi rancang juga databasenya, dan begitu juga saya belum punya components dan apinya jadi rancang juga components dan apinya, dan untuk apinya saya ingin di src/api/ (berupa server action).
+bacalah codingan yang relevan agar tidak asumsi.
