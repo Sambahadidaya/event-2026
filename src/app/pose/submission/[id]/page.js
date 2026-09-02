@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { FileUp, ArrowLeft } from 'lucide-react';
@@ -10,7 +10,7 @@ import ScheduleBarrier from '@/components/public/ScheduleBarrier';
 import PengembangBarrier from '@/components/public/PengembangBarrier';
 import FormPengumpulan from '@/components/public/FormPengumpulan';
 
-export default function SubmissionPage() {
+function SubmissionContent() {
     const { id } = useParams();
     const searchParams = useSearchParams();
     const initialKode = searchParams?.get('kode') || '';
@@ -139,5 +139,17 @@ export default function SubmissionPage() {
                 </ScheduleBarrier>
             </PengembangBarrier>
         </main >
+    );
+}
+
+export default function SubmissionPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex-grow flex items-center justify-center min-h-[60vh]">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+        }>
+            <SubmissionContent />
+        </Suspense>
     );
 }

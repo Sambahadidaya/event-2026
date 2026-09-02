@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Search, Trophy, Calendar, UserCheck, AlertCircle, CheckCircle, FileText, Star, MessageSquare, Info, Award, BarChart2 } from 'lucide-react';
 import PageHero from '@/components/public/PageHero';
@@ -8,7 +8,7 @@ import ScheduleBarrier from '@/components/public/ScheduleBarrier';
 import { getNilaiByKodeForm } from '@/api/supabase/public/penilaian';
 import PengembangBarrier from '@/components/public/PengembangBarrier';
 
-export default function CekNilaiPage() {
+function CekNilaiContent() {
     const searchParams = useSearchParams();
     const queryKode = searchParams?.get('kode') || '';
     const [kodeForm, setKodeForm] = useState(queryKode);
@@ -263,6 +263,18 @@ export default function CekNilaiPage() {
                 </div>
             </ScheduleBarrier>
         </PengembangBarrier>
+    );
+}
+
+export default function CekNilaiPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-[60vh] flex items-center justify-center">
+                <div className="w-8 h-8 border-3 border-slate-900/30 border-t-slate-900 dark:border-white/30 dark:border-t-white rounded-full animate-spin"></div>
+            </div>
+        }>
+            <CekNilaiContent />
+        </Suspense>
     );
 }
 

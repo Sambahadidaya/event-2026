@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Search, Trophy, Award, Users, AlertCircle, CheckCircle, Sparkles, ScrollText, FileText, CheckCircle2 } from 'lucide-react';
 import PageHero from '@/components/public/PageHero';
@@ -9,7 +9,7 @@ import PengembangBarrier from '@/components/public/PengembangBarrier';
 import TombolCetakSertifikat from '@/components/public/TombolCetakSertifikat';
 import { getSertifikatInfoByKodeForm } from '@/api/sertifikat/route';
 
-export default function SertifikatPosePage() {
+function SertifikatPoseContent() {
     const searchParams = useSearchParams();
     const queryKode = searchParams?.get('kode') || '';
     const [kodeForm, setKodeForm] = useState(queryKode);
@@ -207,5 +207,17 @@ export default function SertifikatPosePage() {
                 </div>
             </ScheduleBarrier>
         </PengembangBarrier>
+    );
+}
+
+export default function SertifikatPosePage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-[60vh] flex items-center justify-center">
+                <div className="w-8 h-8 border-3 border-amber-500/30 border-t-amber-500 rounded-full animate-spin"></div>
+            </div>
+        }>
+            <SertifikatPoseContent />
+        </Suspense>
     );
 }
