@@ -379,12 +379,12 @@ export default function FormRegisterLanjutStandalone({ formConfig }) {
                 }
 
                 const semVal = parseInt(m.semester, 10);
-                if ((m.kampus !== 'Kampus Bandung') && !(formConfig?.site === 'pkkmb') && !isNaN(semVal) && semVal > 4) {
+                if ((m.kampus !== 'Kampus Bandung') && !(formConfig?.site === 'pkkmb') && !isNaN(semVal) && semVal > 6) {
                     return window.alert("Pendaftaran ditolak: Anda tidak diizinkan mengikuti kegiatan ini.");
                 }
 
                 const nimYear = parseInt(m.nim.substring(0, 4), 10);
-                if (!isNaN(nimYear) && nimYear <= 2024) {
+                if (!isNaN(nimYear) && nimYear <= 2023) {
                     return window.alert("Pendaftaran ditolak: Anda tidak diizinkan mengikuti kegiatan ini.");
                 }
             }
@@ -400,13 +400,13 @@ export default function FormRegisterLanjutStandalone({ formConfig }) {
                 if (!m.kampus || !m.prodi || !m.semester) return window.alert("Mohon lengkapi Kampus, Prodi, dan Semester.");
 
                 const semVal = parseInt(m.semester, 10);
-                if (isNaN(semVal) || semVal > 4) {
+                if (isNaN(semVal) || semVal > 6) {
                     return window.alert("Pendaftaran ditolak: Anda tidak diizinkan mengikuti kegiatan ini.");
                 }
 
                 const angkatan = semesterToAngkatan(m.semester);
                 const angkatanYear = parseInt(angkatan, 10);
-                if (isNaN(angkatanYear) || angkatanYear <= 2024) {
+                if (isNaN(angkatanYear) || angkatanYear <= 2023) {
                     return window.alert("Pendaftaran ditolak: Anda tidak diizinkan mengikuti kegiatan ini.");
                 }
             }
@@ -930,15 +930,14 @@ export default function FormRegisterLanjutStandalone({ formConfig }) {
                                                                 <div className="flex items-center gap-2 mb-1">
                                                                     <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 font-semibold">Angkatan *</label>
                                                                     {index === 0 && selectedAngkatan && (
-                                                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                                                                            isCheckingAngkatanKuota ? 'bg-gray-100 text-gray-500' :
-                                                                            (() => {
-                                                                                const matched = (kampusQuotaInfo?.angkatanQuotas || []).find(a => a.angkatan === selectedAngkatan);
-                                                                                if (!matched) return 'bg-blue-100 text-blue-600';
-                                                                                if ((matched.maks_team ?? 0) === 0 || angkatanTeamCount >= matched.maks_team) return 'bg-red-100 text-red-600';
-                                                                                return 'bg-green-100 text-green-600';
-                                                                            })()
-                                                                        }`}>
+                                                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${isCheckingAngkatanKuota ? 'bg-gray-100 text-gray-500' :
+                                                                                (() => {
+                                                                                    const matched = (kampusQuotaInfo?.angkatanQuotas || []).find(a => a.angkatan === selectedAngkatan);
+                                                                                    if (!matched) return 'bg-blue-100 text-blue-600';
+                                                                                    if ((matched.maks_team ?? 0) === 0 || angkatanTeamCount >= matched.maks_team) return 'bg-red-100 text-red-600';
+                                                                                    return 'bg-green-100 text-green-600';
+                                                                                })()
+                                                                            }`}>
                                                                             {isCheckingAngkatanKuota ? 'Memeriksa...' : (() => {
                                                                                 const matched = (kampusQuotaInfo?.angkatanQuotas || []).find(a => a.angkatan === selectedAngkatan);
                                                                                 if (!matched) return 'Tersedia';
@@ -962,9 +961,6 @@ export default function FormRegisterLanjutStandalone({ formConfig }) {
                                                                     <option value="2026">2026</option>
                                                                     <option value="2025">2025</option>
                                                                     <option value="2024">2024</option>
-                                                                    <option value="2023">2023</option>
-                                                                    <option value="2022">2022</option>
-                                                                    <option value="2021">2021</option>
                                                                 </select>
                                                             </div>
                                                         )}

@@ -353,12 +353,12 @@ export default function FormRegister({ formConfig, nominalOverride = null, requi
                 }
 
                 const semVal = parseInt(m.semester, 10);
-                if ((m.kampus !== 'Kampus Bandung') && !(formConfig?.site === 'pkkmb') && !isNaN(semVal) && semVal > 4) {
+                if ((m.kampus !== 'Kampus Bandung') && !(formConfig?.site === 'pkkmb') && !isNaN(semVal) && semVal > 6) {
                     return window.alert("Pendaftaran ditolak: Anda tidak diizinkan mengikuti kegiatan ini.");
                 }
 
                 const nimYear = parseInt(m.nim.substring(0, 4), 10);
-                if (!isNaN(nimYear) && nimYear <= 2024) {
+                if (!isNaN(nimYear) && nimYear <= 2023) {
                     return window.alert("Pendaftaran ditolak: Anda tidak diizinkan mengikuti kegiatan ini.");
                 }
             }
@@ -374,13 +374,13 @@ export default function FormRegister({ formConfig, nominalOverride = null, requi
                 if (!m.kampus || !m.prodi || !m.semester) return window.alert("Mohon lengkapi Kampus, Prodi, dan Semester.");
 
                 const semVal = parseInt(m.semester, 10);
-                if (isNaN(semVal) || semVal > 4) {
+                if (isNaN(semVal) || semVal > 6) {
                     return window.alert("Pendaftaran ditolak: Anda tidak diizinkan mengikuti kegiatan ini.");
                 }
 
                 const angkatan = semesterToAngkatan(m.semester);
                 const angkatanYear = parseInt(angkatan, 10);
-                if (isNaN(angkatanYear) || angkatanYear <= 2024) {
+                if (isNaN(angkatanYear) || angkatanYear <= 2023) {
                     return window.alert("Pendaftaran ditolak: Anda tidak diizinkan mengikuti kegiatan ini.");
                 }
             }
@@ -1028,6 +1028,7 @@ export default function FormRegister({ formConfig, nominalOverride = null, requi
                                                             <option value="" disabled>Pilih Angkatan</option>
                                                             <option value="2026">2026</option>
                                                             <option value="2025">2025</option>
+                                                            <option value="2024">2024</option>
                                                         </select>
                                                     </div>
                                                 )}

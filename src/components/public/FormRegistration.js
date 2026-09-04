@@ -354,15 +354,15 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                     return window.alert(`Mohon pilih Kelas (Reguler / NonReguler) untuk ${m.nama || `anggota ${i + 1}`}.`);
                 }
 
-                // Validasi Semester (maksimal 4) — tidak berlaku untuk PKKMB wajib (Kampus Bandung, prodi dari NIM)
+                // Validasi Semester (maksimal 6) — tidak berlaku untuk PKKMB wajib (Kampus Bandung, prodi dari NIM)
                 const semVal = parseInt(m.semester, 10);
-                if ((isWajib || m.kampus !== 'Kampus Bandung') && !(isWajib && formConfig?.site === 'pkkmb') && !isNaN(semVal) && semVal > 4) {
+                if ((isWajib || m.kampus !== 'Kampus Bandung') && !(isWajib && formConfig?.site === 'pkkmb') && !isNaN(semVal) && semVal > 6) {
                     return window.alert("Pendaftaran ditolak: Anda tidak diizinkan mengikuti kegiatan ini.");
                 }
 
-                // Validasi NIM (angkatan 2024 kebawah tidak diperbolehkan)
+                // Validasi NIM (angkatan 2023 kebawah tidak diperbolehkan)
                 const nimYear = parseInt(m.nim.substring(0, 4), 10);
-                if (!isNaN(nimYear) && nimYear <= 2024) {
+                if (!isNaN(nimYear) && nimYear <= 2023) {
                     return window.alert("Pendaftaran ditolak: Anda tidak diizinkan mengikuti kegiatan ini.");
                 }
             }
@@ -378,13 +378,13 @@ export default function FormRegistration({ formConfig, isWajib = false }) {
                 if (!m.kampus || !m.prodi || !m.semester) return window.alert("Mohon lengkapi Kampus, Prodi, dan Semester.");
 
                 const semVal = parseInt(m.semester, 10);
-                if (isNaN(semVal) || semVal > 4) {
+                if (isNaN(semVal) || semVal > 6) {
                     return window.alert("Pendaftaran ditolak: Anda tidak diizinkan mengikuti kegiatan ini.");
                 }
 
                 const angkatan = semesterToAngkatan(m.semester);
                 const angkatanYear = parseInt(angkatan, 10);
-                if (isNaN(angkatanYear) || angkatanYear <= 2024) {
+                if (isNaN(angkatanYear) || angkatanYear <= 2023) {
                     return window.alert("Pendaftaran ditolak: Anda tidak diizinkan mengikuti kegiatan ini.");
                 }
             }

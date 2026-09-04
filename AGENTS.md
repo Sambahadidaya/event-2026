@@ -1028,6 +1028,57 @@ BEGIN
 END;
 $$;
 
+CREATE TABLE public.juara_lomba (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    team_id UUID NOT NULL REFERENCES public.team(id) ON DELETE CASCADE,
+    nama_lomba VARCHAR NOT NULL,
+    jenis_lomba VARCHAR NOT NULL,
+    peringkat INTEGER NOT NULL CHECK (peringkat BETWEEN 1 AND 3),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT juara_lomba_unique_lomba_peringkat UNIQUE (nama_lomba, peringkat)
+);
+
+ALTER TABLE public.juara_lomba ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Enable read for public on juara_lomba"
+    ON public.juara_lomba FOR SELECT TO public USING (true);
+
+CREATE POLICY "Enable all for authenticated on juara_lomba"
+    ON public.juara_lomba FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+
+
+create table log_sertifikat_pose (
+  id UUID primary key DEFAULT uuid_generate_v4(),
+  team_id UUID REFERENCES public.team(id) ON DELETE CASCADE,
+  no_sert int4,
+  kode_sert VARCHAR(10),
+  jenis_sert VARCHAR(50),
+  keterangan_sert VARCHAR(50),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE public.log_sertifikat_pose ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth all log_sertifikat_pose" ON log_sertifikat_pose FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Sequence untuk SERT Partisipasi
+CREATE SEQUENCE IF NOT EXISTS sert_pts_no_seq START WITH 1 INCREMENT BY 1;
+ALTER SEQUENCE sert_pts_no_seq RESTART WITH 1;
+-- Sequence untuk SERT Juara
+CREATE SEQUENCE IF NOT EXISTS sert_jur_no_seq START WITH 1 INCREMENT BY 1;
+ALTER SEQUENCE sert_jur_no_seq RESTART WITH 1;
+-- Sequence untuk SERT 
+CREATE SEQUENCE IF NOT EXISTS sert_pst_no_seq START WITH 1 INCREMENT BY 1;
+ALTER SEQUENCE sert_pst_no_seq RESTART WITH 1;
+
+-- RPC Function untuk memanggil nextval dari client
+CREATE OR REPLACE FUNCTION nextval_sert(seq_name TEXT)
+RETURNS BIGINT AS $$
+BEGIN
+  RETURN nextval(seq_name);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 ```
 
 ---
