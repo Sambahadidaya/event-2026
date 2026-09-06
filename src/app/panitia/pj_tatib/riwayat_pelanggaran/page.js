@@ -26,7 +26,7 @@ import {
     createRiwayatPelanggaran,
     deleteRiwayatPelanggaran
 } from '@/api/supabase/admin/pelanggaran';
-import RiwayatPelanggaranModal from '@/components/panitia/tatib/RiwayatPelanggaranModal';
+import RiwayatPelanggaranModal from '@/components/panitia/pj_tatib/RiwayatPelanggaranModal';
 import ConfirmModal from '@/components/panitia/ConfirmModal';
 
 export default function RiwayatPelanggaranTatibPage() {

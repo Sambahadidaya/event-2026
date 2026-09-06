@@ -21,7 +21,7 @@ import {
     updateMasterPelanggaran,
     deleteMasterPelanggaran
 } from '@/api/supabase/admin/pelanggaran';
-import MasterPelanggaranModal from '@/components/panitia/tatib/MasterPelanggaranModal';
+import MasterPelanggaranModal from '@/components/panitia/pj_tatib/MasterPelanggaranModal';
 import ConfirmModal from '@/components/panitia/ConfirmModal';
 
 export default function MasterPelanggaranPage() {
