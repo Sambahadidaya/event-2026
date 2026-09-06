@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { getAdmins, addAdmin, deleteAdmin, updateAdmin } from '@/api/supabase/admin/admin';
 import { ALL_ROLES } from '@/lib/adminRoleData';
-import { Shield, Plus, Trash2, Edit, RefreshCw, UserPlus, CheckCircle2, AlertCircle, Search, ChevronDown, Lock, Filter, Users } from 'lucide-react';
+import { Shield, Plus, Trash2, Edit, RefreshCw, UserPlus, CheckCircle2, AlertCircle, Search, ChevronDown, Lock, Filter, Users, QrCode } from 'lucide-react';
+import { downloadAdminQRCard } from '@/lib/qr/adminQrCard';
 
 export default function AdminStatusPage() {
     const [admins, setAdmins] = useState([]);
@@ -21,12 +22,12 @@ export default function AdminStatusPage() {
 
     // Modal Tambah Admin State
     const [showAddModal, setShowAddModal] = useState(false);
-    const [formData, setFormData] = useState({ nama: '', email: '', password: '', role: 'admin_pkkmb' });
+    const [formData, setFormData] = useState({ nama: '', nim: '', wa: '', email: '', password: '', role: 'admin_pkkmb' });
 
     // Modal Edit Admin State
     const [showEditModal, setShowEditModal] = useState(false);
     const [editAdminId, setEditAdminId] = useState(null);
-    const [editForm, setEditForm] = useState({ nama: '', email: '', role: '', limit_login: false });
+    const [editForm, setEditForm] = useState({ nama: '', nim: '', wa: '', email: '', role: '', limit_login: false });
 
     // Role Dropdown Searchable State (Di dalam Modal Edit/Tambah)
     const [roleSearch, setRoleSearch] = useState('');
@@ -35,6 +36,7 @@ export default function AdminStatusPage() {
 
     // Action & Refresh State
     const [actionLoading, setActionLoading] = useState(false);
+    const [downloadingQrId, setDownloadingQrId] = useState(null);
     const [message, setMessage] = useState(null);
     const [lastRefreshed, setLastRefreshed] = useState(null);
 
@@ -76,6 +78,8 @@ export default function AdminStatusPage() {
         try {
             const res = await addAdmin({
                 nama: formData.nama,
+                nim: formData.nim,
+                wa: formData.wa,
                 email: formData.email,
                 password: formData.password,
                 role: formData.role
@@ -85,7 +89,7 @@ export default function AdminStatusPage() {
 
             showMessage('Admin berhasil ditambahkan!');
             setShowAddModal(false);
-            setFormData({ nama: '', email: '', password: '', role: 'admin_pkkmb' });
+            setFormData({ nama: '', nim: '', wa: '', email: '', password: '', role: 'admin_pkkmb' });
             fetchAdmins();
 
         } catch (error) {
@@ -98,9 +102,11 @@ export default function AdminStatusPage() {
     const openEditModal = (admin) => {
         setEditAdminId(admin.id);
         setEditForm({
-            nama: admin.nama,
-            email: admin.email,
-            role: admin.role,
+            nama: admin.nama || '',
+            nim: admin.nim || '',
+            wa: admin.wa || '',
+            email: admin.email || '',
+            role: admin.role || '',
             limit_login: Boolean(admin.limit_login)
         });
         setRoleSearch('');
@@ -115,6 +121,8 @@ export default function AdminStatusPage() {
         try {
             const res = await updateAdmin(editAdminId, {
                 nama: editForm.nama,
+                nim: editForm.nim,
+                wa: editForm.wa,
                 role: editForm.role,
                 limit_login: editForm.limit_login
             });
@@ -145,6 +153,29 @@ export default function AdminStatusPage() {
             fetchAdmins();
         }
         setActionLoading(false);
+    };
+
+    const handleDownloadQR = async (admin) => {
+        if (!admin.qrcode) {
+            showMessage('Admin ini belum memiliki data QR Code.', 'error');
+            return;
+        }
+
+        try {
+            setDownloadingQrId(admin.id);
+            await downloadAdminQRCard({
+                nama: admin.nama,
+                email: admin.email,
+                qrcode: admin.qrcode,
+                role: admin.role
+            });
+            showMessage(`Kartu QR untuk ${admin.nama} berhasil diunduh!`);
+        } catch (error) {
+            console.error('Gagal mengunduh QR:', error);
+            showMessage(error.message || 'Gagal mengunduh QR', 'error');
+        } finally {
+            setDownloadingQrId(null);
+        }
     };
 
     // Filter roles for modal edit dropdown
@@ -178,16 +209,18 @@ export default function AdminStatusPage() {
         if (activeTab === 'pkkmb' && !isPkkmbRole(admin.role)) return false;
         if (activeTab === 'pose' && !isPoseRole(admin.role)) return false;
 
-        // 2. Search Query Filtering (Nama, Email, Role Key, Role Label)
+        // 2. Search Query Filtering (Nama, NIM, Email, Role Key, Role Label)
         if (searchQuery.trim() !== '') {
             const q = searchQuery.toLowerCase();
             const roleLabel = (ALL_ROLES.find(r => r.value === admin.role)?.label || '').toLowerCase();
             const nameMatch = admin.nama ? admin.nama.toLowerCase().includes(q) : false;
+            const nimMatch = admin.nim ? admin.nim.toLowerCase().includes(q) : false;
+            const waMatch = admin.wa ? admin.wa.toLowerCase().includes(q) : false;
             const emailMatch = admin.email ? admin.email.toLowerCase().includes(q) : false;
             const roleMatch = admin.role ? admin.role.toLowerCase().includes(q) : false;
             const roleLabelMatch = roleLabel.includes(q);
 
-            if (!nameMatch && !emailMatch && !roleMatch && !roleLabelMatch) {
+            if (!nameMatch && !nimMatch && !waMatch && !emailMatch && !roleMatch && !roleLabelMatch) {
                 return false;
             }
         }
@@ -277,7 +310,7 @@ export default function AdminStatusPage() {
                         <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                         <input
                             type="text"
-                            placeholder="Cari nama, email, atau role..."
+                            placeholder="Cari nama, NIM, email, atau role..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:ring-2 focus:ring-violet-500 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all"
@@ -319,23 +352,26 @@ export default function AdminStatusPage() {
                         <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
                             <tr>
                                 <th className="px-6 py-4">Nama Lengkap</th>
+                                <th className="px-6 py-4">NIM</th>
+                                <th className="px-6 py-4">No. WhatsApp</th>
                                 <th className="px-6 py-4">Email</th>
                                 <th className="px-6 py-4">Role</th>
                                 <th className="px-6 py-4">Status</th>
                                 <th className="px-6 py-4">Diblokir</th>
                                 <th className="px-6 py-4">Gagal Login</th>
                                 <th className="px-6 py-4">Terakhir Login</th>
+                                <th className="px-6 py-4 text-center">Cetak QR</th>
                                 <th className="px-6 py-4 text-right">Aksi</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                             {loading ? (
                                 <tr>
-                                    <td colSpan="8" className="px-6 py-8 text-center text-slate-500">Memuat data admin...</td>
+                                    <td colSpan="11" className="px-6 py-8 text-center text-slate-500">Memuat data admin...</td>
                                 </tr>
                             ) : displayedAdmins.length === 0 ? (
                                 <tr>
-                                    <td colSpan="8" className="px-6 py-8 text-center text-slate-500">
+                                    <td colSpan="11" className="px-6 py-8 text-center text-slate-500">
                                         Tidak ada data admin yang sesuai dengan kriteria pencarian / filter.
                                     </td>
                                 </tr>
@@ -349,6 +385,12 @@ export default function AdminStatusPage() {
                                     return (
                                         <tr key={admin.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/20 transition-colors">
                                             <td className="px-6 py-4 font-medium text-slate-800 dark:text-slate-200">{admin.nama}</td>
+                                            <td className="px-6 py-4 font-mono text-slate-600 dark:text-slate-400">
+                                                {admin.nim && admin.nim.trim() !== '' ? admin.nim : '-'}
+                                            </td>
+                                            <td className="px-6 py-4 font-mono text-slate-600 dark:text-slate-400">
+                                                {admin.wa && admin.wa.trim() !== '' ? admin.wa : '-'}
+                                            </td>
                                             <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{admin.email}</td>
                                             <td className="px-6 py-4">
                                                 <span className={`px-2.5 py-1 rounded-md text-xs font-bold ${admin.role === 'super_admin' ? 'bg-violet-100 text-violet-700 dark:bg-violet-500/10 dark:text-violet-400' :
@@ -383,6 +425,30 @@ export default function AdminStatusPage() {
                                                     timeStyle: 'short'
                                                 }) : '-'}
                                             </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <button
+                                                    onClick={() => handleDownloadQR(admin)}
+                                                    disabled={!admin.qrcode || downloadingQrId === admin.id}
+                                                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                                                        !admin.qrcode
+                                                            ? 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-600 cursor-not-allowed'
+                                                            : 'bg-violet-50 hover:bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:hover:bg-violet-900/50 dark:text-violet-300 border border-violet-200 dark:border-violet-800/50 shadow-sm cursor-pointer active:scale-95'
+                                                    }`}
+                                                    title={!admin.qrcode ? 'Admin belum memiliki QR Code' : 'Cetak / Unduh Kartu QR Panitia'}
+                                                >
+                                                    {downloadingQrId === admin.id ? (
+                                                        <>
+                                                            <RefreshCw size={14} className="animate-spin text-violet-600 dark:text-violet-400" />
+                                                            <span>Mengunduh...</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <QrCode size={14} />
+                                                            <span>Cetak QR</span>
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </td>
                                             <td className="px-6 py-4 text-right space-x-1">
                                                 <button
                                                     onClick={() => openEditModal(admin)}
@@ -413,15 +479,23 @@ export default function AdminStatusPage() {
             {/* Add Admin Modal */}
             {showAddModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-md max-h-[90vh] flex flex-col rounded-2xl shadow-xl overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
                             <h3 className="text-lg font-bold text-slate-800 dark:text-white">Tambah Admin Baru</h3>
-                            <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><Plus className="rotate-45" /></button>
+                            <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"><Plus className="rotate-45" /></button>
                         </div>
-                        <form onSubmit={handleAddAdmin} className="p-6 space-y-4">
+                        <form onSubmit={handleAddAdmin} className="p-6 space-y-4 overflow-y-auto flex-1">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nama Lengkap</label>
                                 <input type="text" required value={formData.nama} onChange={e => setFormData({ ...formData, nama: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-500 outline-none transition-all" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">NIM (Opsional)</label>
+                                <input type="text" value={formData.nim} onChange={e => setFormData({ ...formData, nim: e.target.value })} placeholder="Masukkan NIM..." className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-500 outline-none transition-all" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">No. WhatsApp (Opsional)</label>
+                                <input type="text" value={formData.wa} onChange={e => setFormData({ ...formData, wa: e.target.value })} placeholder="Contoh: 081234567890" className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-500 outline-none transition-all" />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email</label>
@@ -453,12 +527,12 @@ export default function AdminStatusPage() {
             {/* Edit Admin Modal */}
             {showEditModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-md max-h-[90vh] flex flex-col rounded-2xl shadow-xl overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
                             <h3 className="text-lg font-bold text-slate-800 dark:text-white">Edit Admin</h3>
-                            <button onClick={() => setShowEditModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><Plus className="rotate-45" /></button>
+                            <button onClick={() => setShowEditModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"><Plus className="rotate-45" /></button>
                         </div>
-                        <form onSubmit={handleUpdateAdmin} className="p-6 space-y-4">
+                        <form onSubmit={handleUpdateAdmin} className="p-6 space-y-4 overflow-y-auto flex-1">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nama Lengkap</label>
                                 <input
@@ -466,6 +540,26 @@ export default function AdminStatusPage() {
                                     required
                                     value={editForm.nama}
                                     onChange={e => setEditForm({ ...editForm, nama: e.target.value })}
+                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-500 outline-none transition-all"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">NIM</label>
+                                <input
+                                    type="text"
+                                    value={editForm.nim}
+                                    onChange={e => setEditForm({ ...editForm, nim: e.target.value })}
+                                    placeholder="Masukkan NIM..."
+                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-500 outline-none transition-all"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">No. WhatsApp (Opsional)</label>
+                                <input
+                                    type="text"
+                                    value={editForm.wa}
+                                    onChange={e => setEditForm({ ...editForm, wa: e.target.value })}
+                                    placeholder="Contoh: 081234567890"
                                     className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-violet-500 outline-none transition-all"
                                 />
                             </div>

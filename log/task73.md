@@ -1,0 +1,2 @@
+fokus ke halaman panduan mau itu disite pose atau pkkmb yang berada difile src/app/pose/panduan dan src/app/pkkmb/panduan.
+saya ingin itukan ada video yang tombol "Tonton Panduan Video" nah itu saya ingin ketika diklik itu akan ada loading spinner didalam divnya karnakan ada jeda buat merender videonya.

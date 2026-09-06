@@ -1,0 +1,8 @@
+fokus ke halaman materi yang di src/app/pkkmb/materi/[id]/
+dihalaman itu ada bug "Gagal memuat dokumen langsung di dalam aplikasi." dan diconslogenya ada 
+```log
+POST /pkkmb/materi/fe1f4abb-8e76-4280-8e27-9f94be683d72 200 in 64ms (next.js: 15ms, application-code: 49ms)
+  └─ ƒ getStatusPengembangan("pkkmb", "/materi") in 2ms src/api/supabase/public/pengembang.js
+[browser] Warning: Error: Setting up fake worker failed: "Failed to fetch dynamically imported module: https://unpkg.com/pdfjs-dist@5.4.296/build/pdf.worker.min.mjs".
+```
+terus dihalaman materi inikan kalau tampilan destop ai asistennya sebelah kanan, nah saya ingin difixkan jadi meskipun scrol ke bawah ai asistennya tetap berada dikanan tanpa tertutup. terus dihalaman materi ini diatasnyakan ada tombol swich antara materi dan tugas, nah ketika menekan tombok tugas itukan pindah ke halaman tugas dan ada form untuk submit tugasnya, nah saya ingin data yang diperlukan itu cukup nimnya saja dan ketika memasukan nim itu harus terdiri dari 9 digit dan ketika user sudah mengisi 9 digit itu akan ada dicek ke database apakah benar ada nim itu jika ada maka dibawah kolom nim ada span nama dari pemilik nim itu tapi pengecekan ini berlaku ketika user sudah mengisi 9 digit dan ada delay 1.5 detik, dan ketika tidak ada maka tombol submit tugasnya akan disable, terus perihal pengumpulan tugas inikan berupa gambar nah saya ingin gambar yang diupload itu juga dikompress terlebih dahulu sebelum dikirim ke server terus saya ingin user juga bisa mengupload sampai 3 foto, tapi aku bingung jikalau nanti ada 3 foto itu masuk ke databasenya gimana dan logika saat upload fotonya berarti bisa diselect/tambah gambar/hapus gambar

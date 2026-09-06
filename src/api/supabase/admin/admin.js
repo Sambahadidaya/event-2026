@@ -38,14 +38,24 @@ export const addAdmin = async (payload) => {
 
         if (authErr) throw authErr;
 
+        const insertPayload = {
+            user_id: authData.user.id,
+            nama: payload.nama,
+            email: payload.email,
+            role: payload.role
+        };
+
+        if (payload.nim !== undefined) {
+            insertPayload.nim = payload.nim ? payload.nim.trim() : null;
+        }
+
+        if (payload.wa !== undefined) {
+            insertPayload.wa = payload.wa ? payload.wa.trim() : null;
+        }
+
         const { error } = await supabaseAdmin
             .from('admins')
-            .insert([{
-                user_id: authData.user.id,
-                nama: payload.nama,
-                email: payload.email,
-                role: payload.role
-            }]);
+            .insert([insertPayload]);
 
         if (error) {
             await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
@@ -72,6 +82,14 @@ export const updateAdmin = async (id, payload) => {
             role: payload.role,
             limit_login: payload.limit_login
         };
+
+        if (payload.nim !== undefined) {
+            updateData.nim = payload.nim ? payload.nim.trim() : null;
+        }
+
+        if (payload.wa !== undefined) {
+            updateData.wa = payload.wa ? payload.wa.trim() : null;
+        }
 
         if (payload.limit_login === false) {
             updateData.failed_attempts = 0;

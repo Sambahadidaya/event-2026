@@ -1079,6 +1079,38 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+
+alter table materi_pkkmb add column tutup boolean default false;
+
+CREATE OR REPLACE FUNCTION get_server_time()
+RETURNS TIMESTAMPTZ AS $$
+  SELECT NOW();
+$$ LANGUAGE SQL STABLE;
+
+alter table admins add column nim varchar(20);
+alter table admins add column wa varchar(20);
+
+create table data_medis_pkkmb_panitia (
+  id UUID primary key DEFAULT uuid_generate_v4(),
+  panitia_id UUID REFERENCES public.admins(id) ON DELETE CASCADE,
+  divisi VARCHAR(50),
+  riwayat_penyakit VARCHAR(255),
+  penanganan VARCHAR(255),
+  alergi VARCHAR(255),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE public.data_medis_pkkmb_panitia ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth all data_medis_pkkmb_panitia" ON data_medis_pkkmb_panitia FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+create table jadwal_acara_pkkmb(
+  id UUID primary key default uuid_generate_v4(),
+  judul varchar(255),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.jadwal_acara_pkkmb ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth all jadwal_acara_pkkmb" ON jadwal_acara_pkkmb FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
 ```
 
 ---
@@ -1099,25 +1131,32 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 │   │   │   ├── panduanLogic.js
 │   │   │   ├── panduanPdfAction.js
 │   │   │   ├── panitiaAuthLogic.js
-│   │   │   └── updateVersionLogic.js
+│   │   │   ├── updateVersionAdminLogic.js
+│   │   │   ├── updateVersionLogic.js
+│   │   │   ├── welcomeGuideAdminLogic.js
+│   │   │   └── welcomeGuideLogic.js
 │   │   ├── sertifikat/
 │   │   │   └── route.js
 │   │   ├── pdf/
 │   │   │   └── route.js
 │   │   ├── supabase/
 │   │   │   ├── admin/
+│   │   │   │   ├── absensi_peserta.js
 │   │   │   │   ├── absensi.js
 │   │   │   │   ├── admin.js
 │   │   │   │   ├── audit.js
 │   │   │   │   ├── auth.js
 │   │   │   │   ├── berita.js
 │   │   │   │   ├── finance.js
+│   │   │   │   ├── jadwal_pkkmb.js
 │   │   │   │   ├── jadwal.js
 │   │   │   │   ├── juara.js
 │   │   │   │   ├── kelompok.js
 │   │   │   │   ├── materi.js
 │   │   │   │   ├── medis.jsjs
+│   │   │   │   ├── obat.js
 │   │   │   │   ├── pdf.js
+│   │   │   │   ├── pelanggaran.js
 │   │   │   │   ├── pembayaran_pkkmb.js
 │   │   │   │   ├── pengembang.jsjs
 │   │   │   │   ├── penilaian.js
@@ -1125,7 +1164,8 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 │   │   │   │   ├── sales.jsjs
 │   │   │   │   ├── sertifikat.js
 │   │   │   │   ├── submission.js
-│   │   │   │   └── team.js
+│   │   │   │   ├── team.js
+│   │   │   │   └── tugas_kabim.js
 │   │   │   ├── public/
 │   │   │   │   ├── admin.js
 │   │   │   │   ├── berita.js
@@ -1155,6 +1195,9 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 │   │   ├── (portal)/
 │   │   │   ├── layout.js
 │   │   │   └── page.js
+│   │   ├── api/
+│   │   │   └── health/
+│   │   │       └── route.js
 │   │   ├── panitia/
 │   │   │   ├── layout.js
 │   │   │   ├── page.js
@@ -1213,8 +1256,19 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 │   │   │   │   └── page.js
 │   │   │   ├── panduan/
 │   │   │   │   └── page.js
+│   │   │   ├── pj_acara/
+│   │   │   │   ├── jadwal/
+│   │   │   │   │   └── page.js
+│   │   │   │   └── materi/
+│   │   │   │       └── page.js
 │   │   │   ├── pj_kabim/
-│   │   │   │   └── kelompok/
+│   │   │   │   ├── absensi/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── kelompok/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── riwayat_pelanggaran/
+│   │   │   │   │   └── page.js
+│   │   │   │   └── tugas/
 │   │   │   │       └── page.js
 │   │   │   ├── pj_lomba/
 │   │   │   │   ├── dashboard/
@@ -1232,7 +1286,20 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 │   │   │   │   └── peserta_wajib/
 │   │   │   │       └── page.js
 │   │   │   ├── pj_medis/
-│   │   │   │   └── peserta/
+│   │   │   │   ├── log_obat/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── master_obat/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── panitia/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── peserta/
+│   │   │   │   │   └── page.js
+│   │   │   │   └── riwayat_penanganan/
+│   │   │   │       └── page.js
+│   │   │   ├── pj_tatib/
+│   │   │   │   ├── master_pelanggaran/
+│   │   │   │   │   └── page.js
+│   │   │   │   └── riwayat_pelanggaran/
 │   │   │   │       └── page.js
 │   │   │   ├── pkkmb/
 │   │   │   │   ├── berita/
@@ -1277,6 +1344,10 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 │   │   │   ├── layout.js
 │   │   │   ├── page.js
 │   │   │   ├── contact/
+│   │   │   │   └── page.js
+│   │   │   ├── dashboard/
+│   │   │   │   ├── [id]
+│   │   │   │   │   └── page.js
 │   │   │   │   └── page.js
 │   │   │   ├── form/
 │   │   │   │   └── [lynk_id]
@@ -1443,6 +1514,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 │   │   ├── ContactForm.js
 │   │   ├── ClientTracker.js
 │   │   ├── DynamicFavicon.js
+│   │   ├── OfflineGuard.js
 │   │   ├── PublicHeader.js
 │   │   ├── SamsAsisten.js
 │   │   ├── SamsChatbot.js
@@ -1461,6 +1533,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 │   │   │   ├── KetentuanPage.js
 │   │   │   ├── PageHero.js
 │   │   │   ├── PanduanPage.js
+│   │   │   ├── PdfViewer.js
 │   │   │   ├── PengembangBarrier.js
 │   │   │   ├── PjLombaContactSection.js
 │   │   │   ├── PublicFooter.js
@@ -1468,11 +1541,13 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 │   │   │   ├── SiteBackground.js
 │   │   │   ├── TombolCetakSertifikat.js
 │   │   │   ├── UpdateVersionModal.js
-│   │   │   └── WaveDivider.js
+│   │   │   ├── WaveDivider.js
+│   │   │   └── WelcomeGuideModal.js
 │   │   └── panitia/
 │   │       ├── absensi/
 │   │       │   ├── AbsensiDashboardCharts.js
 │   │       │   ├── AbsensiFormModal.js
+│   │       │   ├── AbsensiPesertaFormModal.js
 │   │       │   ├── AbsensiRekapTable.js
 │   │       │   ├── FormAbsenModal.jsjs
 │   │       │   └── SearchableDropdown.js
@@ -1497,13 +1572,24 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 │   │       │   ├── PrintPDFButton.js
 │   │       │   ├── TransaksiDetailModal.js
 │   │       │   └── TransaksiTable.js
+│   │       ├── pj_acara/
+│   │       │   └── FormJadwalModal.js
+│   │       ├── pj_medis/
+│   │       │   ├── LogObatModal.js
+│   │       │   ├── MasterObatModal.js
+│   │       │   └── RiwayatPenangananModal.js
+│   │       ├── pj_tatib/
+│   │       │   ├── MasterPelanggaranModal.js
+│   │       │   └── RiwayatPelanggaranModal.js
 │   │       ├── AdminFormPengumpulan.js
 │   │       ├── AdminFormRegister.js
 │   │       ├── AdminFormWajib.js
 │   │       ├── AdminJadwalPertandinganPJ.js
 │   │       ├── AdminJuaraLombaPJ.js
+│   │       ├── AdminKabimTugasManager.js
 │   │       ├── AdminKelompokManager.js
 │   │       ├── AdminKeuanganDashboard.js
+│   │       ├── AdminPanitiamedis.js
 │   │       ├── AdminPenilaianPJ.js
 │   │       ├── AdminPesertaMedis.jsjs
 │   │       ├── AdminPesertaPengumpulan.js
@@ -1524,18 +1610,24 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 │   │       ├── DashboardHeaderFilters.js
 │   │       ├── DashboardDonutChart.js
 │   │       ├── LoginContent.js
+│   │       ├── MedisPanitiaFormModal.js
 │   │       ├── PanduanAdminPage.js
 │   │       ├── SalesChart.js
 │   │       ├── SalesRiwayatTable.js
 │   │       ├── DashboardCalendarLegend.js
 │   │       ├── TombolCetak.js
-│   │       └── ConfirmModal.js
+│   │       ├── ConfirmModal.js
+│   │       ├── UpdateVersionAdminModal.js
+│   │       └── WelcomeGuideAdminModal.jsjs
 │   ├── data/
 │   │   ├── ketentuanData.js
 │   │   ├── lombaPose.js
 │   │   ├── panduan_admin.js
+│   │   ├── updateVersionAdminData.js
 │   │   ├── panduanData.js
-│   │   └── updateVersionData.js
+│   │   ├── updateVersionData.js
+│   │   ├── welcomeGuideAdminData.js
+│   │   └── welcomeGuideData.js
 │   ├── docs/
 │   │   ├── supabase/
 │   │   └── openai/
@@ -1559,6 +1651,8 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 │       │   ├── teamReport.js
 │       │   └── template.jsjs
 │       ├── qr/
+│       │   ├── adminQrCard.js
+│       │   ├── pesertaQrCard.js
 │       │   └── qrcode.js
 │       ├── security/
 │       │   ├── inputGuard.js

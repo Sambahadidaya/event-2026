@@ -3,6 +3,8 @@ import PublicHeader from '@/components/PublicHeader';
 import SiteBackground from '@/components/public/SiteBackground';
 import PublicFooter from '@/components/public/PublicFooter';
 import UpdateVersionModal from '@/components/public/UpdateVersionModal';
+import WelcomeGuideModal from '@/components/public/WelcomeGuideModal';
+import OfflineGuard from '@/components/OfflineGuard';
 
 export default function PoseLayout({ children }) {
     const poseLinks = [
@@ -21,16 +23,19 @@ export default function PoseLayout({ children }) {
     ];
 
     return (
-        <div className="min-h-screen text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-500 relative">
-            <SiteBackground site="pose" subtle />
-            <PublicHeader site="pose" links={poseLinks} />
-            <main className="flex-1 relative z-10">
-                {children}
-            </main>
-            <PublicFooter site="pose" links={poseLinks} />
-            <SamsChatbot />
-            <UpdateVersionModal site="pose" />
-        </div>
+        <OfflineGuard site="pose">
+            <div className="min-h-screen text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-500 relative">
+                <SiteBackground site="pose" subtle />
+                <PublicHeader site="pose" links={poseLinks} />
+                <main className="flex-1 relative z-10">
+                    {children}
+                </main>
+                <PublicFooter site="pose" links={poseLinks} />
+                <SamsChatbot />
+                <UpdateVersionModal site="pose" />
+                <WelcomeGuideModal site="pose" />
+            </div>
+        </OfflineGuard>
     );
 }
 

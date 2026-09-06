@@ -11,6 +11,7 @@ export default function PanduanPage({ site, data }) {
     const [activeSection, setActiveSection] = useState(data.sections[0]?.id || '');
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [activeVideoSectionId, setActiveVideoSectionId] = useState(null);
+    const [loadingIframeId, setLoadingIframeId] = useState(null);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
     const [pdfProgress, setPdfProgress] = useState(0);
     const [pdfSpeed, setPdfSpeed] = useState('');
@@ -625,17 +626,29 @@ export default function PanduanPage({ site, data }) {
                                         </div>
                                         <div className="relative aspect-video rounded-2xl overflow-hidden border border-gray-100 dark:border-slate-800 bg-black group/video">
                                             {activeVideoSectionId === section.id ? (
-                                                <iframe
-                                                    className="absolute inset-0 w-full h-full"
-                                                    src={`https://www.youtube.com/embed/${section.youtubeId}?autoplay=1`}
-                                                    title={`Video tutorial ${section.title}`}
-                                                    frameBorder="0"
-                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                                    allowFullScreen
-                                                ></iframe>
+                                                <>
+                                                    {loadingIframeId === section.id && (
+                                                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-950/90 z-10 text-white">
+                                                            <Loader2 className={`w-8 h-8 animate-spin ${site === 'pkkmb' ? 'text-blue-500' : 'text-orange-500'}`} />
+                                                            <span className="text-xs font-semibold text-slate-300 animate-pulse">Memuat Video Panduan...</span>
+                                                        </div>
+                                                    )}
+                                                    <iframe
+                                                        className={`absolute inset-0 w-full h-full transition-opacity duration-300 ${loadingIframeId === section.id ? 'opacity-0' : 'opacity-100'}`}
+                                                        src={`https://www.youtube.com/embed/${section.youtubeId}?autoplay=1`}
+                                                        title={`Video tutorial ${section.title}`}
+                                                        frameBorder="0"
+                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                                        allowFullScreen
+                                                        onLoad={() => setLoadingIframeId(null)}
+                                                    ></iframe>
+                                                </>
                                             ) : (
                                                 <button
-                                                    onClick={() => setActiveVideoSectionId(section.id)}
+                                                    onClick={() => {
+                                                        setActiveVideoSectionId(section.id);
+                                                        setLoadingIframeId(section.id);
+                                                    }}
                                                     className="absolute inset-0 w-full h-full flex items-center justify-center cursor-pointer group-hover/video:scale-105 transition-transform"
                                                 >
                                                     {/* Thumbnail & Play Icon */}

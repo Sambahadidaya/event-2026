@@ -34,4 +34,19 @@ export const getStatusPengembangan = async (site, route) => {
     }
 };
 
+// Mode Deploy / Bypass (Development)
+// export const getStatusPengembangan = async (site, route) => {
+//     try {
+//         if (!site || !route) {
+//             return { kunci: false };
+//         }
 
+//         console.log(`[Bypass API] Cek status pengembangan -> site: "${site}", route: "${route}"`);
+
+//         return { kunci: false };
+
+//     } catch (error) {
+//         console.error("Internal Log - Error pada bypass status pengembangan:", error);
+//         return { kunci: false };
+//     }
+// };

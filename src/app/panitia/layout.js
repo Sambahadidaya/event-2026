@@ -4,17 +4,18 @@ import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import ThemeToggle from '@/components/ThemeToggle';
-import { User, LayoutDashboard, FileText, ChevronDown, ChevronRight, LogOut, ShieldAlert, Menu, BarChart3, MessageCircle, Mail, Newspaper, Users, Monitor, Lock, Calendar, Settings, BookOpen, FileCheck, ClipboardList, Trophy, Wallet, Receipt, Tags, BookMarked, ArrowLeftRight, BookOpenCheck, TrendingUp, TrendingDown, Scale, Table2, PieChart, CreditCard, UserCheck, Award } from 'lucide-react';
+import { User, LayoutDashboard, FileText, ChevronDown, ChevronRight, LogOut, ShieldAlert, Menu, BarChart3, MessageCircle, Mail, Newspaper, Users, Monitor, Lock, Calendar, Settings, BookOpen, FileCheck, ClipboardList, Trophy, Wallet, Receipt, Tags, BookMarked, ArrowLeftRight, BookOpenCheck, TrendingUp, TrendingDown, Scale, Table2, PieChart, CreditCard, UserCheck, Award, HeartPulse, Pill, History } from 'lucide-react';
 import { logoutAdmin, getCurrentAdmin } from '@/api/supabase/admin/auth';
 import { setAdminOffline, logoutPanitiaAction } from '@/api/logic/panitiaAuthLogic';
 import { updateAdminStatus } from '@/api/supabase/admin/admin';
 import { hasAccess, rolePermissions, canAccessSection } from '@/lib/adminRoleData';
 import SamsAsisten from '@/components/SamsAsisten';
+import OfflineGuard from '@/components/OfflineGuard';
 
 export default function PanitiaLayout({ children }) {
     const [isDesktop, setIsDesktop] = useState(true);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-    const [menuOpen, setMenuOpen] = useState({ dashboard: true, pkkmb: false, pose: false, form: false, absensi_panitia: false, pj_lomba: false, keuangan: false, admin: false, sales: false, kabim: false, Medis: false, Mulmed: false, Tatib: false });
+    const [menuOpen, setMenuOpen] = useState({ dashboard: true, pkkmb: false, pose: false, form: false, absensi_panitia: false, pj_lomba: false, keuangan: false, admin: false, sales: false, kabim: false, Medis: false, pj_acara: false, Mulmed: false, Tatib: false });
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [showDesktopWarning, setShowDesktopWarning] = useState(false);
     const [hasSeenDesktopWarning, setHasSeenDesktopWarning] = useState(false);
@@ -69,17 +70,25 @@ export default function PanitiaLayout({ children }) {
         setLoading(true);
 
         const fetchAdminData = async () => {
-            const adminUser = await getCurrentAdmin();
-            if (adminUser) {
-                setAdminData(adminUser);
-                if (adminUser.user_id) {
-                    userIdRef.current = adminUser.user_id;
-                    updateHeartbeat(adminUser.user_id);
-                }
-            } else {
+            if (typeof window !== 'undefined' && !navigator.onLine) {
                 setLoading(false);
-                router.push('/panitia/login');
                 return;
+            }
+            try {
+                const adminUser = await getCurrentAdmin();
+                if (adminUser) {
+                    setAdminData(adminUser);
+                    if (adminUser.user_id) {
+                        userIdRef.current = adminUser.user_id;
+                        updateHeartbeat(adminUser.user_id);
+                    }
+                } else {
+                    setLoading(false);
+                    router.push('/panitia/login');
+                    return;
+                }
+            } catch (err) {
+                console.error("Internal Log - Error fetching admin data:", err);
             }
 
             setLoading(false);
@@ -160,7 +169,7 @@ export default function PanitiaLayout({ children }) {
     handleLogoutRef.current = handleLogout;
 
     if (pathname === '/panitia/login') {
-        return <>{children}</>;
+        return <OfflineGuard site="panitia">{children}</OfflineGuard>;
     }
 
     if (loading) {
@@ -226,7 +235,8 @@ export default function PanitiaLayout({ children }) {
     };
 
     return (
-        <div className="h-screen w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex overflow-hidden transition-colors duration-500">
+        <OfflineGuard site="panitia">
+            <div className="h-screen w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex overflow-hidden transition-colors duration-500">
             {!isDesktop && mobileSidebarOpen && (
                 <div
                     className="fixed inset-0 bg-black/50 z-30 backdrop-blur-sm"
@@ -389,9 +399,12 @@ export default function PanitiaLayout({ children }) {
                                 </span>
                                 {!collapsed && (menuOpen.kabim ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
                             </button>
-                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.kabim ? 'max-h-64 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.kabim ? 'max-h-80 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
                                 <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
                                     <NavLink href="/panitia/pj_kabim/kelompok" icon={Users} label="Manajemen Kelompok" colorTheme="blue" />
+                                    <NavLink href="/panitia/pj_kabim/tugas" icon={FileCheck} label="Review Tugas" colorTheme="blue" />
+                                    <NavLink href="/panitia/pj_kabim/absensi" icon={UserCheck} label="Absensi Peserta" colorTheme="blue" />
+                                    <NavLink href="/panitia/pj_kabim/riwayat_pelanggaran" icon={ShieldAlert} label="Riwayat Pelanggaran" colorTheme="blue" />
                                 </ul>
                             </div>
                         </div>
@@ -413,9 +426,63 @@ export default function PanitiaLayout({ children }) {
                                 </span>
                                 {!collapsed && (menuOpen.Medis ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
                             </button>
-                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.Medis ? 'max-h-40 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.Medis ? 'max-h-80 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
                                 <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
                                     <NavLink href="/panitia/pj_medis/peserta" icon={Users} label="Data Peserta" colorTheme="blue" />
+                                    <NavLink href="/panitia/pj_medis/panitia" icon={UserCheck} label="Data Panitia" colorTheme="blue" />
+                                    <NavLink href="/panitia/pj_medis/master_obat" icon={Pill} label="Master Obat" colorTheme="blue" />
+                                    <NavLink href="/panitia/pj_medis/log_obat" icon={History} label="Log Obat" colorTheme="blue" />
+                                    <NavLink href="/panitia/pj_medis/riwayat_penanganan" icon={HeartPulse} label="Riwayat Penanganan" colorTheme="blue" />
+                                </ul>
+                            </div>
+                        </div>
+                    )}
+
+                    {canAccessSection(adminData?.role, 'pjAcara') && (
+                        <div className="mb-6">
+                            {!collapsed && (
+                                <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Manajemen PJ Acara</p>
+                            )}
+                            <button
+                                onClick={() => toggleMenu('pj_acara')}
+                                title="PJ Acara"
+                                className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
+                            >
+                                <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
+                                    <BookOpen size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
+                                    {!collapsed && 'PJ Acara'}
+                                </span>
+                                {!collapsed && (menuOpen.pj_acara ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
+                            </button>
+                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.pj_acara ? 'max-h-48 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
+                                    <NavLink href="/panitia/pj_acara/materi" icon={BookOpen} label="Manajemen Materi" colorTheme="blue" />
+                                    <NavLink href="/panitia/pj_acara/jadwal" icon={Calendar} label="Manajemen Jadwal" colorTheme="blue" />
+                                </ul>
+                            </div>
+                        </div>
+                    )}
+
+                    {canAccessSection(adminData?.role, 'tatib') && (
+                        <div className="mb-6">
+                            {!collapsed && (
+                                <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Manajemen PJ Tatib</p>
+                            )}
+                            <button
+                                onClick={() => toggleMenu('Tatib')}
+                                title="PJ Tatib"
+                                className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
+                            >
+                                <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
+                                    <ShieldAlert size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
+                                    {!collapsed && 'PJ Tatib'}
+                                </span>
+                                {!collapsed && (menuOpen.Tatib ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
+                            </button>
+                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.Tatib ? 'max-h-48 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
+                                    <NavLink href="/panitia/pj_tatib/master_pelanggaran" icon={ShieldAlert} label="Master Pelanggaran" colorTheme="blue" />
+                                    <NavLink href="/panitia/pj_tatib/riwayat_pelanggaran" icon={ClipboardList} label="Riwayat Pelanggaran" colorTheme="blue" />
                                 </ul>
                             </div>
                         </div>
@@ -640,5 +707,6 @@ export default function PanitiaLayout({ children }) {
                 </div>
             )}
         </div>
+        </OfflineGuard>
     );
 }

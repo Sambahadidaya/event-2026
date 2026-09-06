@@ -72,6 +72,19 @@ export const PRODI_DATA = {
         'Manajemen Perusahaan',
         'Teknik Komputer'
     ],
+    'Kampus Langsa': [
+        'Akuntansi',
+        'Administrasi Bisnis',
+        'Bisnis Digital',
+        'Hubungan Masyarakat',
+        'Komputerisasi Akuntansi',
+        'Manajemen Informatika',
+        'Manajemen Keuangan Perbankan',
+        'Manajemen Keuangan',
+        'Manajemen Pemasaran',
+        'Manajemen Perusahaan',
+        'Teknik Komputer'
+    ],
 };
 
 export const Angkatan_DATA = [
@@ -95,6 +108,7 @@ export const KAMPUS_DATA = [
     'Kampus Cirebon',
     'Kampus Pekanbaru',
     'Kampus Padang',
+    'Kampus Langsa',
     'Lainnya'
 ];
 
@@ -180,5 +194,4 @@ export const KODE_NAMA_LOMBA = {
     'Release Writing': 'Rw',
     'Digital UMKM Promotion': 'Dup',
     'Dance': 'Dc'
-
 };

@@ -175,3 +175,155 @@ export async function generateMedisPDF({ data = [], title = 'DATA MEDIS PESERTA 
         if (browser) await browser.close();
     }
 }
+
+/**
+ * Generate PDF Buffer data medis panitia PKKMB menggunakan Puppeteer
+ * @param {Object} params
+ * @param {Array<Object>} params.data - List data medis panitia
+ * @param {string} params.title - Judul PDF
+ * @param {string} params.printedBy - Pembuat cetakan
+ * @returns {Promise<Buffer>}
+ */
+export async function generateMedisPanitiaPDF({ data = [], title = 'LAPORAN DATA MEDIS PANITIA PKKMB 2026', printedBy = 'Admin' }) {
+    let browser = null;
+    try {
+        browser = await getBrowser();
+        const page = await browser.newPage();
+
+        const logoData = getLogoBase64();
+        const currentDate = formatIndoDate(new Date().toISOString());
+
+        // Membuat isi baris tabel
+        const rowsHtml = data.map((item, idx) => `
+            <tr style="page-break-inside: avoid;">
+                <td style="text-align: center; border: 1px solid #cbd5e1; padding: 6px; font-size: 8px;">${idx + 1}</td>
+                <td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 8px; font-weight: bold; color: #1e293b;">${item.nama || '-'}</td>
+                <td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 8px; color: #334155;">${item.wa || '-'}</td>
+                <td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 8px; color: #334155;">${item.role || '-'}</td>
+                <td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 8px; color: #1e293b; font-weight: 500;">${item.divisi || '-'}</td>
+                <td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 8px; font-weight: 500; color: #c2410c;">${item.riwayat_penyakit || '-'}</td>
+                <td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 8px; color: #475569;">${item.penanganan || '-'}</td>
+                <td style="border: 1px solid #cbd5e1; padding: 6px; font-size: 8px; font-weight: 500; color: #b91c1c;">${item.alergi || '-'}</td>
+            </tr>
+        `).join('');
+
+        const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <style>
+                ${PDF_STYLES}
+                body {
+                    font-family: 'Inter', system-ui, sans-serif;
+                    color: #1e293b;
+                    margin: 0;
+                    padding: 0;
+                }
+                .header-container {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    border-bottom: 2px solid #3b82f6;
+                    padding-bottom: 12px;
+                    margin-bottom: 20px;
+                }
+                .logo {
+                    height: 55px;
+                }
+                .title-container {
+                    text-align: right;
+                }
+                .title {
+                    font-size: 16px;
+                    font-weight: 800;
+                    color: #1e3a8a;
+                    margin: 0;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+                .subtitle {
+                    font-size: 9px;
+                    color: #64748b;
+                    margin: 2px 0 0 0;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 30px;
+                }
+                th {
+                    background-color: #f1f5f9;
+                    color: #475569;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    font-size: 8px;
+                    border: 1px solid #cbd5e1;
+                    padding: 8px 6px;
+                    text-align: left;
+                }
+                .footer {
+                    margin-top: 40px;
+                    display: flex;
+                    justify-content: space-between;
+                    font-size: 8px;
+                    color: #64748b;
+                    border-top: 1px dashed #e2e8f0;
+                    padding-top: 10px;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header-container">
+                <div>
+                    ${logoData ? `<img class="logo" src="${logoData}" alt="Logo" />` : ''}
+                </div>
+                <div class="title-container">
+                    <h1 class="title">${title}</h1>
+                    <p class="subtitle">Portal Kampus PKKMB 2026 | Cetakan: ${currentDate}</p>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 4%; text-align: center;">No</th>
+                        <th style="width: 18%;">Nama Lengkap</th>
+                        <th style="width: 16%;">No. WhatsApp</th>
+                        <th style="width: 12%;">Role</th>
+                        <th style="width: 12%;">Divisi</th>
+                        <th style="width: 14%;">Riwayat Penyakit</th>
+                        <th style="width: 14%;">Penanganan</th>
+                        <th style="width: 10%;">Alergi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rowsHtml}
+                </tbody>
+            </table>
+
+            <div class="footer">
+                <div>Dicetak oleh: ${printedBy}</div>
+                <div>Halaman 1 dari 1</div>
+            </div>
+        </body>
+        </html>
+        `;
+
+        await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+        const pdfBuffer = await page.pdf({
+            format: 'A4',
+            landscape: true,
+            margin: { top: '30px', right: '30px', bottom: '30px', left: '30px' },
+            printBackground: true
+        });
+
+        return pdfBuffer;
+    } catch (e) {
+        console.error('Error generating Medis Panitia PDF:', e);
+        throw e;
+    } finally {
+        if (browser) await browser.close();
+    }
+}
+

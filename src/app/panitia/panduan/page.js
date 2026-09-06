@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { getCurrentAdmin } from '@/api/supabase/admin/auth';
 import { getPanduanAdminBySite } from '@/api/logic/panduan_admin';
 import PanduanAdminPage from '@/components/panitia/PanduanAdminPage';
+import UpdateVersionAdminModal from '@/components/panitia/UpdateVersionAdminModal';
+import WelcomeGuideAdminModal from '@/components/panitia/WelcomeGuideAdminModal';
 
 export default function AdminPanduanPage() {
     const [admin, setAdmin] = useState(null);
@@ -50,13 +52,17 @@ export default function AdminPanduanPage() {
 
     return (
         <div className="space-y-4">
+            {/* Admin Modals */}
+            <UpdateVersionAdminModal site={site} />
+            <WelcomeGuideAdminModal site={site} />
+
             {/* Site Switcher for Super Admin */}
             {isSuperAdmin && (
                 <div className="flex items-center justify-end gap-2 bg-slate-900 border border-slate-800 p-2 rounded-2xl">
                     <span className="text-xs font-bold text-slate-400 px-2">Pilih Portal:</span>
                     <button
                         onClick={() => handleSiteChange('pkkmb')}
-                        className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${site === 'pkkmb'
+                        className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${site === 'pkkmb'
                             ? 'bg-blue-600 text-white shadow-md'
                             : 'text-slate-400 hover:text-white'
                             }`}
@@ -65,7 +71,7 @@ export default function AdminPanduanPage() {
                     </button>
                     <button
                         onClick={() => handleSiteChange('pose')}
-                        className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${site === 'pose'
+                        className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${site === 'pose'
                             ? 'bg-orange-600 text-white shadow-md'
                             : 'text-slate-400 hover:text-white'
                             }`}

@@ -1,0 +1,3 @@
+fokus ke halaman panitia tepatnya pada halaman panduan. nah saya ingin dihalaman panduan panitia atau admin juga ada youtubenya yang logika atau desainnya sama seperti panduan dipublic, dan juga dihalaman panitia juga saya ingin ada modal updateversion seperti pada halaman public yang file "UpdateVersionModal.js dan updateVersionData.js" dan juga dihalaman panitia itu saya ingin ada modal welcome seperti pada halaman public yang file "WelcomeGuideModal.js dan welcomeGuideData.js".
+dan perbarui juga data panduan panitianya yang di "panduan_admin.js" karna masih kurang lengkap karna memang saya sudah banyak halaman dan fitur baru.
+dan semua ini saya ingin mempunyai file baru jangan disatuin dengan yang public.

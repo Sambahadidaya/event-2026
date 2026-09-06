@@ -3,10 +3,13 @@ import PublicHeader from '@/components/PublicHeader';
 import SiteBackground from '@/components/public/SiteBackground';
 import PublicFooter from '@/components/public/PublicFooter';
 import UpdateVersionModal from '@/components/public/UpdateVersionModal';
+import WelcomeGuideModal from '@/components/public/WelcomeGuideModal';
+import OfflineGuard from '@/components/OfflineGuard';
 
 export default function PkkmbLayout({ children }) {
     const pkkmbLinks = [
         { href: '/pkkmb', label: 'Beranda' },
+        { href: '/pkkmb/dashboard', label: 'Dashboard' },
         { href: '/pkkmb/pemberitahuan', label: 'Pemberitahuan' },
         { href: '/pkkmb/kelompok', label: 'Kelompok' },
         { href: '/pkkmb/jadwal', label: 'Jadwal' },
@@ -15,17 +18,21 @@ export default function PkkmbLayout({ children }) {
         { href: '/pkkmb/panduan', label: 'Panduan' }
     ];
 
+
     return (
-        <div className="min-h-screen text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-500 relative">
-            <SiteBackground site="pkkmb" subtle />
-            <PublicHeader site="pkkmb" links={pkkmbLinks} />
-            <main className="flex-1 relative z-10">
-                {children}
-            </main>
-            <PublicFooter site="pkkmb" links={pkkmbLinks} />
-            <SamsChatbot />
-            <UpdateVersionModal site="pkkmb" />
-        </div>
+        <OfflineGuard site="pkkmb">
+            <div className="min-h-screen text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-500 relative">
+                <SiteBackground site="pkkmb" subtle />
+                <PublicHeader site="pkkmb" links={pkkmbLinks} />
+                <main className="flex-1 relative z-10">
+                    {children}
+                </main>
+                <PublicFooter site="pkkmb" links={pkkmbLinks} />
+                <SamsChatbot />
+                <UpdateVersionModal site="pkkmb" />
+                <WelcomeGuideModal site="pkkmb" />
+            </div>
+        </OfflineGuard>
     );
 }
 

@@ -17,25 +17,25 @@ import sponsorPose3 from '@/assets/Sponsor_pose/3.png';
 
 const SPONSOR_DATA = {
     pose: [
+        // {
+        //     id: 1,
+        //     img: sponsorPose1,
+        //     name: 'Merchion.id',
+        //     website: 'https://linktr.ee/Merchion.id',
+        //     instagram: 'https://www.instagram.com/merchion.id/'
+        // },
+        // {
+        //     id: 2,
+        //     img: sponsorPose2,
+        //     name: 'Mbok Darmi',
+        //     links: [
+        //         { type: 'website', url: 'https://susumbokdarmi.com/', title: 'Website' },
+        //         { type: 'linktree', url: 'https://linktr.ee/Susu.Mbok.Darmi', title: 'Linktree' },
+        //         { type: 'instagram', url: 'https://www.instagram.com/susu_mbokdarmi/', title: 'Instagram' },
+        //     ]
+        // },
         {
             id: 1,
-            img: sponsorPose1,
-            name: 'Merchion.id',
-            website: 'https://linktr.ee/Merchion.id',
-            instagram: 'https://www.instagram.com/merchion.id/'
-        },
-        {
-            id: 2,
-            img: sponsorPose2,
-            name: 'Mbok Darmi',
-            links: [
-                { type: 'website', url: 'https://susumbokdarmi.com/', title: 'Website' },
-                { type: 'linktree', url: 'https://linktr.ee/Susu.Mbok.Darmi', title: 'Linktree' },
-                { type: 'instagram', url: 'https://www.instagram.com/susu_mbokdarmi/', title: 'Instagram' },
-            ]
-        },
-        {
-            id: 3,
             img: sponsorPose3,
             name: 'Bank Mandiri',
             links: [
@@ -193,35 +193,44 @@ export default function PublicFooter({ site, links = [] }) {
                                 return (
                                     <div
                                         key={`${sponsor.id}-${i}`}
-                                        className="group relative mx-2 sm:mx-3 md:mx-4 flex flex-col items-center justify-center h-28 md:h-40 lg:h-48 w-36 md:w-56 lg:w-72 shrink-0 cursor-pointer pt-2 pb-6"
+                                        className="group relative mx-3 sm:mx-4 md:mx-6 flex flex-col items-center justify-center min-w-[140px] md:min-w-[200px] lg:min-w-[240px] shrink-0 cursor-pointer py-3 px-2 rounded-2xl transition-all duration-300 hover:bg-white/5"
                                     >
-                                        {/* Logo Image dengan rasio 5:3 lebih besar */}
-                                        <Image
-                                            src={sponsor.img}
-                                            alt={sponsor.name}
-                                            width={300}
-                                            height={180}
-                                            className="h-14 md:h-24 lg:h-32 w-auto aspect-[5/3] object-contain opacity-80 grayscale transition-all duration-300 ease-out group-hover:opacity-100 group-hover:grayscale-0 group-hover:-translate-y-5 md:group-hover:-translate-y-7 lg:group-hover:-translate-y-8 group-hover:scale-105 group-hover:drop-shadow-2xl"
-                                        />
+                                        {/* Logo Image & Hover Overlay Container */}
+                                        <div className="relative flex items-center justify-center h-14 md:h-20 lg:h-24 w-full">
+                                            <Image
+                                                src={sponsor.img}
+                                                alt={sponsor.name}
+                                                width={300}
+                                                height={180}
+                                                className="max-h-full w-auto aspect-[5/3] object-contain opacity-80 grayscale transition-all duration-300 ease-out group-hover:opacity-100 group-hover:grayscale-0 group-hover:scale-105 group-hover:drop-shadow-2xl"
+                                            />
 
-                                        {/* Hover Action Buttons - Tumbuh ke Bawah sehingga tidak pernah menutup gambar logo */}
-                                        {activeLinks.length > 0 && (
-                                            <div className="absolute top-[62%] md:top-[64%] lg:top-[65%] left-1/2 -translate-x-1/2 flex items-center gap-1.5 sm:gap-2 max-w-[95%] flex-wrap justify-center opacity-0 translate-y-1 scale-90 transition-all duration-300 ease-out group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100 z-30">
-                                                {activeLinks.map((linkItem, lIdx) => (
-                                                    <a
-                                                        key={lIdx}
-                                                        href={linkItem.url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        className="p-1.5 md:p-2 lg:p-2.5 rounded-full bg-white/25 hover:bg-white/50 text-white transition-all backdrop-blur-md border border-white/30 hover:scale-110 shadow-lg flex items-center justify-center"
-                                                        title={linkItem.title || 'Kunjungi Link'}
-                                                    >
-                                                        {renderLinkIcon(linkItem.type)}
-                                                    </a>
-                                                ))}
-                                            </div>
-                                        )}
+                                            {/* Hover Action Buttons - Berjejer Panjang ke Samping (Horizontal Flex-Nowrap) */}
+                                            {activeLinks.length > 0 && (
+                                                <div className="absolute inset-0 flex items-center justify-center opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-300 ease-out scale-90 group-hover:scale-100 z-30">
+                                                    <div className="flex items-center gap-1.5 sm:gap-2 flex-nowrap bg-black/80 backdrop-blur-md px-3 py-1.5 md:px-3.5 md:py-2 rounded-full border border-white/20 shadow-2xl">
+                                                        {activeLinks.map((linkItem, lIdx) => (
+                                                            <a
+                                                                key={lIdx}
+                                                                href={linkItem.url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                className="p-1.5 md:p-2 rounded-full bg-white/20 hover:bg-white text-white hover:text-slate-900 transition-all hover:scale-110 flex items-center justify-center shrink-0 shadow-md"
+                                                                title={linkItem.title || 'Kunjungi Link'}
+                                                            >
+                                                                {renderLinkIcon(linkItem.type)}
+                                                            </a>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Nama Sponsor di Bawah Gambar */}
+                                        <p className="mt-2.5 text-center text-xs md:text-sm font-bold text-white/70 group-hover:text-white transition-colors duration-200 tracking-wide truncate max-w-full px-1">
+                                            {sponsor.name}
+                                        </p>
                                     </div>
                                 );
                             })}

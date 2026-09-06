@@ -12,6 +12,7 @@ export default function AdminPkkmbTugas() {
     const [selectedMateri, setSelectedMateri] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [previewImage, setPreviewImage] = useState(null);
+    const [activePreviewIndex, setActivePreviewIndex] = useState(0);
 
     const fetchMateri = async () => {
         const data = await getMateri();
@@ -128,7 +129,10 @@ export default function AdminPkkmbTugas() {
                                     <td className="px-5 py-4 text-gray-600 dark:text-gray-400">{item.kampus}</td>
                                     <td className="px-5 py-4 text-center">
                                         <button 
-                                            onClick={() => setPreviewImage(item.file_tugas)}
+                                            onClick={() => {
+                                                setActivePreviewIndex(0);
+                                                setPreviewImage(item.file_tugas);
+                                            }}
                                             className="mx-auto w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-500 flex items-center justify-center hover:bg-blue-100 transition-colors"
                                             title="Lihat Foto"
                                         >
@@ -146,19 +150,62 @@ export default function AdminPkkmbTugas() {
             </div>
 
             {/* Modal Image Preview */}
-            {previewImage && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in" onClick={() => setPreviewImage(null)}>
-                    <div className="max-w-4xl max-h-[90vh] relative">
-                        <img src={previewImage} alt="Preview Tugas" className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl" />
-                        <button 
-                            className="absolute -top-4 -right-4 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
-                            onClick={(e) => { e.stopPropagation(); setPreviewImage(null); }}
-                        >
-                            &times;
-                        </button>
+            {previewImage && (() => {
+                let rawList = [];
+                try {
+                    const parsed = JSON.parse(previewImage);
+                    if (Array.isArray(parsed)) {
+                        rawList = parsed;
+                    } else {
+                        rawList = previewImage.split(',');
+                    }
+                } catch {
+                    rawList = typeof previewImage === 'string' ? previewImage.split(',') : [];
+                }
+
+                const imageList = rawList.map(u => {
+                    const trimmed = typeof u === 'string' ? u.trim().replace(/^["'\[\]]+|["'\[\]]+$/g, '') : '';
+                    if (!trimmed) return null;
+                    if (trimmed.startsWith('http')) return trimmed;
+                    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://qttrkptegnfwoseutfga.supabase.co';
+                    return `${supabaseUrl}/storage/v1/object/public/materi-tugas/${trimmed}`;
+                }).filter(Boolean);
+                const activeImg = typeof activePreviewIndex === 'number' && imageList[activePreviewIndex] ? imageList[activePreviewIndex] : imageList[0];
+
+                return (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in" onClick={() => setPreviewImage(null)}>
+                        <div className="max-w-4xl max-h-[90vh] relative flex flex-col items-center gap-3" onClick={e => e.stopPropagation()}>
+                            <img src={activeImg} alt="Preview Tugas" className="max-w-full max-h-[75vh] object-contain rounded-xl shadow-2xl bg-black/40" />
+                            
+                            {/* Thumbnails if multi images */}
+                            {imageList.length > 1 && (
+                                <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10">
+                                    {imageList.map((imgUrl, idx) => (
+                                        <button
+                                            key={idx}
+                                            onClick={() => setActivePreviewIndex(idx)}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                                activeImg === imgUrl
+                                                    ? 'bg-blue-600 text-white shadow-md'
+                                                    : 'bg-white/20 text-gray-200 hover:bg-white/30'
+                                            }`}
+                                        >
+                                            Foto {idx + 1}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+
+                            <button 
+                                className="absolute -top-3 -right-3 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+                                onClick={() => setPreviewImage(null)}
+                            >
+                                &times;
+                            </button>
+                        </div>
                     </div>
-                </div>
-            )}
+                );
+            })()}
         </div>
     );
 }

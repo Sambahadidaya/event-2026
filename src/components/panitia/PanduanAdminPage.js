@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { Menu, X, BookOpen, ChevronRight, History, Calendar, Sparkles } from 'lucide-react';
+import { Menu, X, BookOpen, ChevronRight, History, Calendar, Sparkles, Video, Play, Loader2 } from 'lucide-react';
 
 export default function PanduanAdminPage({ site, data }) {
     const [activeSection, setActiveSection] = useState(data.sections[0]?.id || '');
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [activeVideoSectionId, setActiveVideoSectionId] = useState(null);
+    const [loadingIframeId, setLoadingIframeId] = useState(null);
     const observer = useRef(null);
 
     const scrollToSection = (id) => {
@@ -107,7 +109,7 @@ export default function PanduanAdminPage({ site, data }) {
                         Pusat Dokumentasi & Operational Guide Panitia
                     </h1>
                     <p className="text-slate-600 dark:text-slate-400 mt-2 text-xs md:text-sm leading-relaxed">
-                        Panduan teknis pengoperasian panel admin, pembagian tugas divisi panitia, serta catatan pembaruan sistem terkini.
+                        Panduan teknis pengoperasian panel admin, pembagian tugas divisi panitia, video tutorial interaktif, serta catatan pembaruan sistem terkini.
                     </p>
                 </div>
             </div>
@@ -116,7 +118,7 @@ export default function PanduanAdminPage({ site, data }) {
             <div className="md:hidden flex justify-between items-center p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
                 <button
                     onClick={() => setSidebarOpen(true)}
-                    className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white transition-colors"
+                    className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white transition-colors cursor-pointer"
                 >
                     <Menu size={16} />
                     <span>Daftar Isi Panduan</span>
@@ -143,7 +145,7 @@ export default function PanduanAdminPage({ site, data }) {
                                     <div key={section.id} className="space-y-1">
                                         <button
                                             onClick={() => scrollToSection(section.id)}
-                                            className={`w-full flex items-center justify-between text-left px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${isParentActive
+                                            className={`w-full flex items-center justify-between text-left px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${isParentActive
                                                 ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md'
                                                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-200'
                                                 }`}
@@ -158,7 +160,7 @@ export default function PanduanAdminPage({ site, data }) {
                                                     <li key={sub.id}>
                                                         <button
                                                             onClick={() => scrollToSection(sub.id)}
-                                                            className={`w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all truncate block ${activeSection === sub.id
+                                                            className={`w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all truncate block cursor-pointer ${activeSection === sub.id
                                                                 ? 'text-blue-600 dark:text-cyan-400 bg-blue-50/60 dark:bg-cyan-950/30 font-bold'
                                                                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                                                                 }`}
@@ -178,7 +180,7 @@ export default function PanduanAdminPage({ site, data }) {
                                 <div className="pt-2 mt-2 border-t border-slate-200 dark:border-slate-800 space-y-1">
                                     <button
                                         onClick={() => scrollToSection('update-versi')}
-                                        className={`w-full flex items-center justify-between text-left px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${activeSection === 'update-versi' || activeSection.startsWith('update-')
+                                        className={`w-full flex items-center justify-between text-left px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeSection === 'update-versi' || activeSection.startsWith('update-')
                                             ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md'
                                             : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-200'
                                             }`}
@@ -200,7 +202,7 @@ export default function PanduanAdminPage({ site, data }) {
                                                 <li key={u.versi}>
                                                     <button
                                                         onClick={() => scrollToSection(versionId)}
-                                                        className={`w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all truncate block ${activeSection === versionId
+                                                        className={`w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all truncate block cursor-pointer ${activeSection === versionId
                                                             ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50/60 dark:bg-emerald-950/30'
                                                             : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                                                             }`}
@@ -227,7 +229,7 @@ export default function PanduanAdminPage({ site, data }) {
                                     <h2 className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
                                         Menu Panduan Admin
                                     </h2>
-                                    <button onClick={() => setSidebarOpen(false)} className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400">
+                                    <button onClick={() => setSidebarOpen(false)} className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-pointer">
                                         <X size={18} />
                                     </button>
                                 </div>
@@ -238,7 +240,7 @@ export default function PanduanAdminPage({ site, data }) {
                                             <div key={section.id} className="space-y-1">
                                                 <button
                                                     onClick={() => scrollToSection(section.id)}
-                                                    className={`w-full flex items-center justify-between text-left px-3 py-2 rounded-xl text-xs font-bold transition-all ${isParentActive
+                                                    className={`w-full flex items-center justify-between text-left px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${isParentActive
                                                         ? 'bg-blue-600 text-white'
                                                         : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                                                         }`}
@@ -252,7 +254,7 @@ export default function PanduanAdminPage({ site, data }) {
                                                             <li key={sub.id}>
                                                                 <button
                                                                     onClick={() => scrollToSection(sub.id)}
-                                                                    className={`w-full text-left px-2.5 py-1 rounded-lg text-[11px] block ${activeSection === sub.id
+                                                                    className={`w-full text-left px-2.5 py-1 rounded-lg text-[11px] block cursor-pointer ${activeSection === sub.id
                                                                         ? 'text-blue-600 dark:text-cyan-400 bg-blue-50 dark:bg-cyan-950/40 font-bold'
                                                                         : 'text-slate-500 dark:text-slate-400'
                                                                         }`}
@@ -271,7 +273,7 @@ export default function PanduanAdminPage({ site, data }) {
                                         <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-1">
                                             <button
                                                 onClick={() => scrollToSection('update-versi')}
-                                                className={`w-full flex items-center justify-between text-left px-3 py-2 rounded-xl text-xs font-bold transition-all ${activeSection === 'update-versi' || activeSection.startsWith('update-')
+                                                className={`w-full flex items-center justify-between text-left px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeSection === 'update-versi' || activeSection.startsWith('update-')
                                                     ? 'bg-emerald-600 text-white'
                                                     : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                                                     }`}
@@ -292,7 +294,7 @@ export default function PanduanAdminPage({ site, data }) {
                                                         <li key={u.versi}>
                                                             <button
                                                                 onClick={() => scrollToSection(versionId)}
-                                                                className={`w-full text-left px-2.5 py-1 rounded-lg text-[11px] block ${activeSection === versionId
+                                                                className={`w-full text-left px-2.5 py-1 rounded-lg text-[11px] block cursor-pointer ${activeSection === versionId
                                                                     ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 font-bold'
                                                                     : 'text-slate-500 dark:text-slate-400'
                                                                     }`}
@@ -347,12 +349,58 @@ export default function PanduanAdminPage({ site, data }) {
                                 </div>
                             )}
 
+                            {/* Render Video Iframe if exists & not 'kosong' */}
+                            {section.youtubeId && section.youtubeId !== 'kosong' && (
+                                <div className="mt-6 space-y-3">
+                                    <div className="flex items-center justify-between flex-wrap gap-2">
+                                        <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+                                            <Video size={14} />
+                                            Video Tutorial Operasional
+                                        </h4>
+                                    </div>
+                                    <div className="relative aspect-video rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-black group/video">
+                                        {activeVideoSectionId === section.id ? (
+                                            <>
+                                                {loadingIframeId === section.id && (
+                                                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-950/90 z-10 text-white">
+                                                        <Loader2 className={`w-8 h-8 animate-spin ${site === 'pkkmb' ? 'text-blue-500' : 'text-orange-500'}`} />
+                                                        <span className="text-xs font-semibold text-slate-300 animate-pulse">Memuat Video Panduan...</span>
+                                                    </div>
+                                                )}
+                                                <iframe
+                                                    className={`absolute inset-0 w-full h-full transition-opacity duration-300 ${loadingIframeId === section.id ? 'opacity-0' : 'opacity-100'}`}
+                                                    src={`https://www.youtube.com/embed/${section.youtubeId}?autoplay=1`}
+                                                    title={`Video tutorial ${section.title}`}
+                                                    frameBorder="0"
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                                    allowFullScreen
+                                                    onLoad={() => setLoadingIframeId(null)}
+                                                ></iframe>
+                                            </>
+                                        ) : (
+                                            <button
+                                                onClick={() => {
+                                                    setActiveVideoSectionId(section.id);
+                                                    setLoadingIframeId(section.id);
+                                                }}
+                                                className="absolute inset-0 w-full h-full flex items-center justify-center cursor-pointer group-hover/video:scale-105 transition-transform"
+                                            >
+                                                <div className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/20 shadow-2xl">
+                                                    <Play size={20} className="fill-white" />
+                                                    <span className="text-xs font-bold">Putar Video Tutorial</span>
+                                                </div>
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
                             {section.subsections && (
                                 <div className="mt-6 space-y-6 border-t border-slate-100 dark:border-slate-800/80 pt-6">
                                     {section.subsections.map((sub) => (
                                         <div key={sub.id} id={sub.id} className="scroll-mt-24 space-y-2">
                                             <h3 className="text-base md:text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                                                <span className="w-1.5 h-3.5 bg-blue-500 rounded-full shrink-0"></span>
+                                                <span className={`w-1.5 h-3.5 rounded-full shrink-0 ${site === 'pkkmb' ? 'bg-blue-500' : 'bg-orange-500'}`}></span>
                                                 {sub.title}
                                             </h3>
                                             <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-line pl-3.5">

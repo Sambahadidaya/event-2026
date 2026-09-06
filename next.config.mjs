@@ -21,9 +21,10 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdnjs.cloudflare.com",
+              "worker-src 'self' blob: https://unpkg.com https://cdnjs.cloudflare.com",
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: https://*.supabase.co https://*.supabase.in",
+              "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in",
               "connect-src 'self' https://*.supabase.co https://*.supabase.in",
               "font-src 'self' data:",
               "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://*.supabase.co https://*.supabase.in"

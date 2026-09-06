@@ -1128,7 +1128,6 @@ ADD COLUMN maks_anggota INT4 NOT NULL DEFAULT 1,
 ADD COLUMN maks_team INT4 NOT NULL DEFAULT 1,
 ADD COLUMN individu BOOLEAN NOT NULL DEFAULT TRUE;
 
-
 alter table jadwal_pertandingan
 ADD COLUMN urutan INT4 default 0;
 
@@ -1174,6 +1173,45 @@ CREATE POLICY "auth all nilai_lomba" ON nilai_lomba FOR ALL TO authenticated USI
 ALTER TABLE detail_nilai_lomba ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "public read detail_nilai_lomba" ON detail_nilai_lomba FOR SELECT TO public USING (true);
 CREATE POLICY "auth all detail_nilai_lomba" ON detail_nilai_lomba FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+alter table admins
+add column type site_type default 'pkkmb';
+
+UPDATE admins
+SET type = 'pose'
+WHERE role = 'admin_pose';
+
+CREATE TABLE form_absen_panitia (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    site site_type NOT NULL,
+    judul_absen VARCHAR(200),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE data_absen_panitia(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    form_id UUID REFERENCES form_absen_panitia(id) ON DELETE CASCADE,
+    nama_panitia VARCHAR(200) NOT NULL,
+    type_absen VARCHAR(10) NOT NULL CHECK (type_absen IN ('Alpha', 'Sakit','Izin','Hadir')),
+    keterangan_absen VARCHAR(200),
+    create_by VARCHAR(100),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE form_absen_panitia ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth all form_absen_panitia" ON form_absen_panitia FOR ALL TO authenticated USING (true) WITH CHECK (true);
+ALTER TABLE data_absen_panitia ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth all data_absen_panitia" ON data_absen_panitia FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+
+create table total_absen_panitia(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    panitia_id UUID REFERENCES admins(id) ON DELETE CASCADE,
+    data_absen_id UUID REFERENCES data_absen_panitia(id) ON DELETE CASCADE
+);
+
+ALTER TABLE total_absen_panitia ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth all total_absen_panitia" ON total_absen_panitia FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 CREATE TABLE sales_pose(
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -1223,9 +1261,11 @@ CREATE POLICY "auth all kampus_quota" ON public.form_register_kampus_quota FOR A
 ALTER TABLE public.form_register_pricing 
 ADD COLUMN IF NOT EXISTS umum_type VARCHAR(30) DEFAULT 'keduanya';
 
-alter table team
-ADD COLUMN form_register_id UUID NOT NULL REFERENCES form_register(id) ON DELETE CASCADE;
-
+ALTER TABLE team
+ADD COLUMN jenis_kategori VARCHAR(15);
+ALTER TABLE form_register
+ADD COLUMN jenis_kategori VARCHAR(15),
+ADD COLUMN is_public BOOLEAN default true;
 
 CREATE TABLE kelompok (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -1281,4 +1321,243 @@ CREATE TABLE pengembangan (
 ALTER TABLE public.pengembangan ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "public read pengembangan" ON public.pengembangan FOR SELECT TO public USING (true);
 CREATE POLICY "auth all pengembangan" ON public.pengembangan FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+
+CREATE TABLE public.form_wajib_pricing (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    form_id UUID NOT NULL REFERENCES public.form_wajib(id) ON DELETE CASCADE,
+    kelas VARCHAR(50) NOT NULL,
+    nominal INT4 NOT NULL DEFAULT 0,
+    jenis_tahapan VARCHAR (20),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.form_wajib_pricing ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read pricing" ON public.form_wajib_pricing FOR SELECT TO public USING (true);
+CREATE POLICY "auth all pricing" ON public.form_wajib_pricing FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+
+CREATE TABLE public.pembayaran_pkkmb (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    nim_user VARCHAR(50) NOT NULL,
+    jenis_bayar VARCHAR(50) NOT NULL,
+    tahapan VARCHAR(50) NOT NULL,
+    nominal INT4 NOT NULL DEFAULT 0,
+    status_pembayaran VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.pembayaran_pkkmb ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read pricing" ON public.pembayaran_pkkmb FOR SELECT TO public USING (true);
+CREATE POLICY "auth all pricing" ON public.pembayaran_pkkmb FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+INSERT INTO master_account (kode_id, kode_akun, nama_akun, akun_type, site)
+VALUES
+  ('MA015', '1005', 'Piutang','Asset','pkkmb')
+  ON CONFLICT (kode_akun) DO NOTHING;
+
+CREATE TABLE pengembangan (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    kunci BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.pengembangan ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read pengembangan" ON public.pengembangan FOR SELECT TO public USING (true);
+CREATE POLICY "auth all pengembangan" ON public.pengembangan FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.form_pengumpulan 
+ADD COLUMN gambar VARCHAR DEFAULT NULL;
+
+-- Hapus row global lama
+DELETE FROM public.pengembangan;
+
+-- Tambah kolom baru
+ALTER TABLE public.pengembangan 
+    ADD COLUMN site site_type,
+    ADD COLUMN route VARCHAR(255),
+    ADD COLUMN label VARCHAR(255);
+
+-- Tambah unique constraint
+ALTER TABLE public.pengembangan 
+    ADD CONSTRAINT pengembangan_site_route_unique UNIQUE(site, route);
+
+-- Insert per-halaman per-site
+INSERT INTO public.pengembangan (site, route, label, kunci) VALUES
+    ('pkkmb', '/kelompok',  'Kelompok',              false),
+    ('pkkmb', '/jadwal',    'Jadwal',                 false),
+    ('pkkmb', '/materi',    'Materi',                 false),
+    ('pkkmb', '/ketentuan', 'Ketentuan',              false),
+    ('pkkmb', '/panduan',   'Panduan',                false),
+    ('pose',  '/team',      'Team / Pendaftaran',     false),
+    ('pose',  '/jadwal',    'Jadwal Pertandingan',    false),
+    ('pose',  '/nilai',     'Nilai / Penilaian',      false),
+    ('pose',  '/ketentuan', 'Ketentuan',              false);
+
+
+--ngurut dari 0
+SELECT
+    id,
+    kode_id AS kode_lama,
+    'JE' || LPAD(
+        ROW_NUMBER() OVER (
+            ORDER BY journal_date ASC, transaction_id ASC, created_at ASC, id ASC
+        )::text,
+        3,
+        '0'
+    ) AS kode_baru,
+    journal_date,
+    transaction_id,
+    debit,
+    credit
+FROM journal_entry
+ORDER BY
+    journal_date ASC,
+    transaction_id ASC,
+    created_at ASC,
+    id ASC;
+
+
+-- done lah rubah kode_id
+WITH numbered AS (
+    SELECT
+        id,
+        ROW_NUMBER() OVER (
+            ORDER BY journal_date ASC, transaction_id ASC, created_at ASC, id ASC
+        ) AS nomor
+    FROM journal_entry
+)
+UPDATE journal_entry je
+SET kode_id = 'JE' || LPAD(numbered.nomor::text, 3, '0')
+FROM numbered
+WHERE je.id = numbered.id;
+
+--ngurut dari 0
+SELECT
+    id,
+    kode_id AS kode_lama,
+    'TF' || LPAD(
+        ROW_NUMBER() OVER (
+            ORDER BY tanggal_transaksi ASC, created_at ASC, id ASC
+        )::text,
+        3,
+        '0'
+    ) AS kode_baru,
+    tanggal_transaksi,
+    created_at,
+    nama_payer,
+    nominal
+FROM transaction_finance
+ORDER BY tanggal_transaksi ASC, created_at ASC, id ASC;
+
+--done
+WITH numbered AS (
+    SELECT
+        id,
+        ROW_NUMBER() OVER (
+            ORDER BY tanggal_transaksi ASC, created_at ASC, id ASC
+        ) AS nomor
+    FROM transaction_finance
+)
+UPDATE transaction_finance tf
+SET kode_id = 'TF' || LPAD(numbered.nomor::text, 3, '0')
+FROM numbered
+WHERE tf.id = numbered.id;
+
+-- Sequence untuk Transaction Finance (TF)
+CREATE SEQUENCE IF NOT EXISTS tf_kode_seq START WITH 1 INCREMENT BY 1;
+-- Sequence untuk Journal Entry (JE)
+CREATE SEQUENCE IF NOT EXISTS je_kode_seq START WITH 1 INCREMENT BY 1;
+ALTER SEQUENCE tf_kode_seq RESTART WITH 74;
+ALTER SEQUENCE je_kode_seq RESTART WITH 133;
+
+CREATE OR REPLACE FUNCTION get_next_kode(seq_name TEXT)
+RETURNS BIGINT
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN nextval(seq_name);
+END;
+$$;
+
+CREATE TABLE public.juara_lomba (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    team_id UUID NOT NULL REFERENCES public.team(id) ON DELETE CASCADE,
+    nama_lomba VARCHAR NOT NULL,
+    jenis_lomba VARCHAR NOT NULL,
+    peringkat INTEGER NOT NULL CHECK (peringkat BETWEEN 1 AND 3),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT juara_lomba_unique_lomba_peringkat UNIQUE (nama_lomba, peringkat)
+);
+
+ALTER TABLE public.juara_lomba ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Enable read for public on juara_lomba"
+    ON public.juara_lomba FOR SELECT TO public USING (true);
+
+CREATE POLICY "Enable all for authenticated on juara_lomba"
+    ON public.juara_lomba FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+
+
+create table log_sertifikat_pose (
+  id UUID primary key DEFAULT uuid_generate_v4(),
+  team_id UUID REFERENCES public.team(id) ON DELETE CASCADE,
+  no_sert int4,
+  kode_sert VARCHAR(10),
+  jenis_sert VARCHAR(50),
+  keterangan_sert VARCHAR(50),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE public.log_sertifikat_pose ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth all log_sertifikat_pose" ON log_sertifikat_pose FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Sequence untuk SERT Partisipasi
+CREATE SEQUENCE IF NOT EXISTS sert_pts_no_seq START WITH 1 INCREMENT BY 1;
+ALTER SEQUENCE sert_pts_no_seq RESTART WITH 1;
+-- Sequence untuk SERT Juara
+CREATE SEQUENCE IF NOT EXISTS sert_jur_no_seq START WITH 1 INCREMENT BY 1;
+ALTER SEQUENCE sert_jur_no_seq RESTART WITH 1;
+-- Sequence untuk SERT 
+CREATE SEQUENCE IF NOT EXISTS sert_pst_no_seq START WITH 1 INCREMENT BY 1;
+ALTER SEQUENCE sert_pst_no_seq RESTART WITH 1;
+
+-- RPC Function untuk memanggil nextval dari client
+CREATE OR REPLACE FUNCTION nextval_sert(seq_name TEXT)
+RETURNS BIGINT AS $$
+BEGIN
+  RETURN nextval(seq_name);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
+alter table materi_pkkmb add column tutup boolean default false;
+
+CREATE OR REPLACE FUNCTION get_server_time()
+RETURNS TIMESTAMPTZ AS $$
+  SELECT NOW();
+$$ LANGUAGE SQL STABLE;
+
+alter table admins add column nim varchar(20);
+alter table admins add column wa varchar(20);
+
+create table data_medis_pkkmb_panitia (
+  id UUID primary key DEFAULT uuid_generate_v4(),
+  panitia_id UUID REFERENCES public.admins(id) ON DELETE CASCADE,
+  divisi VARCHAR(50),
+  riwayat_penyakit VARCHAR(255),
+  penanganan VARCHAR(255),
+  alergi VARCHAR(255),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE public.data_medis_pkkmb_panitia ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth all data_medis_pkkmb_panitia" ON data_medis_pkkmb_panitia FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+create table jadwal_acara_pkkmb(
+  id UUID primary key default uuid_generate_v4(),
+  judul varchar(255),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.jadwal_acara_pkkmb ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth all jadwal_acara_pkkmb" ON jadwal_acara_pkkmb FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
 ```

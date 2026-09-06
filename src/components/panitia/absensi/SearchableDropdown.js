@@ -69,11 +69,14 @@ export default function SearchableDropdown({
                                 <li key={opt.value}>
                                     <button
                                         type="button"
-                                        onClick={() => handleSelect(opt.value)}
-                                        className={`w-full text-left px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${
-                                            opt.value === value
-                                                ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-medium'
-                                                : 'text-slate-700 dark:text-slate-300'
+                                        disabled={opt.disabled}
+                                        onClick={() => !opt.disabled && handleSelect(opt.value)}
+                                        className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                                            opt.disabled
+                                                ? 'opacity-40 cursor-not-allowed text-slate-400 dark:text-slate-600'
+                                                : opt.value === value
+                                                ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-medium hover:bg-blue-100 dark:hover:bg-blue-900/50'
+                                                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                                         }`}
                                     >
                                         {opt.label}

@@ -4,14 +4,26 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import {
     Users, Search, ChevronDown, ChevronRight, Plus, Trash2, Edit, ExternalLink, RefreshCw,
     X, Check, CheckCircle2, UploadCloud, ImageIcon, Crown, Hash, Sparkles, Layers,
-    Link, UserCheck, UserPlus, UserX, AlertCircle, ArrowRight, ArrowLeft, Info
+    Link, UserCheck, UserPlus, UserX, AlertCircle, ArrowRight, ArrowLeft, Info,
+    Activity, AlertTriangle, Heart, Phone, Eye, GraduationCap, QrCode
 } from 'lucide-react';
-import { getKelompokAdmin, getKelompokByUrutan, getPesertaPkkmbWajib, createKelompok, updateKelompok, deleteKelompok } from '@/api/supabase/admin/kelompok';
+import {
+    getKelompokAdmin,
+    getKelompokByUrutan,
+    getKelompokByUrutanArray,
+    getPesertaPkkmbWajib,
+    createKelompok,
+    updateKelompok,
+    deleteKelompok
+} from '@/api/supabase/admin/kelompok';
+import { getDataMedisByNims } from '@/api/supabase/admin/medis';
 import { getCurrentAdmin } from '@/api/supabase/admin/auth';
 import { getKabimFilter } from '@/lib/adminRoleData';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
 import TablePagination from '@/components/panitia/TablePagination';
 import { uploadFile } from '@/api/supabase/storage';
+import { downloadPesertaQRCard } from '@/lib/qr/pesertaQrCard';
+
 
 const ITEMS_PER_PAGE = 8;
 
@@ -24,11 +36,19 @@ export default function AdminKelompokManager() {
 
     // Auth & Role-based flags
     const [adminRole, setAdminRole] = useState(null);
-    const [lockedKabimUrutan, setLockedKabimUrutan] = useState(null); // Nilai 1-8 jika role adalah pj_kabim
+    const [lockedKabimUrutan, setLockedKabimUrutan] = useState(null); // Array nomor urutan kelompok jika role adalah pj_kabim (e.g. [1] atau [1, 7])
     const [canModify, setCanModify] = useState(false); // Hanya super_admin & admin_pkkmb
 
     // Detail members (Expand state)
     const [expandedKelompokId, setExpandedKelompokId] = useState(null);
+
+    // Modal Detail Spesifik Anggota
+    const [detailMemberModal, setDetailMemberModal] = useState(null);
+
+    // Data Medis & Kontak Ortu Anggota (Lazy Loaded per NIM)
+    const [medisDataMap, setMedisDataMap] = useState({});
+    const [loadingMedis, setLoadingMedis] = useState(false);
+    const [generatingQrId, setGeneratingQrId] = useState(null);
 
     // Modal Tambah/Edit Kelompok
     const [modalOpen, setModalOpen] = useState(false);
@@ -72,13 +92,19 @@ export default function AdminKelompokManager() {
 
         // 1. Ambil data kelompok sesuai role
         let data = [];
-        if (lockedKabimUrutan !== null) {
-            // Ambil data satu kelompok saja sesuai urutan kabim
-            const singelKelompok = await getKelompokByUrutan(lockedKabimUrutan);
-            data = singelKelompok ? [singelKelompok] : [];
-            // Untuk PJ Kabim, detail members langsung tampil secara default
-            if (singelKelompok) {
-                setExpandedKelompokId(singelKelompok.id);
+        if (lockedKabimUrutan !== null && lockedKabimUrutan.length > 0) {
+            if (lockedKabimUrutan.length === 1) {
+                // Ambil 1 kelompok (PJ Kabim single kelompok)
+                const singleKelompok = await getKelompokByUrutan(lockedKabimUrutan[0]);
+                data = singleKelompok ? [singleKelompok] : [];
+                // Untuk PJ Kabim yang pegang 1 kelompok, otomatis auto-expand
+                if (singleKelompok) {
+                    setExpandedKelompokId(singleKelompok.id);
+                }
+            } else {
+                // Multi kelompok: ambil semua kelompok yang dipegang
+                data = await getKelompokByUrutanArray(lockedKabimUrutan);
+                // Kabim double/multi kelompok tidak auto-expand (harus klik dulu seperti admin_pkkmb/super_admin)
             }
         } else {
             // super_admin / admin_pkkmb
@@ -101,6 +127,41 @@ export default function AdminKelompokManager() {
         fetchData();
     }, [fetchData]);
 
+    // Lazy load data medis ketika ada row kelompok yang di-expand
+    useEffect(() => {
+        if (!expandedKelompokId) return;
+
+        const currentKelompok = kelompokList.find(k => k.id === expandedKelompokId);
+        if (!currentKelompok || !currentKelompok.kelompok_members || currentKelompok.kelompok_members.length === 0) {
+            return;
+        }
+
+        const nims = currentKelompok.kelompok_members
+            .map(m => m.nim_anggota)
+            .filter(Boolean);
+
+        const missingNims = nims.filter(nim => !medisDataMap[nim]);
+        if (missingNims.length === 0) return;
+
+        let isMounted = true;
+        setLoadingMedis(true);
+        getDataMedisByNims(missingNims).then(res => {
+            if (isMounted) {
+                if (res && Object.keys(res).length > 0) {
+                    setMedisDataMap(prev => ({ ...prev, ...res }));
+                }
+                setLoadingMedis(false);
+            }
+        }).catch(err => {
+            console.error('Error fetching data medis by NIMs:', err);
+            if (isMounted) setLoadingMedis(false);
+        });
+
+        return () => {
+            isMounted = false;
+        };
+    }, [expandedKelompokId, kelompokList, medisDataMap]);
+
     const filteredData = useMemo(() => {
         const query = searchQuery.toLowerCase().trim();
         if (!query) return kelompokList;
@@ -115,7 +176,8 @@ export default function AdminKelompokManager() {
     const paginatedData = filteredData.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
     const handleRowClick = (kelompokId) => {
-        if (lockedKabimUrutan !== null) return;
+        // Hanya kunci row jika PJ Kabim memegang tepat 1 kelompok (sudah auto-expand tetap)
+        if (lockedKabimUrutan !== null && lockedKabimUrutan.length === 1) return;
         setExpandedKelompokId(prev => prev === kelompokId ? null : kelompokId);
     };
 
@@ -166,6 +228,27 @@ export default function AdminKelompokManager() {
             if (expandedKelompokId === id) setExpandedKelompokId(null);
         } else {
             alert(res.error || 'Gagal menghapus kelompok.');
+        }
+    };
+
+    const handleDownloadMemberQR = async (e, member, currentKelompok) => {
+        e.stopPropagation();
+        if (!member || !member.id) {
+            alert('ID Anggota tidak valid untuk cetak QR.');
+            return;
+        }
+        try {
+            setGeneratingQrId(member.id);
+            await downloadPesertaQRCard({
+                memberId: member.id,
+                namaAnggota: member.nama_anggota,
+                namaKelompok: currentKelompok?.nama_kelompok || ''
+            });
+        } catch (err) {
+            console.error('Error generating QR:', err);
+            alert(err.message || 'Gagal membuat kartu QR.');
+        } finally {
+            setGeneratingQrId(null);
         }
     };
 
@@ -298,7 +381,13 @@ export default function AdminKelompokManager() {
         <div className="space-y-6">
             <DashboardHeaderFilters
                 title="Manajemen Kelompok PKKMB"
-                subtitle={lockedKabimUrutan !== null ? `Data kelompok asuhan Kabim Urutan ke-${lockedKabimUrutan}` : 'Kelola data kelompok dan pembagian anggota PKKMB 2026'}
+                subtitle={
+                    lockedKabimUrutan !== null
+                        ? (lockedKabimUrutan.length === 1
+                            ? `Data kelompok asuhan Kabim Urutan ke-${lockedKabimUrutan[0]}`
+                            : `Data kelompok asuhan Kabim (Kelompok ${lockedKabimUrutan.join(' & ')})`)
+                        : 'Kelola data kelompok dan pembagian anggota PKKMB 2026'
+                }
                 icon={Users}
                 showSiteFilter={false}
                 onRefresh={fetchData}
@@ -346,20 +435,21 @@ export default function AdminKelompokManager() {
                             {loading ? (
                                 Array.from({ length: 3 }).map((_, i) => (
                                     <tr key={i} className="animate-pulse">
-                                        <td colSpan={6} className="p-4"><div className="h-8 bg-gray-100 dark:bg-slate-800 rounded-lg w-full"></div></td>
+                                        <td colSpan={canModify ? 6 : 5} className="p-4"><div className="h-8 bg-gray-100 dark:bg-slate-800 rounded-lg w-full"></div></td>
                                     </tr>
                                 ))
                             ) : paginatedData.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="p-8 text-center text-gray-500 dark:text-gray-400">Tidak ada data kelompok.</td>
+                                    <td colSpan={canModify ? 6 : 5} className="p-8 text-center text-gray-500 dark:text-gray-400">Tidak ada data kelompok.</td>
                                 </tr>
                             ) : paginatedData.map((k) => {
                                 const isExpanded = expandedKelompokId === k.id;
+                                const isRowClickable = lockedKabimUrutan === null || lockedKabimUrutan.length > 1;
                                 return (
                                     <tr
                                         key={k.id}
                                         onClick={() => handleRowClick(k.id)}
-                                        className={`hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer ${isExpanded ? 'bg-blue-50/30 dark:bg-blue-900/15' : ''}`}
+                                        className={`hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors ${isRowClickable ? 'cursor-pointer' : ''} ${isExpanded ? 'bg-blue-50/30 dark:bg-blue-900/15' : ''}`}
                                     >
                                         <td className="p-4 text-center font-bold">
                                             <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 font-extrabold text-blue-600 dark:text-blue-400 text-xs">
@@ -435,7 +525,7 @@ export default function AdminKelompokManager() {
                     </table>
                 </div>
 
-                {lockedKabimUrutan === null && totalPages > 1 && (
+                {totalPages > 1 && (
                     <div className="p-4 border-t border-gray-100 dark:border-slate-800">
                         <TablePagination
                             currentPage={currentPage}
@@ -453,52 +543,144 @@ export default function AdminKelompokManager() {
                         <h3 className="font-extrabold text-base text-gray-900 dark:text-white flex items-center gap-2">
                             <Users size={18} className="text-blue-500" /> Detail Anggota Kelompok
                         </h3>
-                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">
-                            Total: {activeExpandedMembers.length} Orang
-                        </span>
+                        <div className="flex items-center gap-3">
+                            {loadingMedis && (
+                                <span className="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 font-medium animate-pulse">
+                                    <RefreshCw size={12} className="animate-spin" /> Memuat data medis...
+                                </span>
+                            )}
+                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">
+                                Total: {activeExpandedMembers.length} Orang
+                            </span>
+                        </div>
                     </div>
 
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                        <table className="w-full text-left border-collapse text-xs sm:text-sm min-w-[1100px]">
                             <thead>
                                 <tr className="bg-gray-50/70 dark:bg-slate-800/50 text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-slate-800">
-                                    <th className="p-3 w-12 text-center">No</th>
-                                    <th className="p-3">Nama Lengkap</th>
-                                    <th className="p-3">NIM</th>
-                                    <th className="p-3">No. WA</th>
-                                    <th className="p-3">Program Studi</th>
-                                    <th className="p-3">Angkatan</th>
-                                    <th className="p-3">Kelas</th>
+                                    <th className="px-4 py-3.5 w-12 text-center whitespace-nowrap">No</th>
+                                    <th className="px-4 py-3.5 whitespace-nowrap">Nama Lengkap</th>
+                                    <th className="px-4 py-3.5 whitespace-nowrap">NIM</th>
+                                    <th className="px-4 py-3.5 whitespace-nowrap">No. WA</th>
+                                    <th className="px-4 py-3.5 whitespace-nowrap">Program Studi</th>
+                                    <th className="px-4 py-3.5 whitespace-nowrap">Angkatan</th>
+                                    <th className="px-4 py-3.5 whitespace-nowrap">Kelas</th>
+                                    <th className="px-4 py-3.5 whitespace-nowrap">Riwayat Penyakit</th>
+                                    <th className="px-4 py-3.5 whitespace-nowrap">Penanganan</th>
+                                    <th className="px-4 py-3.5 whitespace-nowrap">Alergi</th>
+                                    <th className="px-4 py-3.5 whitespace-nowrap">Kontak Wali / Ortu</th>
+                                    <th className="px-4 py-3.5 text-center whitespace-nowrap">Cetak QR</th>
+                                    <th className="px-4 py-3.5 text-center w-24 whitespace-nowrap">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
                                 {activeExpandedMembers.length === 0 ? (
                                     <tr>
-                                        <td colSpan={7} className="p-6 text-center text-gray-400 italic">Belum ada anggota yang terdaftar di kelompok ini.</td>
+                                        <td colSpan={13} className="p-8 text-center text-gray-400 italic">Belum ada anggota yang terdaftar di kelompok ini.</td>
                                     </tr>
                                 ) : (
-                                    activeExpandedMembers.map((m, idx) => (
-                                        <tr key={m.id || idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20">
-                                            <td className="p-3 text-center text-gray-500 font-medium">{idx + 1}</td>
-                                            <td className="p-3 font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                                <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 text-[10px] font-extrabold flex items-center justify-center shrink-0">
-                                                    {getInitials(m.nama_anggota)}
-                                                </div>
-                                                {m.nama_anggota}
-                                            </td>
-                                            <td className="p-3 text-gray-700 dark:text-gray-300 font-mono text-xs">{m.nim_anggota}</td>
-                                            <td className="p-3 text-gray-700 dark:text-gray-300">{m.no_wa || '-'}</td>
-                                            <td className="p-3 text-gray-700 dark:text-gray-300">{m.prodi || '-'}</td>
-                                            <td className="p-3 text-gray-700 dark:text-gray-300">{m.angkatan || '-'}</td>
-                                            <td className="p-3 text-gray-700 dark:text-gray-300">
-                                                {m.kelas ? (
-                                                    <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold">
-                                                        {m.kelas}
-                                                    </span>
-                                                ) : '-'}
-                                            </td>
-                                        </tr>
-                                    ))
+                                    activeExpandedMembers.map((m, idx) => {
+                                        const currentKelompok = kelompokList.find(k => k.id === expandedKelompokId);
+                                        const medisInfo = medisDataMap[m.nim_anggota] || {};
+                                        const hasMedis = (medisInfo.riwayat_penyakit && medisInfo.riwayat_penyakit !== '-') ||
+                                                         (medisInfo.alergi && medisInfo.alergi !== '-');
+                                        const isLoadingMemberMedis = loadingMedis && !medisDataMap[m.nim_anggota];
+
+                                        return (
+                                            <tr
+                                                key={m.id || idx}
+                                                className={`hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors ${hasMedis ? 'bg-red-50/15 dark:bg-red-950/10' : ''}`}
+                                            >
+                                                <td className="px-4 py-3.5 text-center text-gray-500 font-medium">{idx + 1}</td>
+                                                <td className="px-4 py-3.5 font-bold text-gray-900 dark:text-white">
+                                                    <div className="flex items-center gap-2.5 whitespace-nowrap">
+                                                        <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 text-[10px] font-extrabold flex items-center justify-center shrink-0">
+                                                            {getInitials(m.nama_anggota)}
+                                                        </div>
+                                                        <span>{m.nama_anggota}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3.5 text-gray-700 dark:text-gray-300 font-mono text-xs whitespace-nowrap">{m.nim_anggota}</td>
+                                                <td className="px-4 py-3.5 text-gray-700 dark:text-gray-300 whitespace-nowrap">{m.no_wa || '-'}</td>
+                                                <td className="px-4 py-3.5 text-gray-700 dark:text-gray-300 whitespace-nowrap">{m.prodi || '-'}</td>
+                                                <td className="px-4 py-3.5 text-gray-700 dark:text-gray-300 whitespace-nowrap">{m.angkatan || '-'}</td>
+                                                <td className="px-4 py-3.5 text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                                                    {m.kelas ? (
+                                                        <span className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold">
+                                                            {m.kelas}
+                                                        </span>
+                                                    ) : '-'}
+                                                </td>
+                                                <td className="px-4 py-3.5 whitespace-nowrap">
+                                                    {isLoadingMemberMedis ? (
+                                                        <div className="h-4 w-16 bg-slate-100 dark:bg-slate-800 rounded animate-pulse"></div>
+                                                    ) : (
+                                                        <span className={`px-2.5 py-1 rounded text-xs font-semibold ${medisInfo.riwayat_penyakit && medisInfo.riwayat_penyakit !== '-' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'text-gray-400'}`}>
+                                                            {medisInfo.riwayat_penyakit || '-'}
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3.5 text-xs text-gray-600 dark:text-gray-400 max-w-[160px] truncate" title={medisInfo.penanganan || '-'}>
+                                                    {isLoadingMemberMedis ? (
+                                                        <div className="h-4 w-20 bg-slate-100 dark:bg-slate-800 rounded animate-pulse"></div>
+                                                    ) : (
+                                                        medisInfo.penanganan || '-'
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3.5 whitespace-nowrap">
+                                                    {isLoadingMemberMedis ? (
+                                                        <div className="h-4 w-16 bg-slate-100 dark:bg-slate-800 rounded animate-pulse"></div>
+                                                    ) : (
+                                                        <span className={`px-2.5 py-1 rounded text-xs font-semibold ${medisInfo.alergi && medisInfo.alergi !== '-' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' : 'text-gray-400'}`}>
+                                                            {medisInfo.alergi || '-'}
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3.5 text-xs whitespace-nowrap">
+                                                    {isLoadingMemberMedis ? (
+                                                        <div className="h-4 w-24 bg-slate-100 dark:bg-slate-800 rounded animate-pulse"></div>
+                                                    ) : (
+                                                        <div>
+                                                            <div className="font-semibold text-gray-800 dark:text-gray-200">{medisInfo.nama_ortu_wali || '-'}</div>
+                                                            <div className="text-[10px] text-gray-400 font-mono">{medisInfo.no_wa_ortu_wali || '-'}</div>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3.5 text-center whitespace-nowrap">
+                                                    <button
+                                                        type="button"
+                                                        disabled={generatingQrId === m.id}
+                                                        onClick={(e) => handleDownloadMemberQR(e, m, currentKelompok)}
+                                                        className="px-2.5 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/50 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-600 dark:text-purple-400 text-xs font-bold inline-flex items-center gap-1.5 transition-all shadow-xs hover:scale-105 active:scale-95 cursor-pointer border border-purple-200/50 dark:border-purple-800/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        title="Cetak Kartu QR Anggota"
+                                                    >
+                                                        {generatingQrId === m.id ? (
+                                                            <RefreshCw size={13} className="animate-spin text-purple-600 dark:text-purple-400" />
+                                                        ) : (
+                                                            <QrCode size={13} />
+                                                        )}
+                                                        <span>Cetak QR</span>
+                                                    </button>
+                                                </td>
+                                                <td className="px-4 py-3.5 text-center whitespace-nowrap">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setDetailMemberModal({
+                                                            ...m,
+                                                            medis: medisInfo,
+                                                            kelompok: currentKelompok
+                                                        })}
+                                                        className="px-2.5 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-400 text-xs font-bold inline-flex items-center gap-1.5 transition-all shadow-xs hover:scale-105 active:scale-95 cursor-pointer border border-blue-200/50 dark:border-blue-800/50"
+                                                        title="Lihat Detail Lengkap Anggota"
+                                                    >
+                                                        <Eye size={14} />
+                                                        <span>Lihat</span>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 )}
                             </tbody>
                         </table>
@@ -1004,6 +1186,168 @@ export default function AdminKelompokManager() {
                                     )}
                                 </button>
                             </div>
+                        </div>
+
+                    </div>
+                </div>
+            )}
+
+            {/* ============================================================ */}
+            {/* 🩺 MODAL DETAIL LENGKAP ANGGOTA & DATA MEDIS 🩺 */}
+            {/* ============================================================ */}
+            {detailMemberModal && (
+                <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+
+                        {/* Header Modal */}
+                        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-blue-50/50 via-white to-indigo-50/30 dark:from-slate-900 dark:via-slate-900 dark:to-blue-950/20 flex items-center justify-between">
+                            <div className="flex items-center gap-3.5">
+                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-extrabold text-base flex items-center justify-center shadow-md shadow-blue-500/20 shrink-0">
+                                    {getInitials(detailMemberModal.nama_anggota)}
+                                </div>
+                                <div>
+                                    <h3 className="font-extrabold text-lg sm:text-xl text-slate-900 dark:text-white leading-tight">
+                                        {detailMemberModal.nama_anggota}
+                                    </h3>
+                                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                                        <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2.5 py-0.5 rounded-lg border border-blue-200/50 dark:border-blue-900/40">
+                                            NIM: {detailMemberModal.nim_anggota}
+                                        </span>
+                                        {detailMemberModal.kelompok && (
+                                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-lg">
+                                                {detailMemberModal.kelompok.nama_kelompok} (PJ: {detailMemberModal.kelompok.nama_kabim})
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setDetailMemberModal(null)}
+                                className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                                title="Tutup Modal"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Body Modal */}
+                        <div className="p-6 space-y-5 overflow-y-auto max-h-[calc(92vh-140px)]">
+
+                            {/* Section 1: Informasi Akademik & Kontak */}
+                            <div className="bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 rounded-2xl p-4.5">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
+                                    <GraduationCap size={15} className="text-blue-500" /> Data Akademik & Kontak Mahasiswa
+                                </h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs sm:text-sm">
+                                    <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
+                                        <span className="text-[11px] text-slate-400 block font-medium mb-0.5">Program Studi</span>
+                                        <span className="font-bold text-slate-800 dark:text-slate-100">{detailMemberModal.prodi || '-'}</span>
+                                    </div>
+                                    <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
+                                        <span className="text-[11px] text-slate-400 block font-medium mb-0.5">Kelas & Angkatan</span>
+                                        <span className="font-bold text-slate-800 dark:text-slate-100">
+                                            {detailMemberModal.kelas ? `Kelas ${detailMemberModal.kelas}` : '-'} • Angkatan {detailMemberModal.angkatan || '-'}
+                                        </span>
+                                    </div>
+                                    <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 sm:col-span-2 flex items-center justify-between">
+                                        <div>
+                                            <span className="text-[11px] text-slate-400 block font-medium mb-0.5">No. WhatsApp Peserta</span>
+                                            <span className="font-bold font-mono text-slate-800 dark:text-slate-100">{detailMemberModal.no_wa || '-'}</span>
+                                        </div>
+                                        {detailMemberModal.no_wa && detailMemberModal.no_wa !== '-' && (
+                                            <a
+                                                href={`https://wa.me/${detailMemberModal.no_wa.replace(/\D/g, '').replace(/^0/, '62')}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 font-bold text-xs border border-emerald-200/60 dark:border-emerald-800/60 transition-all cursor-pointer"
+                                            >
+                                                <Phone size={13} /> Chat WA
+                                            </a>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Section 2: Data Medis & Kesehatan */}
+                            <div className="bg-red-50/20 dark:bg-red-950/10 border border-red-100/70 dark:border-red-900/30 rounded-2xl p-4.5">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-rose-500 mb-3 flex items-center gap-2">
+                                    <Activity size={15} className="text-rose-500" /> Informasi Medis & Kesehatan
+                                </h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs sm:text-sm">
+                                    <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
+                                        <span className="text-[11px] text-slate-400 block font-medium mb-1">Riwayat Penyakit</span>
+                                        {detailMemberModal.medis?.riwayat_penyakit && detailMemberModal.medis?.riwayat_penyakit !== '-' ? (
+                                            <span className="inline-block px-2.5 py-1 rounded-lg bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-400 font-bold text-xs border border-red-200 dark:border-red-900/50">
+                                                {detailMemberModal.medis.riwayat_penyakit}
+                                            </span>
+                                        ) : (
+                                            <span className="text-slate-400 font-medium italic">Tidak ada catatan penyakit</span>
+                                        )}
+                                    </div>
+                                    <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
+                                        <span className="text-[11px] text-slate-400 block font-medium mb-1">Alergi</span>
+                                        {detailMemberModal.medis?.alergi && detailMemberModal.medis?.alergi !== '-' ? (
+                                            <span className="inline-block px-2.5 py-1 rounded-lg bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-400 font-bold text-xs border border-orange-200 dark:border-orange-900/50">
+                                                {detailMemberModal.medis.alergi}
+                                            </span>
+                                        ) : (
+                                            <span className="text-slate-400 font-medium italic">Tidak ada riwayat alergi</span>
+                                        )}
+                                    </div>
+                                    <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 sm:col-span-2">
+                                        <span className="text-[11px] text-slate-400 block font-medium mb-1">Penanganan Khusus</span>
+                                        <p className="text-slate-700 dark:text-slate-300 font-medium leading-relaxed">
+                                            {detailMemberModal.medis?.penanganan && detailMemberModal.medis?.penanganan !== '-' ? detailMemberModal.medis.penanganan : '-'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Section 3: Kontak Orang Tua / Wali */}
+                            <div className="bg-amber-50/20 dark:bg-amber-950/10 border border-amber-100/70 dark:border-amber-900/30 rounded-2xl p-4.5">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-3 flex items-center gap-2">
+                                    <UserCheck size={15} className="text-amber-500" /> Kontak Orang Tua / Wali
+                                </h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs sm:text-sm">
+                                    <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
+                                        <span className="text-[11px] text-slate-400 block font-medium mb-0.5">Nama Orang Tua / Wali</span>
+                                        <span className="font-bold text-slate-800 dark:text-slate-100">
+                                            {detailMemberModal.medis?.nama_ortu_wali || '-'}
+                                        </span>
+                                    </div>
+                                    <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                                        <div>
+                                            <span className="text-[11px] text-slate-400 block font-medium mb-0.5">No. WA Orang Tua / Wali</span>
+                                            <span className="font-bold font-mono text-slate-800 dark:text-slate-100">
+                                                {detailMemberModal.medis?.no_wa_ortu_wali || '-'}
+                                            </span>
+                                        </div>
+                                        {detailMemberModal.medis?.no_wa_ortu_wali && detailMemberModal.medis?.no_wa_ortu_wali !== '-' && (
+                                            <a
+                                                href={`https://wa.me/${detailMemberModal.medis.no_wa_ortu_wali.replace(/\D/g, '').replace(/^0/, '62')}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 font-bold text-xs border border-emerald-200/60 dark:border-emerald-800/60 transition-all cursor-pointer"
+                                            >
+                                                <Phone size={13} /> Chat Ortu
+                                            </a>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        {/* Footer Modal */}
+                        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/80 flex items-center justify-end">
+                            <button
+                                type="button"
+                                onClick={() => setDetailMemberModal(null)}
+                                className="px-6 py-2.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer"
+                            >
+                                Tutup
+                            </button>
                         </div>
 
                     </div>

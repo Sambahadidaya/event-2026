@@ -905,6 +905,212 @@ VALUES
   ('MA015', '1005', 'Piutang','Asset','pkkmb')
   ON CONFLICT (kode_akun) DO NOTHING;
 
+CREATE TABLE pengembangan (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    kunci BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.pengembangan ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read pengembangan" ON public.pengembangan FOR SELECT TO public USING (true);
+CREATE POLICY "auth all pengembangan" ON public.pengembangan FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.form_pengumpulan 
+ADD COLUMN gambar VARCHAR DEFAULT NULL;
+
+-- Hapus row global lama
+DELETE FROM public.pengembangan;
+
+-- Tambah kolom baru
+ALTER TABLE public.pengembangan 
+    ADD COLUMN site site_type,
+    ADD COLUMN route VARCHAR(255),
+    ADD COLUMN label VARCHAR(255);
+
+-- Tambah unique constraint
+ALTER TABLE public.pengembangan 
+    ADD CONSTRAINT pengembangan_site_route_unique UNIQUE(site, route);
+
+-- Insert per-halaman per-site
+INSERT INTO public.pengembangan (site, route, label, kunci) VALUES
+    ('pkkmb', '/kelompok',  'Kelompok',              false),
+    ('pkkmb', '/jadwal',    'Jadwal',                 false),
+    ('pkkmb', '/materi',    'Materi',                 false),
+    ('pkkmb', '/ketentuan', 'Ketentuan',              false),
+    ('pkkmb', '/panduan',   'Panduan',                false),
+    ('pose',  '/team',      'Team / Pendaftaran',     false),
+    ('pose',  '/jadwal',    'Jadwal Pertandingan',    false),
+    ('pose',  '/nilai',     'Nilai / Penilaian',      false),
+    ('pose',  '/ketentuan', 'Ketentuan',              false);
+
+
+--ngurut dari 0
+SELECT
+    id,
+    kode_id AS kode_lama,
+    'JE' || LPAD(
+        ROW_NUMBER() OVER (
+            ORDER BY journal_date ASC, transaction_id ASC, created_at ASC, id ASC
+        )::text,
+        3,
+        '0'
+    ) AS kode_baru,
+    journal_date,
+    transaction_id,
+    debit,
+    credit
+FROM journal_entry
+ORDER BY
+    journal_date ASC,
+    transaction_id ASC,
+    created_at ASC,
+    id ASC;
+
+
+-- done lah rubah kode_id
+WITH numbered AS (
+    SELECT
+        id,
+        ROW_NUMBER() OVER (
+            ORDER BY journal_date ASC, transaction_id ASC, created_at ASC, id ASC
+        ) AS nomor
+    FROM journal_entry
+)
+UPDATE journal_entry je
+SET kode_id = 'JE' || LPAD(numbered.nomor::text, 3, '0')
+FROM numbered
+WHERE je.id = numbered.id;
+
+--ngurut dari 0
+SELECT
+    id,
+    kode_id AS kode_lama,
+    'TF' || LPAD(
+        ROW_NUMBER() OVER (
+            ORDER BY tanggal_transaksi ASC, created_at ASC, id ASC
+        )::text,
+        3,
+        '0'
+    ) AS kode_baru,
+    tanggal_transaksi,
+    created_at,
+    nama_payer,
+    nominal
+FROM transaction_finance
+ORDER BY tanggal_transaksi ASC, created_at ASC, id ASC;
+
+--done
+WITH numbered AS (
+    SELECT
+        id,
+        ROW_NUMBER() OVER (
+            ORDER BY tanggal_transaksi ASC, created_at ASC, id ASC
+        ) AS nomor
+    FROM transaction_finance
+)
+UPDATE transaction_finance tf
+SET kode_id = 'TF' || LPAD(numbered.nomor::text, 3, '0')
+FROM numbered
+WHERE tf.id = numbered.id;
+
+-- Sequence untuk Transaction Finance (TF)
+CREATE SEQUENCE IF NOT EXISTS tf_kode_seq START WITH 1 INCREMENT BY 1;
+-- Sequence untuk Journal Entry (JE)
+CREATE SEQUENCE IF NOT EXISTS je_kode_seq START WITH 1 INCREMENT BY 1;
+ALTER SEQUENCE tf_kode_seq RESTART WITH 74;
+ALTER SEQUENCE je_kode_seq RESTART WITH 133;
+
+CREATE OR REPLACE FUNCTION get_next_kode(seq_name TEXT)
+RETURNS BIGINT
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN nextval(seq_name);
+END;
+$$;
+
+CREATE TABLE public.juara_lomba (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    team_id UUID NOT NULL REFERENCES public.team(id) ON DELETE CASCADE,
+    nama_lomba VARCHAR NOT NULL,
+    jenis_lomba VARCHAR NOT NULL,
+    peringkat INTEGER NOT NULL CHECK (peringkat BETWEEN 1 AND 3),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT juara_lomba_unique_lomba_peringkat UNIQUE (nama_lomba, peringkat)
+);
+
+ALTER TABLE public.juara_lomba ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Enable read for public on juara_lomba"
+    ON public.juara_lomba FOR SELECT TO public USING (true);
+
+CREATE POLICY "Enable all for authenticated on juara_lomba"
+    ON public.juara_lomba FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+
+
+create table log_sertifikat_pose (
+  id UUID primary key DEFAULT uuid_generate_v4(),
+  team_id UUID REFERENCES public.team(id) ON DELETE CASCADE,
+  no_sert int4,
+  kode_sert VARCHAR(10),
+  jenis_sert VARCHAR(50),
+  keterangan_sert VARCHAR(50),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE public.log_sertifikat_pose ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth all log_sertifikat_pose" ON log_sertifikat_pose FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Sequence untuk SERT Partisipasi
+CREATE SEQUENCE IF NOT EXISTS sert_pts_no_seq START WITH 1 INCREMENT BY 1;
+ALTER SEQUENCE sert_pts_no_seq RESTART WITH 1;
+-- Sequence untuk SERT Juara
+CREATE SEQUENCE IF NOT EXISTS sert_jur_no_seq START WITH 1 INCREMENT BY 1;
+ALTER SEQUENCE sert_jur_no_seq RESTART WITH 1;
+-- Sequence untuk SERT 
+CREATE SEQUENCE IF NOT EXISTS sert_pst_no_seq START WITH 1 INCREMENT BY 1;
+ALTER SEQUENCE sert_pst_no_seq RESTART WITH 1;
+
+-- RPC Function untuk memanggil nextval dari client
+CREATE OR REPLACE FUNCTION nextval_sert(seq_name TEXT)
+RETURNS BIGINT AS $$
+BEGIN
+  RETURN nextval(seq_name);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
+alter table materi_pkkmb add column tutup boolean default false;
+
+CREATE OR REPLACE FUNCTION get_server_time()
+RETURNS TIMESTAMPTZ AS $$
+  SELECT NOW();
+$$ LANGUAGE SQL STABLE;
+
+alter table admins add column nim varchar(20);
+alter table admins add column wa varchar(20);
+
+create table data_medis_pkkmb_panitia (
+  id UUID primary key DEFAULT uuid_generate_v4(),
+  panitia_id UUID REFERENCES public.admins(id) ON DELETE CASCADE,
+  divisi VARCHAR(50),
+  riwayat_penyakit VARCHAR(255),
+  penanganan VARCHAR(255),
+  alergi VARCHAR(255),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE public.data_medis_pkkmb_panitia ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth all data_medis_pkkmb_panitia" ON data_medis_pkkmb_panitia FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+create table jadwal_acara_pkkmb(
+  id UUID primary key default uuid_generate_v4(),
+  judul varchar(255),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.jadwal_acara_pkkmb ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth all jadwal_acara_pkkmb" ON jadwal_acara_pkkmb FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
 ```
 
 ---
@@ -921,7 +1127,13 @@ VALUES
 │   │   ├── logic/
 │   │   │   ├── homeLandingLogic.js
 │   │   │   ├── ketentuanLogic.js
-│   │   │   └── panduanLogic.js
+│   │   │   ├── panduan_admin.js
+│   │   │   ├── panduanLogic.js
+│   │   │   ├── panduanPdfAction.js
+│   │   │   ├── panitiaAuthLogic.js
+│   │   │   └── updateVersionLogic.js
+│   │   ├── sertifikat/
+│   │   │   └── route.js
 │   │   ├── pdf/
 │   │   │   └── route.js
 │   │   ├── supabase/
@@ -933,6 +1145,7 @@ VALUES
 │   │   │   │   ├── berita.js
 │   │   │   │   ├── finance.js
 │   │   │   │   ├── jadwal.js
+│   │   │   │   ├── juara.js
 │   │   │   │   ├── kelompok.js
 │   │   │   │   ├── materi.js
 │   │   │   │   ├── medis.jsjs
@@ -942,12 +1155,14 @@ VALUES
 │   │   │   │   ├── penilaian.js
 │   │   │   │   ├── peserta.js
 │   │   │   │   ├── sales.jsjs
+│   │   │   │   ├── sertifikat.js
 │   │   │   │   ├── submission.js
 │   │   │   │   └── team.js
 │   │   │   ├── public/
 │   │   │   │   ├── admin.js
 │   │   │   │   ├── berita.js
 │   │   │   │   ├── jadwal.js
+│   │   │   │   ├── juara.js
 │   │   │   │   ├── kelompok.jsjs
 │   │   │   │   ├── materi.js
 │   │   │   │   ├── medis.jsjs
@@ -956,7 +1171,8 @@ VALUES
 │   │   │   │   ├── pengembang.js
 │   │   │   │   ├── penilaian.js
 │   │   │   │   ├── peserta.js
-│   │   │   │   ├── sales.jsjs
+│   │   │   │   ├── register_lanjut.js
+│   │   │   │   ├── sales.js
 │   │   │   │   ├── submission.js
 │   │   │   │   └── team.js
 │   │   │   ├── storage.js
@@ -1027,6 +1243,8 @@ VALUES
 │   │   │   │       └── page.js
 │   │   │   ├── login/
 │   │   │   │   └── page.js
+│   │   │   ├── panduan/
+│   │   │   │   └── page.js
 │   │   │   ├── pj_kabim/
 │   │   │   │   └── kelompok/
 │   │   │   │       └── page.js
@@ -1038,6 +1256,8 @@ VALUES
 │   │   │   │   ├── form_submit/
 │   │   │   │   │   └── page.js 
 │   │   │   │   ├── jadwal_pertandingan/
+│   │   │   │   │   └── page.js 
+│   │   │   │   ├── juara/
 │   │   │   │   │   └── page.js 
 │   │   │   │   ├── penilaian/
 │   │   │   │   │   └── page.js 
@@ -1114,6 +1334,8 @@ VALUES
 │   │       ├── page.js
 │   │       ├── contact/
 │   │       │   └── page.js
+│   │       ├── dashboard/
+│   │       │   └── page.js
 │   │       ├── form/
 │   │       │   └── [lynk_id]
 │   │       │       └── page.js
@@ -1133,8 +1355,17 @@ VALUES
 │   │       ├── pemberitahuan/
 │   │       │   └── page.js
 │   │       ├── register/
-│   │       │   └── [id]
-│   │       │       └── page.js
+│   │       │   ├── [id]
+│   │       │   │   └── page.js
+│   │       │   ├── dashboard
+│   │       │   │   └── page.js
+│   │       │   ├── lanjut
+│   │       │   │   ├── [id]
+│   │       │   │   │   └── page.js
+│   │       │   │   └── page.js
+│   │       │   └── page.js
+│   │       ├── sertifikat/
+│   │       │   └── page.js
 │   │       ├── submission/
 │   │       │   ├── [id]
 │   │       │   │   └── page.js
@@ -1162,12 +1393,78 @@ VALUES
 │   │   │   ├── icon-logo2.png
 │   │   │   ├── logo.png
 │   │   │   └── maskot.png
+│   │   ├── panduan_admin_pose/
+│   │   │   ├── bendahara/
+│   │   │   │   └── 
+│   │   │   ├── pj_lomba/
+│   │   │   │   └── 
+│   │   │   └── sekretaris/
+│   │   │       └── 
+│   │   ├── panduan_admin_pkkmb/
+│   │   │   ├── bendahara/
+│   │   │   │   └── 
+│   │   │   ├── kabim/
+│   │   │   │   └── 
+│   │   │   ├── medis/
+│   │   │   │   └── 
+│   │   │   ├── mulmed/
+│   │   │   │   └── 
+│   │   │   ├── sekretaris/
+│   │   │   │   └── 
+│   │   │   └── tatib/
+│   │   │       └── 
+│   │   ├── update/
+│   │   │   ├── admin_pkkmb/
+│   │   │   │   └── 
+│   │   │   ├── admin_pose/
+│   │   │   │   └── 
+│   │   │   ├── pkkmb/
+│   │   │   │   └── 
+│   │   │   └── pose/
+│   │   │       └── 
 │   │   ├── panduan_pkkmb/
 │   │   │   ├── lendingpage.png
+│   │   │   ├── 
 │   │   │   └── pemberitahuan.png
 │   │   ├── panduan_pose/
 │   │   │   ├── lendingpage.png
+│   │   │   ├── 
 │   │   │   └── pemberitahuan.png
+│   │   ├── poster_pose/
+│   │   │   ├── badminton.webp
+│   │   │   ├── business-model-canvas.webp
+│   │   │   ├── dance.webp
+│   │   │   ├── desain-poster.webp
+│   │   │   ├── digital-umkm-promotion.webp
+│   │   │   ├── mobile-legends.webp
+│   │   │   ├── release-writing.webp
+│   │   │   ├── software-developer.webp
+│   │   │   ├── tarik-tambang.webp
+│   │   │   └── tenis-meja.webp
+│   │   ├── sertifikat_pose/
+│   │   │   ├── contoh/
+│   │   │   │   ├── juara.pdf
+│   │   │   │   ├── nilai.pdf
+│   │   │   │   ├── partisipasi.pdf
+│   │   │   │   ├── peserta.pdf
+│   │   │   │   ├── juara.png
+│   │   │   │   ├── nilai.png
+│   │   │   │   ├── partisipasi.png
+│   │   │   │   └── peserta.png
+│   │   │   └── template/
+│   │   │       ├── template-juara.pdf
+│   │   │       ├── template-nilai.pdf
+│   │   │       ├── template-partisipasi.pdf
+│   │   │       ├── template-peserta.pdf
+│   │   │       ├── template-juara.png
+│   │   │       ├── template-nilai.png
+│   │   │       ├── template-partisipasi.png
+│   │   │       └── template-peserta.png
+│   │   ├── sponsor_pkkmb/
+│   │   ├── Sponsor_pose/
+│   │   │   ├── 1.png
+│   │   │   ├── 2.png
+│   │   │   └── 3.png
 │   │   ├── icon-poltek.png
 │   │   ├── logopkkmb.png
 │   │   ├── logopoltek.png
@@ -1188,6 +1485,8 @@ VALUES
 │   │   │   ├── Carousel.js
 │   │   │   ├── FormPengumpulan.js
 │   │   │   ├── FormRegister.js
+│   │   │   ├── FormRegisterLanjut.js
+│   │   │   ├── FormRegisterLanjutStandalone.js
 │   │   │   ├── FormRegistration.js
 │   │   │   ├── FormWajib.js
 │   │   │   ├── HomeLanding.js
@@ -1195,9 +1494,12 @@ VALUES
 │   │   │   ├── PageHero.js
 │   │   │   ├── PanduanPage.js
 │   │   │   ├── PengembangBarrier.js
+│   │   │   ├── PjLombaContactSection.js
 │   │   │   ├── PublicFooter.js
 │   │   │   ├── ScheduleBarrier.js
 │   │   │   ├── SiteBackground.js
+│   │   │   ├── TombolCetakSertifikat.js
+│   │   │   ├── UpdateVersionModal.js
 │   │   │   └── WaveDivider.js
 │   │   └── panitia/
 │   │       ├── absensi/
@@ -1231,6 +1533,7 @@ VALUES
 │   │       ├── AdminFormRegister.js
 │   │       ├── AdminFormWajib.js
 │   │       ├── AdminJadwalPertandinganPJ.js
+│   │       ├── AdminJuaraLombaPJ.js
 │   │       ├── AdminKelompokManager.js
 │   │       ├── AdminKeuanganDashboard.js
 │   │       ├── AdminPenilaianPJ.js
@@ -1238,6 +1541,8 @@ VALUES
 │   │       ├── AdminPesertaPengumpulan.js
 │   │       ├── AdminPesertaRegister.js
 │   │       ├── AdminPesertaWajib.js
+│   │       ├── AdminPesertaWajibLomba.js
+│   │       ├── AdminSertifikatPartisipasiModal.js
 │   │       ├── AdminVerifikasiKeuangan.js
 │   │       ├── TablePagination.js
 │   │       ├── DetailModal.js
@@ -1251,14 +1556,18 @@ VALUES
 │   │       ├── DashboardHeaderFilters.js
 │   │       ├── DashboardDonutChart.js
 │   │       ├── LoginContent.js
+│   │       ├── PanduanAdminPage.js
 │   │       ├── SalesChart.js
 │   │       ├── SalesRiwayatTable.js
 │   │       ├── DashboardCalendarLegend.js
+│   │       ├── TombolCetak.js
 │   │       └── ConfirmModal.js
 │   ├── data/
 │   │   ├── ketentuanData.js
 │   │   ├── lombaPose.js
-│   │   └── panduanData.js
+│   │   ├── panduan_admin.js
+│   │   ├── panduanData.js
+│   │   └── updateVersionData.js
 │   ├── docs/
 │   │   ├── supabase/
 │   │   └── openai/
@@ -1273,13 +1582,19 @@ VALUES
 │       │   ├── certificate.js
 │       │   ├── invoice.js
 │       │   ├── medis.js
+│       │   ├── panduanKetentuan.js
 │       │   ├── penilaian.js
 │       │   ├── report.js
 │       │   ├── sales.js
+│       │   ├── sertifikatLayout.js
+│       │   ├── sertifikatPose.js
 │       │   ├── teamReport.js
 │       │   └── template.jsjs
 │       ├── qr/
 │       │   └── qrcode.js
+│       ├── security/
+│       │   ├── inputGuard.js
+│       │   └── rateLimiter.jsjs
 │       ├── adminRoleData.js
 │       ├── dashboardUtils.js
 │       ├── dateUtils.js

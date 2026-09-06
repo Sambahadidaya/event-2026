@@ -27,24 +27,30 @@ Object.values(NAMA_LOMBA).flat().forEach(nama => {
 });
 
 // ============================================================
-// KABIM ROLE MAP — 8 kabim, tiap role map ke urutan kelompok
+// KABIM ROLE MAP — Mendukung 1 atau multi kelompok per role (Customizable)
 // ============================================================
 export const KABIM_ROLE_MAP = {
-  'admin_pkkmb_pj_kabim_1': 1,
-  'admin_pkkmb_pj_kabim_2': 2,
-  'admin_pkkmb_pj_kabim_3': 3,
-  'admin_pkkmb_pj_kabim_4': 4,
-  'admin_pkkmb_pj_kabim_5': 5,
-  'admin_pkkmb_pj_kabim_6': 6,
-  'admin_pkkmb_pj_kabim_7': 7,
-  'admin_pkkmb_pj_kabim_8': 8,
+  'admin_pkkmb_pj_kabim_1': [1],
+  'admin_pkkmb_pj_kabim_2': [2],
+  'admin_pkkmb_pj_kabim_3': [3],
+  'admin_pkkmb_pj_kabim_4': [4],
+  'admin_pkkmb_pj_kabim_5': [5],
+  'admin_pkkmb_pj_kabim_6': [6],
+  'admin_pkkmb_pj_kabim_7': [7],
+  'admin_pkkmb_pj_kabim_8': [8],
+  'admin_pkkmb_pj_kabim_A': [2, 4], // Role contoh kombinasi multi kelompok (bisa ditambah/dikustomisasi)
 };
 
 // Route yang bisa diakses oleh setiap role kabim
-const KABIM_ROUTE = '/panitia/pj_kabim/kelompok';
+const KABIM_ROUTES = [
+  '/panitia/pj_kabim/kelompok',
+  '/panitia/pj_kabim/tugas',
+  '/panitia/pj_kabim/absensi',
+  '/panitia/pj_kabim/riwayat_pelanggaran'
+];
 const kabimPermissions = {};
 Object.keys(KABIM_ROLE_MAP).forEach(roleKey => {
-  kabimPermissions[roleKey] = [KABIM_ROUTE];
+  kabimPermissions[roleKey] = KABIM_ROUTES;
 });
 
 // PJ Lomba routes
@@ -80,9 +86,20 @@ export const rolePermissions = {
     '/panitia/pkkmb/peserta_wajib',
     '/panitia/pkkmb/jadwal_acara',
     '/panitia/pkkmb/materi',
+    '/panitia/pj_acara/materi',
+    '/panitia/pj_acara/jadwal',
     '/panitia/pkkmb/tugas',
     '/panitia/pj_kabim/kelompok',
+    '/panitia/pj_kabim/tugas',
+    '/panitia/pj_kabim/absensi',
+    '/panitia/pj_kabim/riwayat_pelanggaran',
+    '/panitia/pj_tatib/master_pelanggaran',
+    '/panitia/pj_tatib/riwayat_pelanggaran',
     '/panitia/pj_medis/peserta',
+    '/panitia/pj_medis/panitia',
+    '/panitia/pj_medis/master_obat',
+    '/panitia/pj_medis/log_obat',
+    '/panitia/pj_medis/riwayat_penanganan',
     '/panitia/keuangan/dashboard',
     '/panitia/keuangan/data_peserta',
     '/panitia/keuangan/verifikasi',
@@ -245,6 +262,18 @@ export const rolePermissions = {
   ],
   admin_pkkmb_pj_medis: [
     '/panitia/pj_medis/peserta',
+    '/panitia/pj_medis/panitia',
+    '/panitia/pj_medis/master_obat',
+    '/panitia/pj_medis/log_obat',
+    '/panitia/pj_medis/riwayat_penanganan',
+  ],
+  admin_pkkmb_pj_acara: [
+    '/panitia/pj_acara/materi',
+    '/panitia/pj_acara/jadwal',
+  ],
+  admin_pkkmb_pj_tatib: [
+    '/panitia/pj_tatib/master_pelanggaran',
+    '/panitia/pj_tatib/riwayat_pelanggaran',
   ],
   admin_pkkmb_belumdiatur: [
     '/panitia/pkkmb/berita',
@@ -269,11 +298,21 @@ export const getRoleLabel = (roleKey) => {
   if (!roleKey) return 'Admin';
   if (roleKey === 'super_admin') return 'Super Admin';
   if (roleKey === 'admin_pkkmb_pj_medis') return 'PJ Medis PKKMB';
+  if (roleKey === 'admin_pkkmb_pj_acara') return 'PJ Acara PKKMB';
+  if (roleKey === 'admin_pkkmb_pj_tatib') return 'PJ Tatib PKKMB';
   if (roleKey === 'admin_pose_keuangan_lomba_Badminton') return 'Keuangan & PJ Badminton';
   if (roleKey === 'admin_pose_keuangan_lomba_TarikTambang') return 'Keuangan & PJ Tarik Tambang';
   if (roleKey === 'admin_pose_sekretaris_lomba_TarikTambang') return 'Sekretaris & PJ Tarik Tambang';
   if (roleKey === 'admin_pose_sekretaris_lomba_seni') return 'Sekretaris & PJ Lomba Seni';
-  if (KABIM_ROLE_MAP[roleKey] !== undefined) return `PJ Kabim ${KABIM_ROLE_MAP[roleKey]}`;
+  if (KABIM_ROLE_MAP[roleKey] !== undefined) {
+    const val = KABIM_ROLE_MAP[roleKey];
+    const kelStr = Array.isArray(val) ? val.join(' & ') : val;
+    const suffix = roleKey.replace('admin_pkkmb_pj_kabim_', '');
+    if (isNaN(suffix)) {
+      return `PJ Kabim ${suffix} (Kel. ${kelStr})`;
+    }
+    return `PJ Kabim ${kelStr}`;
+  }
   if (LOMBA_ROLE_MAP[roleKey]) return `PJ ${LOMBA_ROLE_MAP[roleKey]}`;
   return roleKey
     .split('_')
@@ -287,6 +326,8 @@ const ROUTE_CATEGORY_MAP = [
   { prefix: '/panitia/pj_lomba', label: 'PJ Lomba' },
   { prefix: '/panitia/pj_kabim', label: 'PJ Kabim' },
   { prefix: '/panitia/pj_medis', label: 'PJ Medis' },
+  { prefix: '/panitia/pj_acara', label: 'PJ Acara' },
+  { prefix: '/panitia/pj_tatib', label: 'PJ Tatib' },
   { prefix: '/panitia/keuangan', label: 'Keuangan' },
   { prefix: '/panitia/absensi_panitia', label: 'Absensi Panitia' },
   { prefix: '/panitia/sales', label: 'Sales' },
@@ -340,12 +381,15 @@ export const getLombaFilter = (role) => {
 };
 
 /**
- * Get the urutan (number) filter for a PJ Kabim admin role.
+ * Get the urutan array (number[]) filter for a PJ Kabim admin role.
  * Returns null if the role is not a PJ Kabim role (e.g. super_admin/admin_pkkmb sees all).
  */
 export const getKabimFilter = (role) => {
   if (!role) return null;
-  return KABIM_ROLE_MAP[role] ?? null;
+  const mapped = KABIM_ROLE_MAP[role];
+  if (mapped === undefined || mapped === null) return null;
+  if (Array.isArray(mapped)) return mapped;
+  return [Number(mapped)];
 };
 
 /**
@@ -354,12 +398,22 @@ export const getKabimFilter = (role) => {
 const formatRoleLabel = (roleKey) => {
   if (roleKey === 'super_admin') return 'Super Admin';
   if (roleKey === 'admin_pkkmb_pj_medis') return 'PJ Medis PKKMB';
+  if (roleKey === 'admin_pkkmb_pj_acara') return 'PJ Acara PKKMB';
+  if (roleKey === 'admin_pkkmb_pj_tatib') return 'PJ Tatib PKKMB';
   if (roleKey === 'admin_pose_keuangan_lomba_Badminton') return 'Keuangan & PJ Badminton';
   if (roleKey === 'admin_pose_keuangan_lomba_TarikTambang') return 'Keuangan & PJ TarikTambang';
   if (roleKey === 'admin_pose_sekretaris_lomba_TarikTambang') return 'Sekretaris & PJ Tarik Tambang';
   if (roleKey === 'admin_pkkmb_sekretaris') return 'Sekretaris PKKMB';
   if (roleKey === 'admin_pose_sekretaris_lomba_seni') return 'Sekretaris & PJ Lomba Seni';
-  if (KABIM_ROLE_MAP[roleKey] !== undefined) return `PJ Kabim ${KABIM_ROLE_MAP[roleKey]}`;
+  if (KABIM_ROLE_MAP[roleKey] !== undefined) {
+    const val = KABIM_ROLE_MAP[roleKey];
+    const kelStr = Array.isArray(val) ? val.join(' & ') : val;
+    const suffix = roleKey.replace('admin_pkkmb_pj_kabim_', '');
+    if (isNaN(suffix)) {
+      return `PJ Kabim ${suffix} (Kel. ${kelStr})`;
+    }
+    return `PJ Kabim ${kelStr}`;
+  }
   if (LOMBA_ROLE_MAP[roleKey]) return `PJ ${LOMBA_ROLE_MAP[roleKey]}`;
   return roleKey
     .split('_')
@@ -389,6 +443,7 @@ export const MENU_SECTION_ROUTES = {
     '/panitia/pkkmb/peserta_wajib',
     '/panitia/pkkmb/jadwal_acara',
     '/panitia/pkkmb/materi',
+    '/panitia/pj_acara/materi',
     '/panitia/pkkmb/tugas',
   ],
   pose: [
@@ -407,9 +462,24 @@ export const MENU_SECTION_ROUTES = {
   ],
   kabim: [
     '/panitia/pj_kabim/kelompok',
+    '/panitia/pj_kabim/tugas',
+    '/panitia/pj_kabim/absensi',
+    '/panitia/pj_kabim/riwayat_pelanggaran',
   ],
   medis: [
     '/panitia/pj_medis/peserta',
+    '/panitia/pj_medis/panitia',
+    '/panitia/pj_medis/master_obat',
+    '/panitia/pj_medis/log_obat',
+    '/panitia/pj_medis/riwayat_penanganan',
+  ],
+  pjAcara: [
+    '/panitia/pj_acara/materi',
+    '/panitia/pj_acara/jadwal',
+  ],
+  tatib: [
+    '/panitia/pj_tatib/master_pelanggaran',
+    '/panitia/pj_tatib/riwayat_pelanggaran',
   ],
   absensiPanitia: [
     '/panitia/absensi_panitia/dashboard',

@@ -185,6 +185,80 @@ export const getKelompokByUrutan = async (urutan) => {
 };
 
 /**
+ * Ambil beberapa kelompok berdasarkan array urutan (untuk filter pj_kabim multi kelompok).
+ * @param {number[]} urutanArray - Array nomor urutan kelompok
+ */
+export const getKelompokByUrutanArray = async (urutanArray) => {
+    try {
+        const { error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        if (!Array.isArray(urutanArray) || urutanArray.length === 0) {
+            return [];
+        }
+
+        const validUrutan = urutanArray
+            .map(u => Number(u))
+            .filter(u => Number.isInteger(u) && u >= 1 && u <= 8);
+
+        if (validUrutan.length === 0) {
+            return [];
+        }
+
+        const { data, error } = await supabaseAdmin
+            .from('kelompok')
+            .select(
+                'id, urutan, nama_kelompok, nama_kabim, link_instagram, foto_kelompok, keterangan, created_at, ' +
+                'kelompok_members(id, nama_anggota, nim_anggota)'
+            )
+            .in('urutan', validUrutan)
+            .order('urutan', { ascending: true });
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+            const allNims = [];
+            data.forEach(kel => {
+                (kel.kelompok_members || []).forEach(m => {
+                    if (m.nim_anggota) allNims.push(m.nim_anggota);
+                });
+            });
+
+            if (allNims.length > 0) {
+                const { data: pesertaData, error: pesertaError } = await supabaseAdmin
+                    .from('peserta')
+                    .select('nim, email_wa, prodi, angkatan, kelas')
+                    .in('nim', allNims);
+
+                if (!pesertaError && pesertaData) {
+                    const pesertaMap = {};
+                    pesertaData.forEach(p => {
+                        pesertaMap[p.nim] = p;
+                    });
+
+                    data.forEach(kel => {
+                        (kel.kelompok_members || []).forEach(m => {
+                            const p = pesertaMap[m.nim_anggota];
+                            if (p) {
+                                m.no_wa = p.email_wa;
+                                m.prodi = p.prodi;
+                                m.angkatan = p.angkatan;
+                                m.kelas = p.kelas;
+                            }
+                        });
+                    });
+                }
+            }
+        }
+
+        return data ?? [];
+    } catch (error) {
+        console.error('Internal Log - Error fetching kelompok by urutan array:', error);
+        return [];
+    }
+};
+
+/**
  * Ambil daftar peserta PKKMB form wajib (hanya nama & nim) untuk dropdown anggota.
  */
 export const getPesertaPkkmbWajib = async () => {

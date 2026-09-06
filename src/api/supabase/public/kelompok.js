@@ -80,3 +80,28 @@ export const getKelompokByIdPublic = async (id) => {
         return null;
     }
 };
+
+/**
+ * Ambil data member kelompok berdasarkan member ID (UUID) beserta info kelompoknya.
+ */
+export const getKelompokMemberByIdPublic = async (memberId) => {
+    try {
+        if (!isValidUUID(memberId)) throw new Error('Format ID unik tidak valid');
+
+        const { data, error } = await supabaseAdmin
+            .from('kelompok_members')
+            .select(
+                'id, kelompok_id, nama_anggota, nim_anggota, ' +
+                'kelompok(id, urutan, nama_kelompok, nama_kabim, foto_kelompok, link_instagram, keterangan)'
+            )
+            .eq('id', memberId)
+            .single();
+
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error('Internal Log - Error fetching kelompok member by id (public):', error);
+        return null;
+    }
+};
+
