@@ -481,7 +481,7 @@ export const MENU_SECTION_ROUTES = {
     '/panitia/pj_tatib/master_pelanggaran',
     '/panitia/pj_tatib/riwayat_pelanggaran',
   ],
-  absensiPanitia: [
+  sekretaris: [
     '/panitia/absensi_panitia/dashboard',
     '/panitia/absensi_panitia/form',
     '/panitia/absensi_panitia/absensi',

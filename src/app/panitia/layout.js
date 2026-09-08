@@ -15,7 +15,7 @@ import OfflineGuard from '@/components/OfflineGuard';
 export default function PanitiaLayout({ children }) {
     const [isDesktop, setIsDesktop] = useState(true);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-    const [menuOpen, setMenuOpen] = useState({ dashboard: true, pkkmb: false, pose: false, form: false, absensi_panitia: false, pj_lomba: false, keuangan: false, admin: false, sales: false, kabim: false, Medis: false, pj_acara: false, Mulmed: false, Tatib: false });
+    const [menuOpen, setMenuOpen] = useState({ dashboard: true, pkkmb: false, pose: false, form: false, sekretaris: false, pj_lomba: false, keuangan: false, admin: false, sales: false, kabim: false, Medis: false, pj_acara: false, Mulmed: false, Tatib: false });
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [showDesktopWarning, setShowDesktopWarning] = useState(false);
     const [hasSeenDesktopWarning, setHasSeenDesktopWarning] = useState(false);
@@ -237,476 +237,476 @@ export default function PanitiaLayout({ children }) {
     return (
         <OfflineGuard site="panitia">
             <div className="h-screen w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex overflow-hidden transition-colors duration-500">
-            {!isDesktop && mobileSidebarOpen && (
-                <div
-                    className="fixed inset-0 bg-black/50 z-30 backdrop-blur-sm"
-                    onClick={() => setMobileSidebarOpen(false)}
-                />
-            )}
+                {!isDesktop && mobileSidebarOpen && (
+                    <div
+                        className="fixed inset-0 bg-black/50 z-30 backdrop-blur-sm"
+                        onClick={() => setMobileSidebarOpen(false)}
+                    />
+                )}
 
-            {/* Sidebar */}
-            <aside className={`
+                {/* Sidebar */}
+                <aside className={`
                 ${isDesktop
-                    ? `${collapsed ? 'w-[72px]' : 'w-72'} relative`
-                    : `fixed inset-y-0 left-0 w-72 z-40 transform transition-transform duration-300 ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`
-                }
+                        ? `${collapsed ? 'w-[72px]' : 'w-72'} relative`
+                        : `fixed inset-y-0 left-0 w-72 z-40 transform transition-transform duration-300 ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`
+                    }
                 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800/60 flex flex-col shadow-sm shrink-0
             `}>
-                <div className={`border-b border-slate-200 dark:border-slate-800/60 flex items-center ${collapsed ? 'p-3 justify-center' : 'p-4 sm:p-6 gap-4'}`}>
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-[14px] flex items-center justify-center text-white shrink-0 shadow-lg shadow-blue-500/20">
-                        <User size={24} />
+                    <div className={`border-b border-slate-200 dark:border-slate-800/60 flex items-center ${collapsed ? 'p-3 justify-center' : 'p-4 sm:p-6 gap-4'}`}>
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-[14px] flex items-center justify-center text-white shrink-0 shadow-lg shadow-blue-500/20">
+                            <User size={24} />
+                        </div>
+                        {!collapsed && (
+                            <div className="overflow-hidden">
+                                <h2 className="font-bold text-lg truncate text-slate-800 dark:text-white capitalize">{adminData?.nama || 'Admin Portal'}</h2>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 truncate font-medium capitalize">
+                                    {adminData?.role ? adminData.role.replace('_', ' ') : 'Panitia'}
+                                </p>
+                            </div>
+                        )}
                     </div>
-                    {!collapsed && (
-                        <div className="overflow-hidden">
-                            <h2 className="font-bold text-lg truncate text-slate-800 dark:text-white capitalize">{adminData?.nama || 'Admin Portal'}</h2>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 truncate font-medium capitalize">
-                                {adminData?.role ? adminData.role.replace('_', ' ') : 'Panitia'}
-                            </p>
-                        </div>
-                    )}
-                </div>
 
-                <nav className={`flex-1 overflow-y-auto py-6 space-y-2 custom-scrollbar ${collapsed ? 'px-2' : 'px-4'}`}>
+                    <nav className={`flex-1 overflow-y-auto py-6 space-y-2 custom-scrollbar ${collapsed ? 'px-2' : 'px-4'}`}>
 
-                    {canAccessSection(adminData?.role, 'dashboard') && (
-                        <div className="mb-6">
-                            {!collapsed && (
-                                <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Main Menu</p>
-                            )}
-                            <button
-                                onClick={() => toggleMenu('dashboard')}
-                                title="Dashboard"
-                                className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group`}
-                            >
-                                <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
-                                    <LayoutDashboard size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
-                                    {!collapsed && 'Dashboard'}
-                                </span>
-                                {!collapsed && (menuOpen.dashboard ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
-                            </button>
-                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.dashboard ? 'max-h-64 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
-                                <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
-                                    <NavLink href="/panitia/dashboard/trafik" icon={BarChart3} label="Trafik Kunjungan" />
-                                    <NavLink href="/panitia/dashboard/faq" icon={MessageCircle} label="FAQ Chatbot" />
-                                    <NavLink href="/panitia/dashboard/kontak" icon={Mail} label="Kontak" />
-                                    <NavLink href="/panitia/panduan" icon={BookOpen} label="Panduan Admin" />
-                                </ul>
+                        {canAccessSection(adminData?.role, 'dashboard') && (
+                            <div className="mb-6">
+                                {!collapsed && (
+                                    <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Main Menu</p>
+                                )}
+                                <button
+                                    onClick={() => toggleMenu('dashboard')}
+                                    title="Dashboard"
+                                    className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group`}
+                                >
+                                    <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
+                                        <LayoutDashboard size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
+                                        {!collapsed && 'Dashboard'}
+                                    </span>
+                                    {!collapsed && (menuOpen.dashboard ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
+                                </button>
+                                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.dashboard ? 'max-h-64 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                    <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
+                                        <NavLink href="/panitia/dashboard/trafik" icon={BarChart3} label="Trafik Kunjungan" />
+                                        <NavLink href="/panitia/dashboard/faq" icon={MessageCircle} label="FAQ Chatbot" />
+                                        <NavLink href="/panitia/dashboard/kontak" icon={Mail} label="Kontak" />
+                                        <NavLink href="/panitia/panduan" icon={BookOpen} label="Panduan Admin" />
+                                    </ul>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {canAccessSection(adminData?.role, 'konten') && (
-                        <div className="mb-6">
-                            {!collapsed && (
-                                <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Manajemen Konten</p>
-                            )}
+                        {canAccessSection(adminData?.role, 'konten') && (
+                            <div className="mb-6">
+                                {!collapsed && (
+                                    <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Manajemen Konten</p>
+                                )}
 
-                            {canAccessSection(adminData?.role, 'pkkmb') && (
-                                <>
-                                    <button
-                                        onClick={() => toggleMenu('pkkmb')}
-                                        title="PKKMB"
-                                        className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
-                                    >
-                                        <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
-                                            <FileText size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
-                                            {!collapsed && 'PKKMB'}
-                                        </span>
-                                        {!collapsed && (menuOpen.pkkmb ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
-                                    </button>
-                                    <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.pkkmb ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
-                                        <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
-                                            <NavLink href="/panitia/pkkmb/berita" icon={Newspaper} label="Manajemen Berita" />
-                                            <NavLink href="/panitia/pkkmb/team" icon={Users} label="Manajemen Team" />
-                                            <NavLink href="/panitia/pkkmb/form_wajib" icon={FileText} label="Manajemen Form Wajib" />
-                                            <NavLink href="/panitia/pkkmb/peserta_wajib" icon={Users} label="Data Peserta Wajib" />
-                                            <NavLink href="/panitia/pkkmb/jadwal_acara" icon={Calendar} label="Manajemen Jadwal Acara" />
-                                            <NavLink href="/panitia/pkkmb/materi" icon={BookOpen} label="Manajemen Materi" />
-                                            <NavLink href="/panitia/pkkmb/tugas" icon={FileCheck} label="Review Tugas" />
-                                        </ul>
-                                    </div>
-                                </>
-                            )}
+                                {canAccessSection(adminData?.role, 'pkkmb') && (
+                                    <>
+                                        <button
+                                            onClick={() => toggleMenu('pkkmb')}
+                                            title="PKKMB"
+                                            className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
+                                        >
+                                            <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
+                                                <FileText size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
+                                                {!collapsed && 'PKKMB'}
+                                            </span>
+                                            {!collapsed && (menuOpen.pkkmb ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
+                                        </button>
+                                        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.pkkmb ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                            <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
+                                                <NavLink href="/panitia/pkkmb/berita" icon={Newspaper} label="Manajemen Berita" />
+                                                <NavLink href="/panitia/pkkmb/team" icon={Users} label="Manajemen Team" />
+                                                <NavLink href="/panitia/pkkmb/form_wajib" icon={FileText} label="Manajemen Form Wajib" />
+                                                <NavLink href="/panitia/pkkmb/peserta_wajib" icon={Users} label="Data Peserta Wajib" />
+                                                <NavLink href="/panitia/pkkmb/jadwal_acara" icon={Calendar} label="Manajemen Jadwal Acara" />
+                                                <NavLink href="/panitia/pkkmb/materi" icon={BookOpen} label="Manajemen Materi" />
+                                                <NavLink href="/panitia/pkkmb/tugas" icon={FileCheck} label="Review Tugas" />
+                                            </ul>
+                                        </div>
+                                    </>
+                                )}
 
-                            {canAccessSection(adminData?.role, 'pose') && (
-                                <>
-                                    <button
-                                        onClick={() => toggleMenu('pose')}
-                                        title="POSE"
-                                        className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
-                                    >
-                                        <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
-                                            <FileText size={18} className="text-slate-400 group-hover:text-emerald-500 transition-colors shrink-0" />
-                                            {!collapsed && 'POSE'}
-                                        </span>
-                                        {!collapsed && (menuOpen.pose ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
-                                    </button>
-                                    <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.pose ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
-                                        <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
-                                            <NavLink href="/panitia/pose/jadwal_acara" icon={Calendar} label="Manajemen Jadwal Acara" colorTheme="emerald" />
-                                            <NavLink href="/panitia/pose/berita" icon={Newspaper} label="Manajemen Berita" colorTheme="emerald" />
-                                            <NavLink href="/panitia/pose/peserta" icon={Users} label="Data Seluruh Peserta" colorTheme="emerald" />
-                                            <NavLink href="/panitia/pose/team" icon={Users} label="Manajemen Team" colorTheme="emerald" />
-                                            <NavLink href="/panitia/pose/form_register" icon={FileText} label="Manajemen Form Register" colorTheme="emerald" />
-                                            <NavLink href="/panitia/pose/jadwal_pertandingan" icon={Calendar} label="Manajemen Jadwal Pertandingan" colorTheme="emerald" />
-                                            <NavLink href="/panitia/pose/form_wajib" icon={FileText} label="Manajemen Form Wajib" colorTheme="emerald" />
-                                            <NavLink href="/panitia/pose/peserta_wajib" icon={Users} label="Data Peserta Wajib" colorTheme="emerald" />
-                                        </ul>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    )}
-
-                    {canAccessSection(adminData?.role, 'form') && (
-                        <div className="mb-6">
-                            {!collapsed && (
-                                <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Manajemen Form</p>
-                            )}
-                            <button
-                                onClick={() => toggleMenu('form')}
-                                title="Form Terpadu"
-                                className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
-                            >
-                                <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
-                                    <ClipboardList size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
-                                    {!collapsed && 'Form Terpadu'}
-                                </span>
-                                {!collapsed && (menuOpen.form ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
-                            </button>
-                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.form ? 'max-h-40 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
-                                <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
-                                    <NavLink href="/panitia/form/dashboard" icon={FileText} label="Dashboard Form" colorTheme="blue" />
-                                    <NavLink href="/panitia/form/form" icon={FileText} label="Kelola Form" colorTheme="blue" />
-                                </ul>
+                                {canAccessSection(adminData?.role, 'pose') && (
+                                    <>
+                                        <button
+                                            onClick={() => toggleMenu('pose')}
+                                            title="POSE"
+                                            className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
+                                        >
+                                            <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
+                                                <FileText size={18} className="text-slate-400 group-hover:text-emerald-500 transition-colors shrink-0" />
+                                                {!collapsed && 'POSE'}
+                                            </span>
+                                            {!collapsed && (menuOpen.pose ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
+                                        </button>
+                                        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.pose ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                            <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
+                                                <NavLink href="/panitia/pose/jadwal_acara" icon={Calendar} label="Manajemen Jadwal Acara" colorTheme="emerald" />
+                                                <NavLink href="/panitia/pose/berita" icon={Newspaper} label="Manajemen Berita" colorTheme="emerald" />
+                                                <NavLink href="/panitia/pose/peserta" icon={Users} label="Data Seluruh Peserta" colorTheme="emerald" />
+                                                <NavLink href="/panitia/pose/team" icon={Users} label="Manajemen Team" colorTheme="emerald" />
+                                                <NavLink href="/panitia/pose/form_register" icon={FileText} label="Manajemen Form Register" colorTheme="emerald" />
+                                                <NavLink href="/panitia/pose/jadwal_pertandingan" icon={Calendar} label="Manajemen Jadwal Pertandingan" colorTheme="emerald" />
+                                                <NavLink href="/panitia/pose/form_wajib" icon={FileText} label="Manajemen Form Wajib" colorTheme="emerald" />
+                                                <NavLink href="/panitia/pose/peserta_wajib" icon={Users} label="Data Peserta Wajib" colorTheme="emerald" />
+                                            </ul>
+                                        </div>
+                                    </>
+                                )}
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {canAccessSection(adminData?.role, 'kabim') && (
-                        <div className="mb-6">
-                            {!collapsed && (
-                                <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Manajemen PJ Kabim</p>
-                            )}
-                            <button
-                                onClick={() => toggleMenu('kabim')}
-                                title="Kabim"
-                                className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
-                            >
-                                <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
-                                    <ClipboardList size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
-                                    {!collapsed && 'Kabim'}
-                                </span>
-                                {!collapsed && (menuOpen.kabim ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
-                            </button>
-                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.kabim ? 'max-h-80 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
-                                <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
-                                    <NavLink href="/panitia/pj_kabim/kelompok" icon={Users} label="Manajemen Kelompok" colorTheme="blue" />
-                                    <NavLink href="/panitia/pj_kabim/tugas" icon={FileCheck} label="Review Tugas" colorTheme="blue" />
-                                    <NavLink href="/panitia/pj_kabim/absensi" icon={UserCheck} label="Absensi Peserta" colorTheme="blue" />
-                                    <NavLink href="/panitia/pj_kabim/riwayat_pelanggaran" icon={ShieldAlert} label="Riwayat Pelanggaran" colorTheme="blue" />
-                                </ul>
+                        {canAccessSection(adminData?.role, 'form') && (
+                            <div className="mb-6">
+                                {!collapsed && (
+                                    <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Manajemen Form</p>
+                                )}
+                                <button
+                                    onClick={() => toggleMenu('form')}
+                                    title="Form Terpadu"
+                                    className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
+                                >
+                                    <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
+                                        <ClipboardList size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
+                                        {!collapsed && 'Form Terpadu'}
+                                    </span>
+                                    {!collapsed && (menuOpen.form ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
+                                </button>
+                                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.form ? 'max-h-40 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                    <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
+                                        <NavLink href="/panitia/form/dashboard" icon={FileText} label="Dashboard Form" colorTheme="blue" />
+                                        <NavLink href="/panitia/form/form" icon={FileText} label="Kelola Form" colorTheme="blue" />
+                                    </ul>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {canAccessSection(adminData?.role, 'medis') && (
-                        <div className="mb-6">
-                            {!collapsed && (
-                                <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Manajemen PJ Medis</p>
-                            )}
-                            <button
-                                onClick={() => toggleMenu('Medis')}
-                                title="Medis"
-                                className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
-                            >
-                                <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
-                                    <ClipboardList size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
-                                    {!collapsed && 'Medis'}
-                                </span>
-                                {!collapsed && (menuOpen.Medis ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
-                            </button>
-                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.Medis ? 'max-h-80 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
-                                <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
-                                    <NavLink href="/panitia/pj_medis/peserta" icon={Users} label="Data Peserta" colorTheme="blue" />
-                                    <NavLink href="/panitia/pj_medis/panitia" icon={UserCheck} label="Data Panitia" colorTheme="blue" />
-                                    <NavLink href="/panitia/pj_medis/master_obat" icon={Pill} label="Master Obat" colorTheme="blue" />
-                                    <NavLink href="/panitia/pj_medis/log_obat" icon={History} label="Log Obat" colorTheme="blue" />
-                                    <NavLink href="/panitia/pj_medis/riwayat_penanganan" icon={HeartPulse} label="Riwayat Penanganan" colorTheme="blue" />
-                                </ul>
+                        {canAccessSection(adminData?.role, 'kabim') && (
+                            <div className="mb-6">
+                                {!collapsed && (
+                                    <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Manajemen Divisi Kabim</p>
+                                )}
+                                <button
+                                    onClick={() => toggleMenu('kabim')}
+                                    title="Divisi Kabim"
+                                    className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
+                                >
+                                    <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
+                                        <ClipboardList size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
+                                        {!collapsed && 'Divisi Kabim'}
+                                    </span>
+                                    {!collapsed && (menuOpen.kabim ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
+                                </button>
+                                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.kabim ? 'max-h-80 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                    <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
+                                        <NavLink href="/panitia/pj_kabim/kelompok" icon={Users} label="Manajemen Kelompok" colorTheme="blue" />
+                                        <NavLink href="/panitia/pj_kabim/tugas" icon={FileCheck} label="Review Tugas" colorTheme="blue" />
+                                        <NavLink href="/panitia/pj_kabim/absensi" icon={UserCheck} label="Absensi Peserta" colorTheme="blue" />
+                                        <NavLink href="/panitia/pj_kabim/riwayat_pelanggaran" icon={ShieldAlert} label="Riwayat Pelanggaran" colorTheme="blue" />
+                                    </ul>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {canAccessSection(adminData?.role, 'pjAcara') && (
-                        <div className="mb-6">
-                            {!collapsed && (
-                                <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Manajemen PJ Acara</p>
-                            )}
-                            <button
-                                onClick={() => toggleMenu('pj_acara')}
-                                title="PJ Acara"
-                                className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
-                            >
-                                <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
-                                    <BookOpen size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
-                                    {!collapsed && 'PJ Acara'}
-                                </span>
-                                {!collapsed && (menuOpen.pj_acara ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
-                            </button>
-                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.pj_acara ? 'max-h-48 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
-                                <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
-                                    <NavLink href="/panitia/pj_acara/materi" icon={BookOpen} label="Manajemen Materi" colorTheme="blue" />
-                                    <NavLink href="/panitia/pj_acara/jadwal" icon={Calendar} label="Manajemen Jadwal" colorTheme="blue" />
-                                </ul>
+                        {canAccessSection(adminData?.role, 'medis') && (
+                            <div className="mb-6">
+                                {!collapsed && (
+                                    <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Manajemen Divisi Medis</p>
+                                )}
+                                <button
+                                    onClick={() => toggleMenu('Medis')}
+                                    title="Divisi Medis"
+                                    className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
+                                >
+                                    <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
+                                        <ClipboardList size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
+                                        {!collapsed && 'Divisi Medis'}
+                                    </span>
+                                    {!collapsed && (menuOpen.Medis ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
+                                </button>
+                                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.Medis ? 'max-h-80 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                    <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
+                                        <NavLink href="/panitia/pj_medis/peserta" icon={Users} label="Data Peserta" colorTheme="blue" />
+                                        <NavLink href="/panitia/pj_medis/panitia" icon={UserCheck} label="Data Panitia" colorTheme="blue" />
+                                        <NavLink href="/panitia/pj_medis/master_obat" icon={Pill} label="Master Obat" colorTheme="blue" />
+                                        <NavLink href="/panitia/pj_medis/log_obat" icon={History} label="Log Obat" colorTheme="blue" />
+                                        <NavLink href="/panitia/pj_medis/riwayat_penanganan" icon={HeartPulse} label="Riwayat Penanganan" colorTheme="blue" />
+                                    </ul>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {canAccessSection(adminData?.role, 'tatib') && (
-                        <div className="mb-6">
-                            {!collapsed && (
-                                <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Manajemen PJ Tatib</p>
-                            )}
-                            <button
-                                onClick={() => toggleMenu('Tatib')}
-                                title="PJ Tatib"
-                                className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
-                            >
-                                <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
-                                    <ShieldAlert size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
-                                    {!collapsed && 'PJ Tatib'}
-                                </span>
-                                {!collapsed && (menuOpen.Tatib ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
-                            </button>
-                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.Tatib ? 'max-h-48 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
-                                <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
-                                    <NavLink href="/panitia/pj_tatib/master_pelanggaran" icon={ShieldAlert} label="Master Pelanggaran" colorTheme="blue" />
-                                    <NavLink href="/panitia/pj_tatib/riwayat_pelanggaran" icon={ClipboardList} label="Riwayat Pelanggaran" colorTheme="blue" />
-                                </ul>
+                        {canAccessSection(adminData?.role, 'pjAcara') && (
+                            <div className="mb-6">
+                                {!collapsed && (
+                                    <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Manajemen Divisi Acara</p>
+                                )}
+                                <button
+                                    onClick={() => toggleMenu('pj_acara')}
+                                    title="Divisi Acara"
+                                    className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
+                                >
+                                    <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
+                                        <BookOpen size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
+                                        {!collapsed && 'Divisi Acara'}
+                                    </span>
+                                    {!collapsed && (menuOpen.pj_acara ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
+                                </button>
+                                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.pj_acara ? 'max-h-48 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                    <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
+                                        <NavLink href="/panitia/pj_acara/materi" icon={BookOpen} label="Manajemen Materi" colorTheme="blue" />
+                                        <NavLink href="/panitia/pj_acara/jadwal" icon={Calendar} label="Manajemen Jadwal" colorTheme="blue" />
+                                    </ul>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {canAccessSection(adminData?.role, 'absensiPanitia') && (
-                        <div className="mb-6">
-                            {!collapsed && (
-                                <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Absensi Panitia</p>
-                            )}
-                            <button
-                                onClick={() => toggleMenu('absensi_panitia')}
-                                title="Absensi Panitia"
-                                className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
-                            >
-                                <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
-                                    <UserCheck size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
-                                    {!collapsed && 'Absensi Panitia'}
-                                </span>
-                                {!collapsed && (menuOpen.absensi_panitia ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
-                            </button>
-                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.absensi_panitia ? 'max-h-48 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
-                                <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
-                                    <NavLink href="/panitia/absensi_panitia/dashboard" icon={LayoutDashboard} label="Dashboard Absensi" colorTheme="blue" />
-                                    <NavLink href="/panitia/absensi_panitia/form" icon={FileText} label="Form Absensi" colorTheme="blue" />
-                                    <NavLink href="/panitia/absensi_panitia/absensi" icon={UserCheck} label="Absensi Panitia" colorTheme="blue" />
-                                </ul>
+                        {canAccessSection(adminData?.role, 'tatib') && (
+                            <div className="mb-6">
+                                {!collapsed && (
+                                    <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Manajemen Divisi Tatib</p>
+                                )}
+                                <button
+                                    onClick={() => toggleMenu('Tatib')}
+                                    title="Divisi Tatib"
+                                    className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
+                                >
+                                    <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
+                                        <ShieldAlert size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
+                                        {!collapsed && 'Divisi Tatib'}
+                                    </span>
+                                    {!collapsed && (menuOpen.Tatib ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
+                                </button>
+                                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.Tatib ? 'max-h-48 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                    <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
+                                        <NavLink href="/panitia/pj_tatib/master_pelanggaran" icon={ShieldAlert} label="Master Pelanggaran" colorTheme="blue" />
+                                        <NavLink href="/panitia/pj_tatib/riwayat_pelanggaran" icon={ClipboardList} label="Riwayat Pelanggaran" colorTheme="blue" />
+                                    </ul>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {canAccessSection(adminData?.role, 'pjLomba') && (
-                        <div className="mb-6">
-                            {!collapsed && (
-                                <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">PJ Lomba</p>
-                            )}
-                            <button
-                                onClick={() => toggleMenu('pj_lomba')}
-                                title="PJ Lomba"
-                                className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
-                            >
-                                <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
-                                    <Trophy size={18} className="text-slate-400 group-hover:text-violet-500 transition-colors shrink-0" />
-                                    {!collapsed && 'PJ Lomba'}
-                                </span>
-                                {!collapsed && (menuOpen.pj_lomba ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
-                            </button>
-                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.pj_lomba ? 'max-h-80 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
-                                <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
-                                    <NavLink href="/panitia/pj_lomba/dashboard" icon={LayoutDashboard} label="Dashboard" colorTheme="violet" />
-                                    <NavLink href="/panitia/pj_lomba/form_register" icon={Users} label="Manajemen Team" colorTheme="violet" />
-                                    <NavLink href="/panitia/pj_lomba/jadwal_pertandingan" icon={Calendar} label="Jadwal Pertandingan" colorTheme="violet" />
-                                    <NavLink href="/panitia/pj_lomba/juara" icon={Award} label="Juara Lomba" colorTheme="violet" />
-                                    <NavLink href="/panitia/pj_lomba/penilaian" icon={Trophy} label="Penilaian Lomba" colorTheme="violet" />
-                                    <NavLink href="/panitia/pj_lomba/form_submit" icon={FileText} label="Manajemen Submit" colorTheme="violet" />
-                                    <NavLink href="/panitia/pj_lomba/peserta_wajib" icon={UserCheck} label="Peserta Wajib & Lomba" colorTheme="violet" />
-                                </ul>
+                        {canAccessSection(adminData?.role, 'sekretaris') && (
+                            <div className="mb-6">
+                                {!collapsed && (
+                                    <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Divisi Sekretaris</p>
+                                )}
+                                <button
+                                    onClick={() => toggleMenu('sekretaris')}
+                                    title="Divisi Sekretaris"
+                                    className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
+                                >
+                                    <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
+                                        <UserCheck size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
+                                        {!collapsed && 'Divisi Sekretaris'}
+                                    </span>
+                                    {!collapsed && (menuOpen.sekretaris ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
+                                </button>
+                                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.sekretaris ? 'max-h-48 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                    <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
+                                        <NavLink href="/panitia/absensi_panitia/dashboard" icon={LayoutDashboard} label="Dashboard Absensi" colorTheme="blue" />
+                                        <NavLink href="/panitia/absensi_panitia/form" icon={FileText} label="Form Absensi" colorTheme="blue" />
+                                        <NavLink href="/panitia/absensi_panitia/absensi" icon={UserCheck} label="Absensi Panitia" colorTheme="blue" />
+                                    </ul>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {canAccessSection(adminData?.role, 'sales') && (
-                        <div className="mb-6">
-                            {!collapsed && (
-                                <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Sales & Referral</p>
-                            )}
-                            <button
-                                onClick={() => toggleMenu('sales')}
-                                title="Sales & Referral"
-                                className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
-                            >
-                                <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
-                                    <TrendingUp size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
-                                    {!collapsed && 'Sales & Referral'}
-                                </span>
-                                {!collapsed && (menuOpen.sales ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
-                            </button>
-                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.sales ? 'max-h-40 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
-                                <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
-                                    <NavLink href="/panitia/sales/dashboard" icon={LayoutDashboard} label="Dashboard Sales" colorTheme="blue" />
-                                    <NavLink href="/panitia/sales/riwayat" icon={ClipboardList} label="Riwayat Sales" colorTheme="blue" />
-                                </ul>
+                        {canAccessSection(adminData?.role, 'pjLomba') && (
+                            <div className="mb-6">
+                                {!collapsed && (
+                                    <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">PJ Lomba</p>
+                                )}
+                                <button
+                                    onClick={() => toggleMenu('pj_lomba')}
+                                    title="PJ Lomba"
+                                    className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
+                                >
+                                    <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
+                                        <Trophy size={18} className="text-slate-400 group-hover:text-violet-500 transition-colors shrink-0" />
+                                        {!collapsed && 'PJ Lomba'}
+                                    </span>
+                                    {!collapsed && (menuOpen.pj_lomba ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
+                                </button>
+                                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.pj_lomba ? 'max-h-80 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                    <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
+                                        <NavLink href="/panitia/pj_lomba/dashboard" icon={LayoutDashboard} label="Dashboard" colorTheme="violet" />
+                                        <NavLink href="/panitia/pj_lomba/form_register" icon={Users} label="Manajemen Team" colorTheme="violet" />
+                                        <NavLink href="/panitia/pj_lomba/jadwal_pertandingan" icon={Calendar} label="Jadwal Pertandingan" colorTheme="violet" />
+                                        <NavLink href="/panitia/pj_lomba/juara" icon={Award} label="Juara Lomba" colorTheme="violet" />
+                                        <NavLink href="/panitia/pj_lomba/penilaian" icon={Trophy} label="Penilaian Lomba" colorTheme="violet" />
+                                        <NavLink href="/panitia/pj_lomba/form_submit" icon={FileText} label="Manajemen Submit" colorTheme="violet" />
+                                        <NavLink href="/panitia/pj_lomba/peserta_wajib" icon={UserCheck} label="Peserta Wajib & Lomba" colorTheme="violet" />
+                                    </ul>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {canAccessSection(adminData?.role, 'keuangan') && (
-                        <div className="mb-6">
-                            {!collapsed && (
-                                <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Keuangan</p>
-                            )}
-                            <button
-                                onClick={() => toggleMenu('keuangan')}
-                                title="Keuangan"
-                                className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
-                            >
-                                <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
-                                    <Wallet size={18} className="text-slate-400 group-hover:text-emerald-500 transition-colors shrink-0" />
-                                    {!collapsed && 'Keuangan'}
-                                </span>
-                                {!collapsed && (menuOpen.keuangan ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
-                            </button>
-                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.keuangan ? 'max-h-[600px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
-                                <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
-                                    <NavLink href="/panitia/keuangan/dashboard" icon={LayoutDashboard} label="Dashboard Keuangan" colorTheme="emerald" />
-                                    <NavLink href="/panitia/keuangan/data_peserta" icon={User} label="Data Peserta" colorTheme="emerald" />
-                                    <NavLink href="/panitia/keuangan/verifikasi" icon={FileCheck} label="Verifikasi Pembayaran" colorTheme="emerald" />
-                                    <NavLink href="/panitia/keuangan/transaksi" icon={ArrowLeftRight} label="Riwayat Transaksi" colorTheme="emerald" />
-                                    <NavLink href="/panitia/keuangan/master-transaksi" icon={Tags} label="Master Kategori" colorTheme="emerald" />
-                                    <NavLink href="/panitia/keuangan/master-akuntansi" icon={Receipt} label="Master Akun (COA)" colorTheme="emerald" />
-                                    <NavLink href="/panitia/keuangan/metode-pembayaran" icon={CreditCard} label="Metode Pembayaran" colorTheme="emerald" />
-                                    <NavLink href="/panitia/keuangan/jurnal-entry" icon={BookMarked} label="Jurnal Entry" colorTheme="emerald" />
-                                    <NavLink href="/panitia/keuangan/buku-besar" icon={BookOpenCheck} label="Buku Besar" colorTheme="emerald" />
-                                    <NavLink href="/panitia/keuangan/kas-masuk" icon={TrendingUp} label="Kas Masuk" colorTheme="emerald" />
-                                    <NavLink href="/panitia/keuangan/kas-keluar" icon={TrendingDown} label="Kas Keluar" colorTheme="emerald" />
-                                    <NavLink href="/panitia/keuangan/neraca-saldo" icon={Scale} label="Neraca Saldo" colorTheme="emerald" />
-                                    <NavLink href="/panitia/keuangan/neraca-lajur" icon={Table2} label="Neraca Lajur" colorTheme="emerald" />
-                                    <NavLink href="/panitia/keuangan/laporan" icon={PieChart} label="Laporan Keuangan" colorTheme="emerald" />
-                                </ul>
+                        {canAccessSection(adminData?.role, 'sales') && (
+                            <div className="mb-6">
+                                {!collapsed && (
+                                    <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Sales & Referral</p>
+                                )}
+                                <button
+                                    onClick={() => toggleMenu('sales')}
+                                    title="Sales & Referral"
+                                    className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
+                                >
+                                    <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
+                                        <TrendingUp size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
+                                        {!collapsed && 'Sales & Referral'}
+                                    </span>
+                                    {!collapsed && (menuOpen.sales ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
+                                </button>
+                                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.sales ? 'max-h-40 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                    <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
+                                        <NavLink href="/panitia/sales/dashboard" icon={LayoutDashboard} label="Dashboard Sales" colorTheme="blue" />
+                                        <NavLink href="/panitia/sales/riwayat" icon={ClipboardList} label="Riwayat Sales" colorTheme="blue" />
+                                    </ul>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {canAccessSection(adminData?.role, 'admin') && (
-                        <div className="mb-6">
-                            {!collapsed && (
-                                <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Manajemen Admin</p>
-                            )}
-                            <button
-                                onClick={() => toggleMenu('admin')}
-                                title="Admin"
-                                className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
-                            >
-                                <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
-                                    <ShieldAlert size={18} className="text-slate-400 group-hover:text-violet-500 transition-colors shrink-0" />
-                                    {!collapsed && 'Admin'}
-                                </span>
-                                {!collapsed && (menuOpen.admin ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
-                            </button>
-                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.admin ? 'max-h-40 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
-                                <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
-                                    <NavLink href="/panitia/admin/status" icon={ShieldAlert} label="Status Admin" colorTheme="violet" />
-                                    <NavLink href="/panitia/admin/pengembang" icon={Settings} label="Mode Pengembangan" colorTheme="violet" />
-                                </ul>
+                        {canAccessSection(adminData?.role, 'keuangan') && (
+                            <div className="mb-6">
+                                {!collapsed && (
+                                    <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Keuangan</p>
+                                )}
+                                <button
+                                    onClick={() => toggleMenu('keuangan')}
+                                    title="Keuangan"
+                                    className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
+                                >
+                                    <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
+                                        <Wallet size={18} className="text-slate-400 group-hover:text-emerald-500 transition-colors shrink-0" />
+                                        {!collapsed && 'Keuangan'}
+                                    </span>
+                                    {!collapsed && (menuOpen.keuangan ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
+                                </button>
+                                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.keuangan ? 'max-h-[600px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                    <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
+                                        <NavLink href="/panitia/keuangan/dashboard" icon={LayoutDashboard} label="Dashboard Keuangan" colorTheme="emerald" />
+                                        <NavLink href="/panitia/keuangan/data_peserta" icon={User} label="Data Peserta" colorTheme="emerald" />
+                                        <NavLink href="/panitia/keuangan/verifikasi" icon={FileCheck} label="Verifikasi Pembayaran" colorTheme="emerald" />
+                                        <NavLink href="/panitia/keuangan/transaksi" icon={ArrowLeftRight} label="Riwayat Transaksi" colorTheme="emerald" />
+                                        <NavLink href="/panitia/keuangan/master-transaksi" icon={Tags} label="Master Kategori" colorTheme="emerald" />
+                                        <NavLink href="/panitia/keuangan/master-akuntansi" icon={Receipt} label="Master Akun (COA)" colorTheme="emerald" />
+                                        <NavLink href="/panitia/keuangan/metode-pembayaran" icon={CreditCard} label="Metode Pembayaran" colorTheme="emerald" />
+                                        <NavLink href="/panitia/keuangan/jurnal-entry" icon={BookMarked} label="Jurnal Entry" colorTheme="emerald" />
+                                        <NavLink href="/panitia/keuangan/buku-besar" icon={BookOpenCheck} label="Buku Besar" colorTheme="emerald" />
+                                        <NavLink href="/panitia/keuangan/kas-masuk" icon={TrendingUp} label="Kas Masuk" colorTheme="emerald" />
+                                        <NavLink href="/panitia/keuangan/kas-keluar" icon={TrendingDown} label="Kas Keluar" colorTheme="emerald" />
+                                        <NavLink href="/panitia/keuangan/neraca-saldo" icon={Scale} label="Neraca Saldo" colorTheme="emerald" />
+                                        <NavLink href="/panitia/keuangan/neraca-lajur" icon={Table2} label="Neraca Lajur" colorTheme="emerald" />
+                                        <NavLink href="/panitia/keuangan/laporan" icon={PieChart} label="Laporan Keuangan" colorTheme="emerald" />
+                                    </ul>
+                                </div>
                             </div>
-                        </div>
-                    )}
-                </nav>
+                        )}
 
-                <div className={`border-t border-slate-200 dark:border-slate-800/60 bg-white dark:bg-slate-900 ${collapsed ? 'p-2' : 'p-4'}`}>
-                    <button
-                        onClick={handleLogout}
-                        title="Logout Sistem"
-                        className={`w-full flex items-center ${collapsed ? 'justify-center p-3' : 'justify-center gap-2 p-3'} bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold rounded-xl hover:bg-red-100 dark:hover:bg-red-900/40 transition-all text-sm group`}
-                    >
-                        <LogOut size={18} className="group-hover:-translate-x-1 transition-transform shrink-0" />
-                        {!collapsed && 'Logout Sistem'}
-                    </button>
-                </div>
-            </aside>
+                        {canAccessSection(adminData?.role, 'admin') && (
+                            <div className="mb-6">
+                                {!collapsed && (
+                                    <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Manajemen Admin</p>
+                                )}
+                                <button
+                                    onClick={() => toggleMenu('admin')}
+                                    title="Admin"
+                                    className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
+                                >
+                                    <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
+                                        <ShieldAlert size={18} className="text-slate-400 group-hover:text-violet-500 transition-colors shrink-0" />
+                                        {!collapsed && 'Admin'}
+                                    </span>
+                                    {!collapsed && (menuOpen.admin ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
+                                </button>
+                                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.admin ? 'max-h-40 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                    <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
+                                        <NavLink href="/panitia/admin/status" icon={ShieldAlert} label="Status Admin" colorTheme="violet" />
+                                        <NavLink href="/panitia/admin/pengembang" icon={Settings} label="Mode Pengembangan" colorTheme="violet" />
+                                    </ul>
+                                </div>
+                            </div>
+                        )}
+                    </nav>
 
-            <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
-                {/* Decorative Elements */}
-                <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-400/5 dark:bg-blue-600/5 rounded-full blur-[100px] pointer-events-none"></div>
-
-                <header className="h-16 sm:h-20 glass border-b border-slate-200/50 dark:border-slate-800/50 flex items-center justify-between px-4 sm:px-8 shrink-0 z-10 sticky top-0">
-                    <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                    <div className={`border-t border-slate-200 dark:border-slate-800/60 bg-white dark:bg-slate-900 ${collapsed ? 'p-2' : 'p-4'}`}>
                         <button
-                            onClick={() => isDesktop ? setSidebarCollapsed(prev => !prev) : setMobileSidebarOpen(prev => !prev)}
-                            className="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors shrink-0"
-                            title={isDesktop ? (collapsed ? 'Tampilkan menu' : 'Sembunyikan menu') : 'Buka menu'}
-                            aria-label="Toggle sidebar"
+                            onClick={handleLogout}
+                            title="Logout Sistem"
+                            className={`w-full flex items-center ${collapsed ? 'justify-center p-3' : 'justify-center gap-2 p-3'} bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold rounded-xl hover:bg-red-100 dark:hover:bg-red-900/40 transition-all text-sm group`}
                         >
-                            <Menu size={20} />
-                        </button>
-                        <div className="min-w-0">
-                            <h1 className="font-extrabold text-lg sm:text-2xl text-slate-800 dark:text-white capitalize tracking-tight truncate">
-                                {pathname.split('/').pop().replace('-', ' ')}
-                            </h1>
-                            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 hidden sm:block">Pantau dan kelola data sistem</p>
-                        </div>
-                    </div>
-                    <ThemeToggle />
-                </header>
-
-                <div className="flex-1 overflow-y-auto p-4 sm:p-8 custom-scrollbar relative">
-                    <div className="max-w-7xl mx-auto min-h-full flex flex-col">
-                        <div className="flex-1">
-                            {children}
-                        </div>
-                        {/* Footer */}
-                        <footer className="mt-8 py-6 border-t border-slate-200 dark:border-slate-800 text-center">
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
-                                &copy; {new Date().getFullYear()} Portal Kampus. Hak Cipta Dilindungi.
-                            </p>
-                        </footer>
-                    </div>
-                </div>
-            </main>
-            <SamsAsisten adminRole={adminData?.role} />
-
-            {showDesktopWarning && pathname !== '/panitia/login' && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-sm w-full p-6 text-center animate-in fade-in zoom-in duration-300">
-                        <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <Monitor size={32} />
-                        </div>
-                        <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Gunakan Perangkat Desktop</h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
-                            Untuk pengalaman terbaik, kami menyarankan Anda untuk membuka halaman admin ini melalui perangkat Desktop atau Laptop.
-                        </p>
-                        <button
-                            onClick={() => {
-                                setShowDesktopWarning(false);
-                                setHasSeenDesktopWarning(true);
-                            }}
-                            className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors"
-                        >
-                            Mengerti
+                            <LogOut size={18} className="group-hover:-translate-x-1 transition-transform shrink-0" />
+                            {!collapsed && 'Logout Sistem'}
                         </button>
                     </div>
-                </div>
-            )}
-        </div>
+                </aside>
+
+                <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
+                    {/* Decorative Elements */}
+                    <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-400/5 dark:bg-blue-600/5 rounded-full blur-[100px] pointer-events-none"></div>
+
+                    <header className="h-16 sm:h-20 glass border-b border-slate-200/50 dark:border-slate-800/50 flex items-center justify-between px-4 sm:px-8 shrink-0 z-10 sticky top-0">
+                        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                            <button
+                                onClick={() => isDesktop ? setSidebarCollapsed(prev => !prev) : setMobileSidebarOpen(prev => !prev)}
+                                className="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors shrink-0"
+                                title={isDesktop ? (collapsed ? 'Tampilkan menu' : 'Sembunyikan menu') : 'Buka menu'}
+                                aria-label="Toggle sidebar"
+                            >
+                                <Menu size={20} />
+                            </button>
+                            <div className="min-w-0">
+                                <h1 className="font-extrabold text-lg sm:text-2xl text-slate-800 dark:text-white capitalize tracking-tight truncate">
+                                    {pathname.split('/').pop().replace('-', ' ')}
+                                </h1>
+                                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 hidden sm:block">Pantau dan kelola data sistem</p>
+                            </div>
+                        </div>
+                        <ThemeToggle />
+                    </header>
+
+                    <div className="flex-1 overflow-y-auto p-4 sm:p-8 custom-scrollbar relative">
+                        <div className="max-w-7xl mx-auto min-h-full flex flex-col">
+                            <div className="flex-1">
+                                {children}
+                            </div>
+                            {/* Footer */}
+                            <footer className="mt-8 py-6 border-t border-slate-200 dark:border-slate-800 text-center">
+                                <p className="text-sm text-slate-500 dark:text-slate-400">
+                                    &copy; {new Date().getFullYear()} Portal Kampus. Hak Cipta Dilindungi.
+                                </p>
+                            </footer>
+                        </div>
+                    </div>
+                </main>
+                <SamsAsisten adminRole={adminData?.role} />
+
+                {showDesktopWarning && pathname !== '/panitia/login' && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-sm w-full p-6 text-center animate-in fade-in zoom-in duration-300">
+                            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Monitor size={32} />
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Gunakan Perangkat Desktop</h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+                                Untuk pengalaman terbaik, kami menyarankan Anda untuk membuka halaman admin ini melalui perangkat Desktop atau Laptop.
+                            </p>
+                            <button
+                                onClick={() => {
+                                    setShowDesktopWarning(false);
+                                    setHasSeenDesktopWarning(true);
+                                }}
+                                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors"
+                            >
+                                Mengerti
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
         </OfflineGuard>
     );
 }
