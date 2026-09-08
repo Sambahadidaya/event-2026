@@ -34,17 +34,17 @@ const SPONSOR_DATA = {
         //         { type: 'instagram', url: 'https://www.instagram.com/susu_mbokdarmi/', title: 'Instagram' },
         //     ]
         // },
-        {
-            id: 1,
-            img: sponsorPose3,
-            name: 'Bank Mandiri',
-            links: [
-                { type: 'website', url: 'https://www.bankmandiri.co.id/', title: 'Website Mandiri' },
-                { type: 'website', url: 'https://www.bankmandiri.co.id/livin/', title: 'Website Livin' },
-                { type: 'linkinbio', url: 'https://linkin.bio/bankmandiri/', title: 'Linkinbio' },
-                { type: 'instagram', url: 'https://www.instagram.com/bankmandiri/', title: 'Instagram' },
-            ]
-        },
+        // {
+        //     id: 1,
+        //     img: sponsorPose3,
+        //     name: 'Bank Mandiri',
+        //     links: [
+        //         { type: 'website', url: 'https://www.bankmandiri.co.id/', title: 'Website Mandiri' },
+        //         { type: 'website', url: 'https://www.bankmandiri.co.id/livin/', title: 'Website Livin' },
+        //         { type: 'linkinbio', url: 'https://linkin.bio/bankmandiri/', title: 'Linkinbio' },
+        //         { type: 'instagram', url: 'https://www.instagram.com/bankmandiri/', title: 'Instagram' },
+        //     ]
+        // },
     ],
     pkkmb: [], // Kosong: section otomatis disembunyikan
 };

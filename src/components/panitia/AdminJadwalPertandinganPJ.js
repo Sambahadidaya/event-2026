@@ -9,6 +9,7 @@ import { getCurrentAdmin } from '@/api/supabase/admin/auth';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
 import TombolCetak from '@/components/panitia/TombolCetak';
 import DashboardSelect from '@/components/panitia/DashboardSelect';
+import ConfirmModal from '@/components/panitia/ConfirmModal';
 import { formatWibDateTime } from '@/lib/dashboardUtils';
 import { JENIS_LOMBA, NAMA_LOMBA } from '@/lib/lombaData';
 import { getLombaFilter } from '@/lib/adminRoleData';
@@ -589,6 +590,7 @@ export default function AdminJadwalPertandinganPJ() {
                     loading={deleting}
                     title="Hapus Jadwal Pertandingan?"
                     message={`Apakah Anda yakin ingin menghapus jadwal pertandingan ${deleteItem.nama_lomba}? Data yang dihapus tidak dapat dikembalikan.`}
+                    confirmLabel="Ya, Hapus"
                 />
             )}
         </div>
