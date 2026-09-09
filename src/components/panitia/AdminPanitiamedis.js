@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import {
     Search, Activity, Heart, AlertTriangle,
-    Eye, User, Plus, X, Trash2, Edit, ShieldCheck, Phone
+    Eye, User, Plus, X, Trash2, Edit, Phone
 } from 'lucide-react';
 import {
     getDataMedisPanitiaAll,
@@ -13,6 +13,7 @@ import {
     getAdminsForMedisDropdown
 } from '@/api/supabase/admin/medis';
 import { getCurrentAdmin } from '@/api/supabase/admin/auth';
+import { getSiteFromRole } from '@/lib/adminRoleData';
 import TombolCetak from '@/components/panitia/TombolCetak';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
 import TablePagination from '@/components/panitia/TablePagination';
@@ -29,6 +30,7 @@ export default function AdminPanitiamedis() {
     const [searchQuery, setSearchQuery] = useState('');
     const [lastSyncedAt, setLastSyncedAt] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
+    const [selectedSite, setSelectedSite] = useState('pkkmb');
 
     // Modal state
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -46,20 +48,11 @@ export default function AdminPanitiamedis() {
         return (parts[0][0] + parts[1][0]).toUpperCase();
     };
 
-    // Load admin session & auth
-    useEffect(() => {
-        getCurrentAdmin().then(admin => {
-            if (admin) {
-                setAdminRole(admin.role);
-            }
-        });
-    }, []);
-
-    const fetchData = useCallback(async () => {
+    const fetchData = useCallback(async (siteTarget) => {
         setLoading(true);
         const [medisRes, adminsRes] = await Promise.all([
-            getDataMedisPanitiaAll(),
-            getAdminsForMedisDropdown()
+            getDataMedisPanitiaAll(siteTarget),
+            getAdminsForMedisDropdown(siteTarget)
         ]);
         setData(medisRes || []);
         setAdminList(adminsRes || []);
@@ -67,9 +60,24 @@ export default function AdminPanitiamedis() {
         setLoading(false);
     }, []);
 
+    // Load admin session & auth
     useEffect(() => {
-        fetchData();
+        getCurrentAdmin().then(admin => {
+            if (admin) {
+                setAdminRole(admin.role);
+                const isSuper = admin.role === 'super_admin';
+                const detectedSite = getSiteFromRole(admin.role);
+                const initialSite = isSuper ? 'pkkmb' : detectedSite;
+                setSelectedSite(initialSite);
+                fetchData(initialSite);
+            }
+        });
     }, [fetchData]);
+
+    const handleSiteChange = async (site) => {
+        setSelectedSite(site);
+        await fetchData(site);
+    };
 
     // Search filter berdasarkan: Nama, Divisi, Penyakit, Penanganan, Alergi
     const filteredData = useMemo(() => {
@@ -93,14 +101,14 @@ export default function AdminPanitiamedis() {
     // Reset pagination saat search berubah
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchQuery]);
+    }, [searchQuery, selectedSite]);
 
     // Handle simpan / create & update
     const handleSaveMedis = async (formData) => {
         if (editItem) {
             const res = await updateDataMedisPanitia(editItem.id, formData);
             if (res.success) {
-                await fetchData();
+                await fetchData(selectedSite);
                 setEditItem(null);
                 return true;
             }
@@ -108,7 +116,7 @@ export default function AdminPanitiamedis() {
         } else {
             const res = await insertDataMedisPanitia(formData);
             if (res.success) {
-                await fetchData();
+                await fetchData(selectedSite);
                 return true;
             }
             return false;
@@ -121,7 +129,7 @@ export default function AdminPanitiamedis() {
         setDeleteLoading(true);
         const res = await deleteDataMedisPanitia(deleteModalItem.id);
         if (res.success) {
-            await fetchData();
+            await fetchData(selectedSite);
             setDeleteModalItem(null);
         } else {
             alert(res.error || 'Gagal menghapus data.');
@@ -132,11 +140,13 @@ export default function AdminPanitiamedis() {
     return (
         <div className="space-y-6">
             <DashboardHeaderFilters
-                title="Data Medis & Riwayat Penyakit Panitia"
-                subtitle="Pantau kondisi kesehatan, alergi, dan riwayat penyakit darurat panitia PKKMB 2026"
+                title={`Data Medis & Riwayat Penyakit Panitia (${selectedSite.toUpperCase()})`}
+                subtitle={`Pantau kondisi kesehatan, alergi, dan riwayat penyakit darurat panitia ${selectedSite.toUpperCase()} 2026`}
                 icon={Heart}
-                showSiteFilter={false}
-                onRefresh={fetchData}
+                showSiteFilter={isSuperAdmin}
+                selectedSite={selectedSite}
+                onSiteChange={handleSiteChange}
+                onRefresh={() => fetchData(selectedSite)}
                 loading={loading}
                 lastSyncedAt={lastSyncedAt}
             />
@@ -147,7 +157,7 @@ export default function AdminPanitiamedis() {
                     <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input
                         type="text"
-                        placeholder="Cari nama, divisi, penyakit, atau alergi..."
+                        placeholder={`Cari nama, divisi, penyakit pada panitia ${selectedSite.toUpperCase()}...`}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -155,6 +165,32 @@ export default function AdminPanitiamedis() {
                 </div>
 
                 <div className="flex flex-wrap w-full md:w-auto gap-2 items-center">
+                    {/* Super Admin Site Selector Toggle */}
+                    {isSuperAdmin && (
+                        <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700">
+                            <button
+                                onClick={() => handleSiteChange('pkkmb')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    selectedSite === 'pkkmb'
+                                        ? 'bg-blue-600 text-white shadow-xs'
+                                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                                }`}
+                            >
+                                PKKMB
+                            </button>
+                            <button
+                                onClick={() => handleSiteChange('pose')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    selectedSite === 'pose'
+                                        ? 'bg-amber-600 text-white shadow-xs'
+                                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                                }`}
+                            >
+                                POSE
+                            </button>
+                        </div>
+                    )}
+
                     {/* Tombol Tambah Data khusus Super Admin */}
                     {isSuperAdmin && (
                         <button
@@ -172,8 +208,8 @@ export default function AdminPanitiamedis() {
 
                     <TombolCetak
                         label="Cetak / Export"
-                        pdfTitle="LAPORAN DATA MEDIS PANITIA PKKMB 2026"
-                        pdfSite="pkkmb"
+                        pdfTitle={`LAPORAN DATA MEDIS PANITIA ${selectedSite.toUpperCase()} 2026`}
+                        pdfSite={selectedSite}
                         pdfData={filteredData}
                         pdfDocumentType="medis_panitia"
                         excelData={filteredData.map(item => ({
@@ -196,7 +232,7 @@ export default function AdminPanitiamedis() {
                             { key: 'Alergi', label: 'Alergi' },
                             { key: 'Tanggal Input', label: 'Tanggal Input', format: 'datetime' }
                         ]}
-                        excelFilename={`laporan-medis-panitia-pkkmb_${new Date().toISOString().split('T')[0]}`}
+                        excelFilename={`laporan-medis-panitia-${selectedSite}_${new Date().toISOString().split('T')[0]}`}
                     />
                 </div>
             </div>
@@ -263,7 +299,7 @@ export default function AdminPanitiamedis() {
                             ) : paginatedData.length === 0 ? (
                                 <tr>
                                     <td colSpan={7} className="p-8 text-center text-gray-500">
-                                        Tidak ditemukan data medis panitia.
+                                        Tidak ditemukan data medis panitia {selectedSite.toUpperCase()}.
                                     </td>
                                 </tr>
                             ) : paginatedData.map((item, idx) => {

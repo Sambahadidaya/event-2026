@@ -38,8 +38,9 @@ function loadImageAsync(src) {
  * @param {string} params.memberId - ID Unik Anggota (kelompok_members.id)
  * @param {string} params.namaAnggota - Nama Peserta Anggota
  * @param {string} params.namaKelompok - Nama Kelompok
+ * @param {string} params.namaKabim - Nama Kabim Kelompok
  */
-export async function downloadPesertaQRCard({ memberId = '', namaAnggota = '', namaKelompok = '' }) {
+export async function downloadPesertaQRCard({ memberId = '', namaAnggota = '', namaKelompok = '', namaKabim = '' }) {
     if (!memberId) {
         throw new Error('ID Anggota tidak tersedia untuk cetak QR.');
     }
@@ -87,7 +88,7 @@ export async function downloadPesertaQRCard({ memberId = '', namaAnggota = '', n
 
     // 4. Buat Canvas Utama untuk Kartu QR
     const cardWidth = 340;
-    const cardHeight = 395;
+    const cardHeight = 425;
     const radius = 20;
 
     const mainCanvas = document.createElement('canvas');
@@ -110,25 +111,28 @@ export async function downloadPesertaQRCard({ memberId = '', namaAnggota = '', n
     roundedRect(ctx, 0, 0, cardWidth, cardHeight, radius);
     ctx.clip();
 
-    // 5. Bagian Atas: Nama Kelompok
+    // 5. Bagian Atas: Label Nama Kelompok
     ctx.fillStyle = '#000000';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
     const cleanKelompok = (namaKelompok || 'Kelompok PKKMB').trim();
-    if (cleanKelompok.length > 32) {
+    const kelompokText = `Nama Kelompok : ${cleanKelompok}`;
+    if (kelompokText.length > 38) {
+        ctx.font = 'bold 10px Arial';
+    } else if (kelompokText.length > 30) {
         ctx.font = 'bold 11px Arial';
-    } else if (cleanKelompok.length > 24) {
+    } else if (kelompokText.length > 22) {
         ctx.font = 'bold 12px Arial';
     } else {
         ctx.font = 'bold 13px Arial';
     }
-    ctx.fillText(cleanKelompok.toUpperCase(), cardWidth / 2, 20);
+    ctx.fillText(kelompokText, cardWidth / 2, 20);
 
     // Garis pemisah bawah nama kelompok
     ctx.beginPath();
-    ctx.moveTo(45, 33);
-    ctx.lineTo(cardWidth - 45, 33);
+    ctx.moveTo(40, 33);
+    ctx.lineTo(cardWidth - 40, 33);
     ctx.lineWidth = 1;
     ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
     ctx.stroke();
@@ -136,7 +140,25 @@ export async function downloadPesertaQRCard({ memberId = '', namaAnggota = '', n
     // 6. Bagian Tengah: QR Code
     ctx.drawImage(qrCanvas, 20, 40, 300, 300);
 
-    // 7. Bagian Bawah: Nama Anggota
+    // 7. Bagian Bawah: Nama Kabim (di bawah QR / di atas Nama Anggota)
+    ctx.fillStyle = '#374151';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const cleanKabim = (namaKabim || '-').trim();
+    const kabimText = `Nama Kabim : ${cleanKabim}`;
+    if (kabimText.length > 38) {
+        ctx.font = 'bold 10px Arial';
+    } else if (kabimText.length > 30) {
+        ctx.font = 'bold 11px Arial';
+    } else if (kabimText.length > 22) {
+        ctx.font = 'bold 12px Arial';
+    } else {
+        ctx.font = 'bold 13px Arial';
+    }
+    ctx.fillText(kabimText, cardWidth / 2, 362);
+
+    // 8. Bagian Bawah: Nama Anggota
     ctx.fillStyle = '#000000';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -150,12 +172,12 @@ export async function downloadPesertaQRCard({ memberId = '', namaAnggota = '', n
         ctx.font = 'bold 17px Arial';
     }
 
-    ctx.fillText(cleanNama, cardWidth / 2, 365);
+    ctx.fillText(cleanNama, cardWidth / 2, 392);
 
     // Restore clip state
     ctx.restore();
 
-    // 8. Trigger Download Otomatis PNG
+    // 9. Trigger Download Otomatis PNG
     return new Promise((resolve, reject) => {
         mainCanvas.toBlob((blob) => {
             if (!blob) {

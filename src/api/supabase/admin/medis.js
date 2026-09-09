@@ -4,25 +4,32 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { checkAdminAuth, insertAuditLog } from './audit';
 
 /**
- * Ambil data medis lengkap peserta PKKMB (Wajib).
+ * Ambil data medis lengkap peserta (PKKMB / POSE Wajib).
  * Join: peserta + data_medis_pkkmb + data_tambahan_pkkmb
  * + LEFT JOIN kelompok_members ON kelompok_members.nim_anggota = peserta.nim
  * + LEFT JOIN kelompok ON kelompok.id = kelompok_members.kelompok_id
  * Kolom yang diambil hanya yang diperlukan.
  */
-export const getDataMedisAll = async () => {
+export const getDataMedisAll = async (site = 'pkkmb') => {
     try {
         const { error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
-        // Ambal data dasar peserta PKKMB Wajib yang sudah lunas
-        const { data: pesertaList, error: pesertaError } = await supabaseAdmin
+        const targetSite = site === 'pose' ? 'pose' : 'pkkmb';
+
+        // Ambil data dasar peserta Wajib yang sudah lunas berdasarkan site
+        let query = supabaseAdmin
             .from('peserta')
-            .select('id, nama, nim, prodi, angkatan, kelas, email_wa, status_pembayaran')
-            .eq('site_type', 'pkkmb')
+            .select('id, nama, nim, prodi, kampus, angkatan, semester, email_wa, status_pembayaran, site_type')
             .eq('jenis_form', 'wajib')
             .eq('status_pembayaran', 'lunas')
             .order('created_at', { ascending: false });
+
+        if (targetSite) {
+            query = query.eq('site_type', targetSite);
+        }
+
+        const { data: pesertaList, error: pesertaError } = await query;
 
         if (pesertaError) throw pesertaError;
         if (!pesertaList || pesertaList.length === 0) return [];
@@ -38,7 +45,7 @@ export const getDataMedisAll = async () => {
 
         if (medisError) throw medisError;
 
-        // Ambil data tambahan pkkmb
+        // Ambil data tambahan
         const { data: tambahanList, error: tambahanError } = await supabaseAdmin
             .from('data_tambahan_pkkmb')
             .select('users, nama_ortu_wali, no_wa_ortu_wali')
@@ -46,9 +53,9 @@ export const getDataMedisAll = async () => {
 
         if (tambahanError) throw tambahanError;
 
-        // Ambil data kelompok & members untuk pencarian relasi nama kelompok/kabim
+        // Ambil data kelompok & members untuk pencarian relasi nama kelompok/kabim (jika PKKMB)
         let kelompokMembersMap = {};
-        if (pesertaNims.length > 0) {
+        if (targetSite === 'pkkmb' && pesertaNims.length > 0) {
             const { data: membersList, error: membersError } = await supabaseAdmin
                 .from('kelompok_members')
                 .select('nim_anggota, kelompok:kelompok_id(nama_kelompok, nama_kabim)')
@@ -87,10 +94,11 @@ export const getDataMedisAll = async () => {
             return {
                 id: p.id,
                 nama: p.nama,
-                nim: p.nim,
-                prodi: p.prodi,
+                nim: p.nim || '-',
+                prodi: p.prodi || '-',
+                kampus: p.kampus || '-',
                 angkatan: p.angkatan || '-',
-                kelas: p.kelas || '-',
+                semester: p.semester || '-',
                 email_wa: p.email_wa,
                 status_pembayaran: p.status_pembayaran,
                 riwayat_penyakit: m.riwayat_penyakit || '-',
@@ -98,7 +106,7 @@ export const getDataMedisAll = async () => {
                 alergi: m.alergi || '-',
                 nama_ortu_wali: t.nama_ortu_wali || '-',
                 no_wa_ortu_wali: t.no_wa_ortu_wali || '-',
-                nama_kelompok: k.nama_kelompok || '-',
+                nama_kelompok: targetSite === 'pose' ? (p.kampus || 'Peserta POSE') : (k.nama_kelompok || '-'),
                 nama_kabim: k.nama_kabim || '-'
             };
         });
@@ -218,17 +226,17 @@ export const getDataMedisByNims = async (nims) => {
 };
 
 /**
- * Ambil semua data medis panitia PKKMB beserta nama panitia (join ke admins).
+ * Ambil semua data medis panitia beserta nama panitia dari tabel data_medis_panitia.
  */
-export const getDataMedisPanitiaAll = async () => {
+export const getDataMedisPanitiaAll = async (site = null) => {
     try {
         const { error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
-        // Fetch data medis panitia
+        // Fetch data medis panitia dari data_medis_panitia
         const { data: medisPanitiaList, error: medisError } = await supabaseAdmin
-            .from('data_medis_pkkmb_panitia')
-            .select('*')
+            .from('data_medis_panitia')
+            .select('id, panitia_id, divisi, riwayat_penyakit, penanganan, alergi, created_at')
             .order('created_at', { ascending: false });
 
         if (medisError) throw medisError;
@@ -238,11 +246,20 @@ export const getDataMedisPanitiaAll = async () => {
         const panitiaIds = [...new Set(medisPanitiaList.map(p => p.panitia_id).filter(Boolean))];
         let adminMap = {};
         if (panitiaIds.length > 0) {
-            const { data: adminList, error: adminErr } = await supabaseAdmin
+            let adminQuery = supabaseAdmin
                 .from('admins')
-                .select('id, nama, wa, role')
-                .eq('type', 'pkkmb')
+                .select('id, nama, email, role, type')
                 .in('id', panitiaIds);
+
+            if (site && site !== 'all') {
+                if (site === 'pose') {
+                    adminQuery = adminQuery.or('type.eq.pose,role.ilike.%pose%');
+                } else if (site === 'pkkmb') {
+                    adminQuery = adminQuery.or('type.eq.pkkmb,role.ilike.%pkkmb%');
+                }
+            }
+
+            const { data: adminList, error: adminErr } = await adminQuery;
 
             if (!adminErr && adminList) {
                 adminList.forEach(a => {
@@ -251,21 +268,29 @@ export const getDataMedisPanitiaAll = async () => {
             }
         }
 
-        return medisPanitiaList.map(item => {
-            const admin = adminMap[item.panitia_id] || {};
-            return {
+        // Filter hasil jika site aktif (hanya tampilkan panitia yang match site filter)
+        const results = [];
+        for (const item of medisPanitiaList) {
+            const admin = adminMap[item.panitia_id];
+            if (site && site !== 'all' && !admin) {
+                continue; // Skip jika tidak sesuai filter site
+            }
+            results.push({
                 id: item.id,
                 panitia_id: item.panitia_id,
-                nama: admin.nama || 'Tidak Diketahui',
-                wa: admin.wa || '-',
-                role: admin.role || '-',
+                nama: admin?.nama || 'Tidak Diketahui',
+                wa: admin?.email || '-',
+                role: admin?.role || '-',
+                type: admin?.type || '-',
                 divisi: item.divisi || '-',
                 riwayat_penyakit: item.riwayat_penyakit || '-',
                 penanganan: item.penanganan || '-',
                 alergi: item.alergi || '-',
                 created_at: item.created_at
-            };
-        });
+            });
+        }
+
+        return results;
     } catch (error) {
         console.error('Internal Log - Error fetching all data medis panitia:', error);
         return [];
@@ -273,7 +298,7 @@ export const getDataMedisPanitiaAll = async () => {
 };
 
 /**
- * Insert data medis panitia baru (Hanya super_admin yang berwenang).
+ * Insert data medis panitia baru ke data_medis_panitia.
  */
 export const insertDataMedisPanitia = async (payload) => {
     try {
@@ -293,9 +318,9 @@ export const insertDataMedisPanitia = async (payload) => {
         };
 
         const { data, error } = await supabaseAdmin
-            .from('data_medis_pkkmb_panitia')
+            .from('data_medis_panitia')
             .insert([insertPayload])
-            .select()
+            .select('id, panitia_id, divisi, riwayat_penyakit, penanganan, alergi, created_at')
             .single();
 
         if (error) throw error;
@@ -319,7 +344,7 @@ export const insertDataMedisPanitia = async (payload) => {
 };
 
 /**
- * Update data medis panitia.
+ * Update data medis panitia di data_medis_panitia.
  */
 export const updateDataMedisPanitia = async (id, payload) => {
     try {
@@ -342,10 +367,10 @@ export const updateDataMedisPanitia = async (id, payload) => {
         }
 
         const { data, error } = await supabaseAdmin
-            .from('data_medis_pkkmb_panitia')
+            .from('data_medis_panitia')
             .update(updatePayload)
             .eq('id', id)
-            .select()
+            .select('id, panitia_id, divisi, riwayat_penyakit, penanganan, alergi, created_at')
             .single();
 
         if (error) throw error;
@@ -368,7 +393,7 @@ export const updateDataMedisPanitia = async (id, payload) => {
 };
 
 /**
- * Delete data medis panitia.
+ * Delete data medis panitia dari data_medis_panitia.
  */
 export const deleteDataMedisPanitia = async (id) => {
     try {
@@ -378,7 +403,7 @@ export const deleteDataMedisPanitia = async (id) => {
         if (!id) return { success: false, error: 'ID tidak valid' };
 
         const { error } = await supabaseAdmin
-            .from('data_medis_pkkmb_panitia')
+            .from('data_medis_panitia')
             .delete()
             .eq('id', id);
 
@@ -404,16 +429,25 @@ export const deleteDataMedisPanitia = async (id) => {
 /**
  * Ambil daftar admin aktif untuk dropdown form input medis panitia.
  */
-export const getAdminsForMedisDropdown = async () => {
+export const getAdminsForMedisDropdown = async (site = null) => {
     try {
         const { error: authError } = await checkAdminAuth();
         if (authError) throw new Error(authError);
 
-        const { data, error } = await supabaseAdmin
+        let query = supabaseAdmin
             .from('admins')
-            .select('id, nama, wa, role')
-            .eq('type', 'pkkmb')
+            .select('id, nama, email, role, type')
             .order('nama', { ascending: true });
+
+        if (site && site !== 'all') {
+            if (site === 'pose') {
+                query = query.or('type.eq.pose,role.ilike.%pose%');
+            } else if (site === 'pkkmb') {
+                query = query.or('type.eq.pkkmb,role.ilike.%pkkmb%');
+            }
+        }
+
+        const { data, error } = await query;
 
         if (error) throw error;
         return data || [];
@@ -422,5 +456,3 @@ export const getAdminsForMedisDropdown = async () => {
         return [];
     }
 };
-
-

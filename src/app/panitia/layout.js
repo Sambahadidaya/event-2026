@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import ThemeToggle from '@/components/ThemeToggle';
-import { User, LayoutDashboard, FileText, ChevronDown, ChevronRight, LogOut, ShieldAlert, Menu, BarChart3, MessageCircle, Mail, Newspaper, Users, Monitor, Lock, Calendar, Settings, BookOpen, FileCheck, ClipboardList, Trophy, Wallet, Receipt, Tags, BookMarked, ArrowLeftRight, BookOpenCheck, TrendingUp, TrendingDown, Scale, Table2, PieChart, CreditCard, UserCheck, Award, HeartPulse, Pill, History } from 'lucide-react';
+import { User, LayoutDashboard, FileText, ChevronDown, ChevronRight, LogOut, ShieldAlert, Menu, BarChart3, MessageCircle, Mail, Newspaper, Users, Monitor, Lock, Calendar, Settings, BookOpen, FileCheck, ClipboardList, Trophy, Wallet, Receipt, Tags, BookMarked, ArrowLeftRight, BookOpenCheck, TrendingUp, TrendingDown, Scale, Table2, PieChart, CreditCard, UserCheck, Award, HeartPulse, Pill, History, Sliders, Sparkles } from 'lucide-react';
 import { logoutAdmin, getCurrentAdmin } from '@/api/supabase/admin/auth';
 import { setAdminOffline, logoutPanitiaAction } from '@/api/logic/panitiaAuthLogic';
 import { updateAdminStatus } from '@/api/supabase/admin/admin';
@@ -399,12 +399,16 @@ export default function PanitiaLayout({ children }) {
                                     </span>
                                     {!collapsed && (menuOpen.kabim ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
                                 </button>
-                                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.kabim ? 'max-h-80 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.kabim ? 'max-h-[500px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
                                     <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
                                         <NavLink href="/panitia/pj_kabim/kelompok" icon={Users} label="Manajemen Kelompok" colorTheme="blue" />
                                         <NavLink href="/panitia/pj_kabim/tugas" icon={FileCheck} label="Review Tugas" colorTheme="blue" />
                                         <NavLink href="/panitia/pj_kabim/absensi" icon={UserCheck} label="Absensi Peserta" colorTheme="blue" />
                                         <NavLink href="/panitia/pj_kabim/riwayat_pelanggaran" icon={ShieldAlert} label="Riwayat Pelanggaran" colorTheme="blue" />
+                                        <NavLink href="/panitia/pj_kabim/master_penilaian" icon={Sliders} label="Master Penilaian" colorTheme="blue" />
+                                        <NavLink href="/panitia/pj_kabim/master_nilai_pelanggaran" icon={ShieldAlert} label="Master Nilai Pelanggaran" colorTheme="blue" />
+                                        <NavLink href="/panitia/pj_kabim/penilaian_kreativitas" icon={Sparkles} label="Penilaian Kreativitas" colorTheme="blue" />
+                                        <NavLink href="/panitia/pj_kabim/nilai_akhir" icon={Award} label="Nilai Akhir PKKMB" colorTheme="blue" />
                                     </ul>
                                 </div>
                             </div>
@@ -504,11 +508,12 @@ export default function PanitiaLayout({ children }) {
                                     </span>
                                     {!collapsed && (menuOpen.sekretaris ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
                                 </button>
-                                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.sekretaris ? 'max-h-48 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.sekretaris ? 'max-h-64 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
                                     <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
                                         <NavLink href="/panitia/absensi_panitia/dashboard" icon={LayoutDashboard} label="Dashboard Absensi" colorTheme="blue" />
                                         <NavLink href="/panitia/absensi_panitia/form" icon={FileText} label="Form Absensi" colorTheme="blue" />
                                         <NavLink href="/panitia/absensi_panitia/absensi" icon={UserCheck} label="Absensi Panitia" colorTheme="blue" />
+                                        <NavLink href="/panitia/sekretaris/absensi_peserta" icon={Users} label="Absensi Peserta" colorTheme="blue" />
                                     </ul>
                                 </div>
                             </div>

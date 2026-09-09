@@ -38,6 +38,13 @@ export const KABIM_ROLE_MAP = {
   'admin_pkkmb_pj_kabim_6': [6],
   'admin_pkkmb_pj_kabim_7': [7],
   'admin_pkkmb_pj_kabim_8': [8],
+  'admin_pkkmb_pj_kabim_9': [9],
+  'admin_pkkmb_pj_kabim_10': [10],
+  'admin_pkkmb_pj_kabim_11': [11],
+  'admin_pkkmb_pj_kabim_12': [12],
+  'admin_pkkmb_pj_kabim_13': [13],
+  'admin_pkkmb_pj_kabim_14': [14],
+  'admin_pkkmb_pj_kabim_15': [15],
   'admin_pkkmb_pj_kabim_A': [2, 4], // Role contoh kombinasi multi kelompok (bisa ditambah/dikustomisasi)
 };
 
@@ -46,7 +53,11 @@ const KABIM_ROUTES = [
   '/panitia/pj_kabim/kelompok',
   '/panitia/pj_kabim/tugas',
   '/panitia/pj_kabim/absensi',
-  '/panitia/pj_kabim/riwayat_pelanggaran'
+  '/panitia/pj_kabim/riwayat_pelanggaran',
+  '/panitia/pj_kabim/master_penilaian',
+  '/panitia/pj_kabim/master_nilai_pelanggaran',
+  '/panitia/pj_kabim/penilaian_kreativitas',
+  '/panitia/pj_kabim/nilai_akhir',
 ];
 const kabimPermissions = {};
 Object.keys(KABIM_ROLE_MAP).forEach(roleKey => {
@@ -93,6 +104,10 @@ export const rolePermissions = {
     '/panitia/pj_kabim/tugas',
     '/panitia/pj_kabim/absensi',
     '/panitia/pj_kabim/riwayat_pelanggaran',
+    '/panitia/pj_kabim/master_penilaian',
+    '/panitia/pj_kabim/master_nilai_pelanggaran',
+    '/panitia/pj_kabim/penilaian_kreativitas',
+    '/panitia/pj_kabim/nilai_akhir',
     '/panitia/pj_tatib/master_pelanggaran',
     '/panitia/pj_tatib/riwayat_pelanggaran',
     '/panitia/pj_medis/peserta',
@@ -158,6 +173,7 @@ export const rolePermissions = {
     '/panitia/absensi_panitia/dashboard',
     '/panitia/absensi_panitia/form',
     '/panitia/absensi_panitia/absensi',
+    '/panitia/sekretaris/absensi_peserta',
   ],
   admin_pose_form: [
     '/panitia/pose/form_register',
@@ -244,6 +260,7 @@ export const rolePermissions = {
     '/panitia/absensi_panitia/dashboard',
     '/panitia/absensi_panitia/form',
     '/panitia/absensi_panitia/absensi',
+    '/panitia/sekretaris/absensi_peserta',
     '/panitia/pj_lomba/dashboard',
     '/panitia/pj_lomba/form_register',
     '/panitia/pj_lomba/jadwal_pertandingan',
@@ -254,6 +271,7 @@ export const rolePermissions = {
     '/panitia/absensi_panitia/dashboard',
     '/panitia/absensi_panitia/form',
     '/panitia/absensi_panitia/absensi',
+    '/panitia/sekretaris/absensi_peserta',
     '/panitia/pj_lomba/dashboard',
     '/panitia/pj_lomba/form_register',
     '/panitia/pj_lomba/jadwal_pertandingan',
@@ -261,6 +279,13 @@ export const rolePermissions = {
     '/panitia/pj_lomba/penilaian',
   ],
   admin_pkkmb_pj_medis: [
+    '/panitia/pj_medis/peserta',
+    '/panitia/pj_medis/panitia',
+    '/panitia/pj_medis/master_obat',
+    '/panitia/pj_medis/log_obat',
+    '/panitia/pj_medis/riwayat_penanganan',
+  ],
+  admin_pose_pj_medis: [
     '/panitia/pj_medis/peserta',
     '/panitia/pj_medis/panitia',
     '/panitia/pj_medis/master_obat',
@@ -298,6 +323,7 @@ export const getRoleLabel = (roleKey) => {
   if (!roleKey) return 'Admin';
   if (roleKey === 'super_admin') return 'Super Admin';
   if (roleKey === 'admin_pkkmb_pj_medis') return 'PJ Medis PKKMB';
+  if (roleKey === 'admin_pose_pj_medis') return 'PJ Medis POSE';
   if (roleKey === 'admin_pkkmb_pj_acara') return 'PJ Acara PKKMB';
   if (roleKey === 'admin_pkkmb_pj_tatib') return 'PJ Tatib PKKMB';
   if (roleKey === 'admin_pose_keuangan_lomba_Badminton') return 'Keuangan & PJ Badminton';
@@ -465,6 +491,10 @@ export const MENU_SECTION_ROUTES = {
     '/panitia/pj_kabim/tugas',
     '/panitia/pj_kabim/absensi',
     '/panitia/pj_kabim/riwayat_pelanggaran',
+    '/panitia/pj_kabim/master_penilaian',
+    '/panitia/pj_kabim/master_nilai_pelanggaran',
+    '/panitia/pj_kabim/penilaian_kreativitas',
+    '/panitia/pj_kabim/nilai_akhir',
   ],
   medis: [
     '/panitia/pj_medis/peserta',
@@ -485,6 +515,7 @@ export const MENU_SECTION_ROUTES = {
     '/panitia/absensi_panitia/dashboard',
     '/panitia/absensi_panitia/form',
     '/panitia/absensi_panitia/absensi',
+    '/panitia/sekretaris/absensi_peserta',
   ],
   pjLomba: [
     '/panitia/pj_lomba/dashboard',
@@ -542,6 +573,16 @@ export const canAccessSection = (role, sectionKey) => {
   const routes = MENU_SECTION_ROUTES[sectionKey];
   if (!routes) return false;
   return canAccessAny(role, routes);
+};
+
+/**
+ * Helper to determine default site ('pkkmb' or 'pose') from an admin's role.
+ * Super admin defaults to 'pkkmb' but has access to both.
+ */
+export const getSiteFromRole = (role) => {
+  if (!role) return 'pkkmb';
+  if (role.toLowerCase().includes('pose')) return 'pose';
+  return 'pkkmb';
 };
 
 /**

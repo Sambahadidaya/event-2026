@@ -1,19 +1,15 @@
 export const updateVersionAdminConfig = {
     pkkmb: {
-        currentVersion: '2026.3.2',
+        currentVersion: '2026.3.3',
         storageKey: 'admin_pkkmb_last_seen_version',
         updates: [
             {
-                version: '2026.3.2',
-                date: '07 September 2026 03.18 WIB',
-                title: 'Rilis Panel Admin PKKMB v3.2 — Halaman Baru Pj_Kabim & Pj_Tatib & Pj_Medis & Pembagian Kelompok',
+                version: '2026.3.3',
+                date: '10 September 2026 00.18 WIB',
+                title: 'Rilis Panel Admin PKKMB v3.3 — Halaman Baru Untuk Divisi Kabim, dan Divisi Sekretaris',
                 highlights: [
-                    'Menambahkan halaman panitia pj tatib untuk manage master pelanggaran dan riwayat pelanggaran',
-                    'Menambahkan fitur riwayat pelanggaran pada halaman pj kabim',
-                    'Menambahkan halaman panitia pj medis untuk manage master obat dan riwayat penggunaan obat',
-                    'Menambahkan halaman panitia pembagian kelompok untuk manage kelompok',
-                    'Menambahkan fitur pembuatan qr peserta pada halaman panitia kelompok',
-                    'Menambahkan halaman panitia absensi untuk absensi peserta',
+                    'Menambahkan halaman baru untuk divisi kabim yaitu master penilaian, penilaian kreativitas, penilaian pelanggaran, dan nilai akhir penilaian',
+                    'Menambahkan halaman baru untuk divisi sekretaris yaitu Absensi Peserta',
                 ]
             }
         ]

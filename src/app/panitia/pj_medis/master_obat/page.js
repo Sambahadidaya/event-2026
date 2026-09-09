@@ -11,12 +11,10 @@ import {
     AlertCircle,
     CheckCircle2,
     Package,
-    Layers,
-    AlertTriangle,
-    RotateCcw
+    ShieldCheck
 } from 'lucide-react';
 import { getCurrentAdmin } from '@/api/supabase/admin/auth';
-import { hasAccess } from '@/lib/adminRoleData';
+import { hasAccess, getSiteFromRole } from '@/lib/adminRoleData';
 import {
     getMasterObat,
     createMasterObat,
@@ -37,6 +35,8 @@ export default function MasterObatPage() {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
+    const [selectedSite, setSelectedSite] = useState('pkkmb');
+    const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -56,10 +56,10 @@ export default function MasterObatPage() {
     };
 
     // Initial load
-    const fetchData = useCallback(async () => {
+    const fetchData = useCallback(async (siteTarget) => {
         setLoading(true);
         try {
-            const res = await getMasterObat();
+            const res = await getMasterObat(siteTarget);
             if (res.success) {
                 setDataList(res.data || []);
             } else {
@@ -88,7 +88,14 @@ export default function MasterObatPage() {
                 }
 
                 setAdmin(currentAdmin);
-                await fetchData();
+                const isSuper = currentAdmin.role === 'super_admin';
+                setIsSuperAdmin(isSuper);
+
+                const detectedSite = getSiteFromRole(currentAdmin.role);
+                const initialSite = isSuper ? 'pkkmb' : detectedSite;
+                setSelectedSite(initialSite);
+
+                await fetchData(initialSite);
             } catch (err) {
                 console.error('Init error:', err);
                 router.push('/panitia/login');
@@ -97,6 +104,11 @@ export default function MasterObatPage() {
 
         init();
     }, [router, fetchData]);
+
+    const handleSiteChange = async (site) => {
+        setSelectedSite(site);
+        await fetchData(site);
+    };
 
     // Search filter
     const filteredData = useMemo(() => {
@@ -113,7 +125,7 @@ export default function MasterObatPage() {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchQuery]);
+    }, [searchQuery, selectedSite]);
 
     // Stats
     const stats = useMemo(() => {
@@ -121,24 +133,26 @@ export default function MasterObatPage() {
         const totalStok = dataList.reduce((acc, curr) => acc + (curr.stok_obat || 0), 0);
         const totalSisa = dataList.reduce((acc, curr) => acc + (curr.sisa_obat ?? curr.stok_obat ?? 0), 0);
         const obatMenipis = dataList.filter(item => {
+            if (item.is_non_depleting) return false;
             const sisa = item.sisa_obat ?? item.stok_obat ?? 0;
             return sisa <= 5;
         }).length;
-        return { totalVarian, totalStok, totalSisa, obatMenipis };
+        const nonDepletingCount = dataList.filter(item => item.is_non_depleting).length;
+        return { totalVarian, totalStok, totalSisa, obatMenipis, nonDepletingCount };
     }, [dataList]);
 
     // Handle create or update
     const handleSave = async (payload) => {
         if (editingItem) {
-            const res = await updateMasterObat(editingItem.id, payload);
+            const res = await updateMasterObat(editingItem.id, { ...payload, site: selectedSite });
             if (!res.success) throw new Error(res.error);
             showToast('Data master obat berhasil diperbarui');
         } else {
-            const res = await createMasterObat(payload);
+            const res = await createMasterObat({ ...payload, site: selectedSite });
             if (!res.success) throw new Error(res.error);
             showToast('Obat baru berhasil ditambahkan');
         }
-        await fetchData();
+        await fetchData(selectedSite);
     };
 
     // Handle delete
@@ -154,7 +168,7 @@ export default function MasterObatPage() {
             const res = await deleteMasterObat(deletingId);
             if (res.success) {
                 showToast('Obat berhasil dihapus');
-                await fetchData();
+                await fetchData(selectedSite);
             } else {
                 showToast(res.error || 'Gagal menghapus obat', 'error');
             }
@@ -172,6 +186,7 @@ export default function MasterObatPage() {
     const printColumns = [
         { key: 'no', label: 'No' },
         { key: 'nama_obat', label: 'Nama Obat' },
+        { key: 'jenis_obat', label: 'Sifat Obat' },
         { key: 'stok_obat', label: 'Stok Awal' },
         { key: 'sisa_obat', label: 'Sisa Obat' },
         { key: 'terpakai', label: 'Terpakai' },
@@ -191,9 +206,10 @@ export default function MasterObatPage() {
             return {
                 no: idx + 1,
                 nama_obat: item.nama_obat || '-',
+                jenis_obat: item.is_non_depleting ? 'Non-Depleting' : 'Depleting',
                 stok_obat: item.stok_obat ?? 0,
-                sisa_obat: sisa,
-                terpakai: terpakai >= 0 ? terpakai : 0,
+                sisa_obat: item.is_non_depleting ? 'Utuh (Pakai Ulang)' : sisa,
+                terpakai: item.is_non_depleting ? '-' : (terpakai >= 0 ? terpakai : 0),
                 created_at_fmt: dateStr
             };
         });
@@ -234,23 +250,49 @@ export default function MasterObatPage() {
                             <Pill size={24} />
                         </div>
                         <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-                            Master Data Obat
+                            Master Data Obat ({selectedSite.toUpperCase()})
                         </h1>
                     </div>
                     <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                        Kelola katalog obat, pembaruan stok awal, dan pemantauan sisa persediaan medis
+                        Kelola katalog obat, pembaruan stok awal, dan pemantauan sisa persediaan medis {selectedSite.toUpperCase()}
                     </p>
                 </div>
 
-                <div className="flex items-center gap-2.5 shrink-0">
+                <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                    {/* Super Admin Site Switcher */}
+                    {isSuperAdmin && (
+                        <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700">
+                            <button
+                                onClick={() => handleSiteChange('pkkmb')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    selectedSite === 'pkkmb'
+                                        ? 'bg-blue-600 text-white shadow-xs'
+                                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                                }`}
+                            >
+                                PKKMB
+                            </button>
+                            <button
+                                onClick={() => handleSiteChange('pose')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    selectedSite === 'pose'
+                                        ? 'bg-amber-600 text-white shadow-xs'
+                                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                                }`}
+                            >
+                                POSE
+                            </button>
+                        </div>
+                    )}
+
                     <TombolCetak
-                        pdfTitle="Laporan Master Obat Medis PKKMB 2026"
-                        pdfSite="pkkmb"
+                        pdfTitle={`Laporan Master Obat Medis ${selectedSite.toUpperCase()} 2026`}
+                        pdfSite={selectedSite}
                         pdfData={printData}
                         pdfColumns={printColumns}
                         excelData={printData}
                         excelColumns={printColumns}
-                        excelFilename="master-obat-medis"
+                        excelFilename={`master-obat-${selectedSite}`}
                     />
 
                     <button
@@ -302,7 +344,7 @@ export default function MasterObatPage() {
                 <Search size={18} className="text-slate-400 shrink-0" />
                 <input
                     type="text"
-                    placeholder="Cari nama obat..."
+                    placeholder={`Cari nama obat pada data ${selectedSite.toUpperCase()}...`}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full bg-transparent text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none"
@@ -322,7 +364,7 @@ export default function MasterObatPage() {
                 <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                     <div>
                         <h3 className="font-bold text-slate-800 dark:text-white text-base">
-                            Katalog Obat & Status Persediaan
+                            Katalog Obat & Status Persediaan ({selectedSite.toUpperCase()})
                         </h3>
                         <p className="text-xs text-slate-400">
                             Data master obat yang dapat digunakan pada riwayat penanganan medis
@@ -338,11 +380,11 @@ export default function MasterObatPage() {
                         <thead>
                             <tr className="bg-slate-50/75 dark:bg-slate-800/50 border-b border-slate-200/80 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">
                                 <th className="py-3.5 px-4 w-14 text-center">No</th>
-                                <th className="py-3.5 px-4">Nama Obat</th>
+                                <th className="py-3.5 px-4">Nama Obat / Alat Medis</th>
                                 <th className="py-3.5 px-4 w-32 text-center">Jumlah Stok</th>
-                                <th className="py-3.5 px-4 w-32 text-center">Sisa Obat</th>
+                                <th className="py-3.5 px-4 w-36 text-center">Sisa Obat</th>
                                 <th className="py-3.5 px-4 w-28 text-center">Terpakai</th>
-                                <th className="py-3.5 px-4 w-40">Tanggal Dibuat</th>
+                                <th className="py-3.5 px-4 w-36">Tanggal Input</th>
                                 <th className="py-3.5 px-4 w-28 text-center">Aksi</th>
                             </tr>
                         </thead>
@@ -369,7 +411,7 @@ export default function MasterObatPage() {
                                             {searchQuery ? 'Obat tidak ditemukan' : 'Belum Ada Data Obat'}
                                         </p>
                                         <p className="text-xs text-slate-400 mt-1">
-                                            {searchQuery ? `Tidak ada obat dengan kata kunci "${searchQuery}"` : 'Klik tombol "Tambah Obat" untuk menambahkan master obat.'}
+                                            {searchQuery ? `Tidak ada obat dengan kata kunci "${searchQuery}"` : `Klik tombol "Tambah Obat" untuk menambahkan master obat ${selectedSite.toUpperCase()}.`}
                                         </p>
                                     </td>
                                 </tr>
@@ -379,7 +421,9 @@ export default function MasterObatPage() {
                                     const terpakai = (item.stok_obat || 0) - sisa;
 
                                     let badgeStyle = 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800';
-                                    if (sisa === 0) {
+                                    if (item.is_non_depleting) {
+                                        badgeStyle = 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200 dark:border-amber-800';
+                                    } else if (sisa === 0) {
                                         badgeStyle = 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200 dark:border-rose-900';
                                     } else if (sisa <= 5) {
                                         badgeStyle = 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200 dark:border-amber-800';
@@ -391,23 +435,38 @@ export default function MasterObatPage() {
                                                 {startIndex + index + 1}
                                             </td>
                                             <td className="py-4 px-4">
-                                                <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">
-                                                    {item.nama_obat}
-                                                </p>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">
+                                                        {item.nama_obat}
+                                                    </p>
+                                                    {item.is_non_depleting && (
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 text-[10px] font-bold rounded-md border border-amber-200/80 dark:border-amber-800/80">
+                                                            <ShieldCheck size={11} />
+                                                            Non-Depleting
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="py-4 px-4 text-center font-bold text-slate-700 dark:text-slate-300">
                                                 {item.stok_obat ?? 0}
                                             </td>
                                             <td className="py-4 px-4 text-center">
-                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${badgeStyle}`}>
-                                                    <span className={`w-1.5 h-1.5 rounded-full ${
-                                                        sisa === 0 ? 'bg-rose-500' : sisa <= 5 ? 'bg-amber-500' : 'bg-emerald-500'
-                                                    }`} />
-                                                    {sisa} {sisa === 0 ? '(Habis)' : ''}
-                                                </span>
+                                                {item.is_non_depleting ? (
+                                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${badgeStyle}`}>
+                                                        <ShieldCheck size={12} className="text-amber-500" />
+                                                        {sisa} (Tetap)
+                                                    </span>
+                                                ) : (
+                                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${badgeStyle}`}>
+                                                        <span className={`w-1.5 h-1.5 rounded-full ${
+                                                            sisa === 0 ? 'bg-rose-500' : sisa <= 5 ? 'bg-amber-500' : 'bg-emerald-500'
+                                                        }`} />
+                                                        {sisa} {sisa === 0 ? '(Habis)' : ''}
+                                                    </span>
+                                                )}
                                             </td>
                                             <td className="py-4 px-4 text-center font-semibold text-slate-500 dark:text-slate-400">
-                                                {terpakai >= 0 ? terpakai : 0}
+                                                {item.is_non_depleting ? '-' : (terpakai >= 0 ? terpakai : 0)}
                                             </td>
                                             <td className="py-4 px-4 text-xs text-slate-500 dark:text-slate-400">
                                                 {formatDateTime(item.created_at)}
@@ -458,6 +517,7 @@ export default function MasterObatPage() {
                 onClose={() => setIsModalOpen(false)}
                 onSave={handleSave}
                 editingData={editingItem}
+                defaultSite={selectedSite}
             />
 
             {/* Confirm Modal for Delete */}

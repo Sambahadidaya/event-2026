@@ -1111,6 +1111,203 @@ create table jadwal_acara_pkkmb(
 ALTER TABLE public.jadwal_acara_pkkmb ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "auth all jadwal_acara_pkkmb" ON jadwal_acara_pkkmb FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
+
+create table absensi_peserta_pkkmb (
+  id UUID primary key DEFAULT uuid_generate_v4(),
+  kelompok_members_id UUID REFERENCES public.kelompok_members(id) ON DELETE CASCADE,
+  jadwal_acara_pkkmb_id UUID REFERENCES public.jadwal_acara_pkkmb(id) ON DELETE CASCADE,
+  jenis_absensi VARCHAR(50),
+  keterangan VARCHAR(255),
+  created_by VARCHAR(100),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE public.absensi_peserta_pkkmb ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth all absensi_peserta_pkkmb" ON absensi_peserta_pkkmb FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+
+create table master_pelanggaran(
+  id UUID primary key default uuid_generate_v4(),
+  nama_pelanggaran varchar(255),
+  jenis_pelanggaran varchar(50),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE public.master_pelanggaran ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth all master_pelanggaran" ON master_pelanggaran FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+create table riwayat_pelanggaran(
+  id UUID primary key default uuid_generate_v4(),
+  peserta_id UUID REFERENCES public.kelompok_members(id) ON DELETE CASCADE,
+  pelanggaran_id UUID REFERENCES public.master_pelanggaran(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE public.riwayat_pelanggaran ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth all riwayat_pelanggaran" ON riwayat_pelanggaran FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+create table master_obat(
+  id UUID primary key default uuid_generate_v4(),
+  nama_obat varchar(255),
+  stok_obat int4,
+  sisa_obat int4,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.master_obat ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth all master_obat" ON master_obat FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+create table pemakaian_obat(
+  id UUID primary key default uuid_generate_v4(),
+  obat_id UUID REFERENCES public.master_obat(id) ON DELETE CASCADE,
+  pemakaian_obat int4,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.pemakaian_obat ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth all pemakaian_obat" ON pemakaian_obat FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+create table riwayat_penanganan_medis(
+  id UUID primary key default uuid_generate_v4(),
+  peserta_id UUID REFERENCES public.kelompok_members(id) ON DELETE CASCADE,
+  panitia_id UUID REFERENCES public.admins(id) ON DELETE CASCADE,
+  pemakaian_obat_id UUID REFERENCES public. pemakaian_obat(id) ON DELETE CASCADE,
+  keterangan varchar(255),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE public.riwayat_penanganan_medis ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth all riwayat_penanganan_medis" ON riwayat_penanganan_medis FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+create table absensi_peserta_pose (
+  id UUID primary key DEFAULT uuid_generate_v4(),
+  nama_peserta VARCHAR(100),
+  nim_peserta VARCHAR(100),
+  judul_absensi VARCHAR(10),
+  jenis_absensi VARCHAR(50),
+  keterangan VARCHAR(255),
+  created_by VARCHAR(100),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE public.absensi_peserta_pose ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth all absensi_peserta_pose" ON absensi_peserta_pose FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+CREATE TABLE IF NOT EXISTS public.riwayat_penanganan_obat (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    penanganan_id UUID REFERENCES public.riwayat_penanganan_medis(id) ON DELETE CASCADE,
+    obat_id UUID REFERENCES public.master_obat(id) ON DELETE RESTRICT,
+    jumlah INTEGER DEFAULT 1,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.riwayat_penanganan_obat ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "auth all riwayat_penanganan_obat" ON riwayat_penanganan_obat 
+    FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE master_obat ADD COLUMN site site_type;
+ALTER TABLE pemakaian_obat ADD COLUMN site site_type;
+ALTER TABLE riwayat_penanganan_medis ADD COLUMN site site_type;
+ALTER TABLE riwayat_penanganan_obat ADD COLUMN site site_type;
+ALTER TABLE data_medis_pkkmb_panitia RENAME TO data_medis_panitia;
+ALTER TABLE master_obat ADD COLUMN IF NOT EXISTS is_non_depleting BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE public.kelompok 
+  ADD COLUMN IF NOT EXISTS jenis_kelompok VARCHAR(10) NOT NULL DEFAULT 'reguler' 
+    CHECK (jenis_kelompok IN ('reguler', 'nonreg')),
+  ADD COLUMN IF NOT EXISTS is_public BOOLEAN NOT NULL DEFAULT true;
+
+-- ============================================================
+-- TASK 76: SISTEM PENILAIAN KOMPREHENSIF KABIM PKKMB 2026
+-- ============================================================
+-- 1. Master Kriteria Penilaian
+CREATE TABLE public.master_penilaian_pkkmb (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    kategori_peserta VARCHAR(20) NOT NULL CHECK (kategori_peserta IN ('reguler', 'nonreg')),
+    kode_kriteria VARCHAR(50) NOT NULL,
+    nama_kriteria VARCHAR(100) NOT NULL,
+    bobot_persen NUMERIC(5,2) NOT NULL DEFAULT 20.00,
+    keterangan TEXT,
+    urutan INT4 DEFAULT 1,
+    aktif BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT master_penilaian_pkkmb_unique UNIQUE (kategori_peserta, kode_kriteria)
+);
+
+-- 2. Master Nilai Pelanggaran
+ALTER TABLE public.master_pelanggaran ADD COLUMN IF NOT EXISTS poin_pengurangan NUMERIC(5,2) DEFAULT 5;
+
+CREATE TABLE public.master_poin_kategori_pelanggaran (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    jenis_pelanggaran VARCHAR(50) NOT NULL UNIQUE CHECK (jenis_pelanggaran IN ('Ringan', 'Sedang', 'Berat')),
+    default_poin NUMERIC(5,2) NOT NULL DEFAULT 5,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 3. Penilaian Kreativitas Kelompok
+CREATE TABLE public.penilaian_kreativitas_pkkmb (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    kelompok_id UUID NOT NULL REFERENCES public.kelompok(id) ON DELETE CASCADE,
+    skor_yelyel NUMERIC(5,2) DEFAULT 0,
+    skor_kreasi_seni NUMERIC(5,2) DEFAULT 0,
+    skor_vlog NUMERIC(5,2) DEFAULT 0,
+    nilai_akhir NUMERIC(5,2) GENERATED ALWAYS AS ((skor_yelyel + skor_kreasi_seni + skor_vlog) / 3.0) STORED,
+    catatan TEXT,
+    created_by VARCHAR(100),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT penilaian_kreativitas_kelompok_unique UNIQUE (kelompok_id)
+);
+
+-- 4. Penilaian Keaktifan Harian Peserta
+CREATE TABLE public.penilaian_keaktifan_pkkmb (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    kelompok_members_id UUID NOT NULL REFERENCES public.kelompok_members(id) ON DELETE CASCADE,
+    label_hari VARCHAR(100) NOT NULL,
+    jadwal_acara_pkkmb_id UUID REFERENCES public.jadwal_acara_pkkmb(id) ON DELETE SET NULL,
+    skor_keaktifan NUMERIC(5,2) NOT NULL DEFAULT 60.00 CHECK (skor_keaktifan >= 0 AND skor_keaktifan <= 100),
+    catatan TEXT,
+    created_by VARCHAR(100),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT penilaian_keaktifan_unique UNIQUE (kelompok_members_id, label_hari)
+);
+
+-- 5. Tugas Sosial Media PKKMB
+CREATE TABLE public.tugas_sosmed_pkkmb (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tipe_tugas VARCHAR(20) NOT NULL CHECK (tipe_tugas IN ('kelompok', 'individu')),
+    kelompok_id UUID REFERENCES public.kelompok(id) ON DELETE CASCADE,
+    kelompok_members_id UUID REFERENCES public.kelompok_members(id) ON DELETE CASCADE,
+    label_hari VARCHAR(100),
+    jadwal_acara_pkkmb_id UUID REFERENCES public.jadwal_acara_pkkmb(id) ON DELETE SET NULL,
+    platform VARCHAR(50) NOT NULL CHECK (platform IN ('TikTok', 'Instagram', 'YouTube', 'Lainnya')),
+    link_konten TEXT NOT NULL,
+    keterangan TEXT,
+    nilai NUMERIC(5,2) DEFAULT NULL,
+    catatan_penilai TEXT,
+    created_by VARCHAR(100),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 6. Tugas Barang Bawaan PKKMB
+CREATE TABLE public.tugas_barang_pkkmb (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tipe_barang VARCHAR(20) NOT NULL CHECK (tipe_barang IN ('kelompok', 'individu')),
+    kelompok_id UUID REFERENCES public.kelompok(id) ON DELETE CASCADE,
+    kelompok_members_id UUID REFERENCES public.kelompok_members(id) ON DELETE CASCADE,
+    label_hari VARCHAR(100) NOT NULL,
+    jadwal_acara_pkkmb_id UUID REFERENCES public.jadwal_acara_pkkmb(id) ON DELETE SET NULL,
+    total_barang_wajib INT4 NOT NULL DEFAULT 1,
+    barang_dibawa INT4 NOT NULL DEFAULT 0,
+    catatan TEXT,
+    created_by VARCHAR(100),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 7. Kolom Nilai Resume Materi
+ALTER TABLE public.tugas_materi ADD COLUMN IF NOT EXISTS nilai NUMERIC(5,2) DEFAULT NULL;
+
 ```
 
 ---

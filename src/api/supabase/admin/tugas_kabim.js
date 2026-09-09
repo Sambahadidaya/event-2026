@@ -104,7 +104,7 @@ export const getTugasKabimByMateri = async (materiId) => {
         // 5. Query data tugas_materi untuk materi_id & nims yang relevan
         const { data: tugasList, error: tugasError } = await supabaseAdmin
             .from('tugas_materi')
-            .select('id, materi_id, nama, nim, kampus, file_tugas, created_at, keterangan')
+            .select('id, materi_id, nama, nim, kampus, file_tugas, created_at, keterangan, nilai')
             .eq('materi_id', materiId)
             .in('nim', allNims);
 
@@ -145,6 +145,7 @@ export const getTugasKabimByMateri = async (materiId) => {
                         angkatan: pInfo.angkatan || '-',
                         status_tugas: true, // Sudah
                         bukti_tugas: tInfo.file_tugas || null,
+                        nilai: tInfo.nilai !== undefined && tInfo.nilai !== null ? Number(tInfo.nilai) : null,
                         created_at: tInfo.created_at || null,
                         keterangan: tInfo.keterangan || null
                     });
@@ -165,6 +166,7 @@ export const getTugasKabimByMateri = async (materiId) => {
                         angkatan: pInfo.angkatan || '-',
                         status_tugas: false, // Belum
                         bukti_tugas: null,
+                        nilai: null,
                         created_at: null,
                         keterangan: null
                     });
@@ -202,5 +204,47 @@ export const deleteTugasKabim = async (id) => {
     } catch (error) {
         console.error('Internal Log - Error deleting tugas kabim:', error);
         return { success: false, error: 'Terjadi kesalahan saat menghapus tugas.' };
+    }
+};
+
+/**
+ * Mengupdate nilai tugas materi (0 = tidak mengerjakan, 5 = mengerjakan)
+ * @param {Object} params
+ * @param {string} params.id - UUID tugas_materi
+ * @param {number} params.nilai - nilai (0 atau 5)
+ */
+export const updateNilaiTugasMateri = async ({ id, nilai }) => {
+    try {
+        const { user, adminNama, error: authError } = await checkAdminAuth();
+        if (authError) throw new Error(authError);
+
+        if (!id) throw new Error('ID tugas materi wajib diisi.');
+
+        const numNilai = parseFloat(nilai);
+        if (isNaN(numNilai) || numNilai < 0) {
+            throw new Error('Nilai harus berupa angka valid (0 atau 5).');
+        }
+
+        const { data, error } = await supabaseAdmin
+            .from('tugas_materi')
+            .update({ nilai: numNilai })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        await insertAuditLog(
+            user.email,
+            'UPDATE_NILAI_TUGAS_MATERI',
+            id,
+            `Nilai tugas resume materi peserta diubah menjadi ${numNilai}`,
+            adminNama
+        );
+
+        return { success: true, data };
+    } catch (error) {
+        console.error('Error in updateNilaiTugasMateri:', error);
+        return { success: false, error: error.message || 'Gagal memperbarui nilai tugas resume materi.' };
     }
 };

@@ -13,18 +13,15 @@ import {
     User,
     Shield,
     Pill,
-    Calendar,
-    Activity,
-    Users
+    ShieldCheck
 } from 'lucide-react';
 import { getCurrentAdmin } from '@/api/supabase/admin/auth';
-import { hasAccess } from '@/lib/adminRoleData';
+import { hasAccess, getSiteFromRole } from '@/lib/adminRoleData';
 import {
     getRiwayatPenangananMedis,
     getMasterObat,
     getAdminsForMedis,
     createRiwayatPenangananMedis,
-    updateRiwayatPenangananMedis,
     deleteRiwayatPenangananMedis
 } from '@/api/supabase/admin/obat';
 import RiwayatPenangananModal from '@/components/panitia/pj_medis/RiwayatPenangananModal';
@@ -41,6 +38,8 @@ export default function RiwayatPenangananPage() {
     const [masterList, setMasterList] = useState([]);
     const [adminList, setAdminList] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedSite, setSelectedSite] = useState('pkkmb');
+    const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
     // Filters
     const [searchQuery, setSearchQuery] = useState('');
@@ -65,13 +64,13 @@ export default function RiwayatPenangananPage() {
     };
 
     // Load data
-    const fetchData = useCallback(async () => {
+    const fetchData = useCallback(async (siteTarget) => {
         setLoading(true);
         try {
             const [riwayatRes, masterRes, adminsRes] = await Promise.all([
-                getRiwayatPenangananMedis(),
-                getMasterObat(),
-                getAdminsForMedis()
+                getRiwayatPenangananMedis(siteTarget),
+                getMasterObat(siteTarget),
+                getAdminsForMedis(siteTarget)
             ]);
 
             if (riwayatRes.success) {
@@ -110,7 +109,14 @@ export default function RiwayatPenangananPage() {
                 }
 
                 setAdmin(currentAdmin);
-                await fetchData();
+                const isSuper = currentAdmin.role === 'super_admin';
+                setIsSuperAdmin(isSuper);
+
+                const detectedSite = getSiteFromRole(currentAdmin.role);
+                const initialSite = isSuper ? 'pkkmb' : detectedSite;
+                setSelectedSite(initialSite);
+
+                await fetchData(initialSite);
             } catch (err) {
                 console.error('Init error:', err);
                 router.push('/panitia/login');
@@ -120,14 +126,21 @@ export default function RiwayatPenangananPage() {
         init();
     }, [router, fetchData]);
 
+    const handleSiteChange = async (site) => {
+        setSelectedSite(site);
+        await fetchData(site);
+    };
+
     // Filtering
     const filteredData = useMemo(() => {
         return riwayatList.filter((item) => {
+            const hasObat = (Array.isArray(item.riwayat_penanganan_obat) && item.riwayat_penanganan_obat.length > 0) || !!item.pemakaian_obat_id;
+
             // Category Filter
             if (categoryFilter === 'peserta' && !item.peserta_id) return false;
             if (categoryFilter === 'panitia' && !item.panitia_id) return false;
-            if (categoryFilter === 'dengan_obat' && !item.pemakaian_obat_id) return false;
-            if (categoryFilter === 'tanpa_obat' && item.pemakaian_obat_id) return false;
+            if (categoryFilter === 'dengan_obat' && !hasObat) return false;
+            if (categoryFilter === 'tanpa_obat' && hasObat) return false;
 
             // Search Filter
             if (!searchQuery.trim()) return true;
@@ -136,14 +149,24 @@ export default function RiwayatPenangananPage() {
             const namaPeserta = item.peserta?.nama_anggota || '';
             const nimPeserta = item.peserta?.nim_anggota || '';
             const namaPanitia = item.panitia?.nama || '';
-            const namaObat = item.pemakaian_obat?.master_obat?.nama_obat || '';
             const keterangan = item.keterangan || '';
+
+            // Check multi obat names
+            let obatMatch = false;
+            if (Array.isArray(item.riwayat_penanganan_obat)) {
+                obatMatch = item.riwayat_penanganan_obat.some(rel =>
+                    (rel.master_obat?.nama_obat || '').toLowerCase().includes(q)
+                );
+            }
+            if (!obatMatch && item.pemakaian_obat?.master_obat?.nama_obat) {
+                obatMatch = item.pemakaian_obat.master_obat.nama_obat.toLowerCase().includes(q);
+            }
 
             return (
                 namaPeserta.toLowerCase().includes(q) ||
                 nimPeserta.toLowerCase().includes(q) ||
                 namaPanitia.toLowerCase().includes(q) ||
-                namaObat.toLowerCase().includes(q) ||
+                obatMatch ||
                 keterangan.toLowerCase().includes(q)
             );
         });
@@ -155,29 +178,25 @@ export default function RiwayatPenangananPage() {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchQuery, categoryFilter]);
+    }, [searchQuery, categoryFilter, selectedSite]);
 
     // Stats
     const stats = useMemo(() => {
         const total = riwayatList.length;
         const pesertaCount = riwayatList.filter(r => r.peserta_id).length;
         const panitiaCount = riwayatList.filter(r => r.panitia_id).length;
-        const denganObatCount = riwayatList.filter(r => r.pemakaian_obat_id).length;
+        const denganObatCount = riwayatList.filter(r =>
+            (Array.isArray(r.riwayat_penanganan_obat) && r.riwayat_penanganan_obat.length > 0) || !!r.pemakaian_obat_id
+        ).length;
         return { total, pesertaCount, panitiaCount, denganObatCount };
     }, [riwayatList]);
 
     // Save
     const handleSave = async (payload) => {
-        if (editingItem) {
-            const res = await updateRiwayatPenangananMedis(editingItem.id, payload);
-            if (!res.success) throw new Error(res.error);
-            showToast('Riwayat penanganan medis berhasil diperbarui');
-        } else {
-            const res = await createRiwayatPenangananMedis(payload);
-            if (!res.success) throw new Error(res.error);
-            showToast('Penanganan medis berhasil dicatat');
-        }
-        await fetchData();
+        const res = await createRiwayatPenangananMedis({ ...payload, site: selectedSite });
+        if (!res.success) throw new Error(res.error);
+        showToast('Penanganan medis berhasil dicatat');
+        await fetchData(selectedSite);
     };
 
     // Delete
@@ -193,7 +212,7 @@ export default function RiwayatPenangananPage() {
             const res = await deleteRiwayatPenangananMedis(deletingId);
             if (res.success) {
                 showToast('Catatan penanganan medis berhasil dihapus');
-                await fetchData();
+                await fetchData(selectedSite);
             } else {
                 showToast(res.error || 'Gagal menghapus catatan', 'error');
             }
@@ -212,10 +231,8 @@ export default function RiwayatPenangananPage() {
         { key: 'no', label: 'No' },
         { key: 'kategori', label: 'Kategori' },
         { key: 'nama_pasien', label: 'Nama Pasien' },
-        { key: 'identitas', label: 'Identitas / Kelompok' },
-        { key: 'nama_obat', label: 'Obat Diberikan' },
-        { key: 'jumlah_obat', label: 'Jumlah Obat' },
-        { key: 'sisa_obat', label: 'Sisa Obat' },
+        { key: 'identitas', label: 'Identitas' },
+        { key: 'daftar_obat', label: 'Obat Diberikan' },
         { key: 'keterangan', label: 'Tindakan / Keterangan' },
         { key: 'created_at_fmt', label: 'Waktu Penanganan' }
     ];
@@ -231,10 +248,15 @@ export default function RiwayatPenangananPage() {
                 ? `NIM: ${item.peserta?.nim_anggota || '-'} (${item.peserta?.kelompok?.nama_kelompok || 'Kelompok'})`
                 : `Role: ${item.panitia?.role || 'Panitia'}`;
 
-            const obatInfo = item.pemakaian_obat?.master_obat;
-            const namaObat = obatInfo ? obatInfo.nama_obat : 'Tanpa Obat';
-            const jumlahObat = item.pemakaian_obat ? item.pemakaian_obat.pemakaian_obat : '-';
-            const sisaObat = obatInfo ? (obatInfo.sisa_obat ?? obatInfo.stok_obat) : '-';
+            // Build medicines list string
+            let obatStr = 'Tanpa Obat';
+            if (Array.isArray(item.riwayat_penanganan_obat) && item.riwayat_penanganan_obat.length > 0) {
+                obatStr = item.riwayat_penanganan_obat.map(rel =>
+                    `${rel.master_obat?.nama_obat || 'Obat'} (${rel.jumlah} pcs)`
+                ).join(', ');
+            } else if (item.pemakaian_obat?.master_obat) {
+                obatStr = `${item.pemakaian_obat.master_obat.nama_obat} (${item.pemakaian_obat.pemakaian_obat} pcs)`;
+            }
 
             const dateStr = item.created_at ? new Date(item.created_at).toLocaleString('id-ID', {
                 day: 'numeric',
@@ -249,9 +271,7 @@ export default function RiwayatPenangananPage() {
                 kategori: isPeserta ? 'Peserta' : 'Panitia',
                 nama_pasien: nama,
                 identitas: identitas,
-                nama_obat: namaObat,
-                jumlah_obat: jumlahObat,
-                sisa_obat: sisaObat,
+                daftar_obat: obatStr,
                 keterangan: item.keterangan || '-',
                 created_at_fmt: dateStr
             };
@@ -295,23 +315,49 @@ export default function RiwayatPenangananPage() {
                             <HeartPulse size={24} />
                         </div>
                         <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-                            Riwayat Penanganan Medis
+                            Riwayat Penanganan Medis ({selectedSite.toUpperCase()})
                         </h1>
                     </div>
                     <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                        Catatan riwayat tindakan medis terhadap peserta maupun panitia selama rangkaian acara
+                        Catatan riwayat tindakan medis terhadap peserta maupun panitia {selectedSite.toUpperCase()}
                     </p>
                 </div>
 
-                <div className="flex items-center gap-2.5 shrink-0">
+                <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                    {/* Super Admin Site Switcher */}
+                    {isSuperAdmin && (
+                        <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700">
+                            <button
+                                onClick={() => handleSiteChange('pkkmb')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    selectedSite === 'pkkmb'
+                                        ? 'bg-blue-600 text-white shadow-xs'
+                                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                                }`}
+                            >
+                                PKKMB
+                            </button>
+                            <button
+                                onClick={() => handleSiteChange('pose')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    selectedSite === 'pose'
+                                        ? 'bg-amber-600 text-white shadow-xs'
+                                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                                }`}
+                            >
+                                POSE
+                            </button>
+                        </div>
+                    )}
+
                     <TombolCetak
-                        pdfTitle="Laporan Riwayat Penanganan Medis PKKMB 2026"
-                        pdfSite="pkkmb"
+                        pdfTitle={`Laporan Riwayat Penanganan Medis ${selectedSite.toUpperCase()} 2026`}
+                        pdfSite={selectedSite}
                         pdfData={printData}
                         pdfColumns={printColumns}
                         excelData={printData}
                         excelColumns={printColumns}
-                        excelFilename="riwayat-penanganan-medis"
+                        excelFilename={`riwayat-penanganan-medis-${selectedSite}`}
                     />
 
                     <button
@@ -386,7 +432,7 @@ export default function RiwayatPenangananPage() {
                     <Search size={18} className="text-slate-400 shrink-0" />
                     <input
                         type="text"
-                        placeholder="Cari nama pasien, NIM, nama obat, atau keterangan penanganan..."
+                        placeholder={`Cari nama pasien, NIM, nama obat, atau keterangan pada data ${selectedSite.toUpperCase()}...`}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="w-full bg-transparent text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none"
@@ -407,7 +453,7 @@ export default function RiwayatPenangananPage() {
                 <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                     <div>
                         <h3 className="font-bold text-slate-800 dark:text-white text-base">
-                            Rekam Medis & Tindakan
+                            Rekam Medis & Tindakan ({selectedSite.toUpperCase()})
                         </h3>
                         <p className="text-xs text-slate-400">
                             Daftar rekam jejak bantuan medis yang telah dilakukan
@@ -425,12 +471,10 @@ export default function RiwayatPenangananPage() {
                                 <th className="py-3.5 px-4 w-14 text-center">No</th>
                                 <th className="py-3.5 px-4 w-28">Kategori</th>
                                 <th className="py-3.5 px-4">Nama Pasien</th>
-                                <th className="py-3.5 px-4">Obat Diberikan</th>
-                                <th className="py-3.5 px-4 w-28 text-center">Jumlah</th>
-                                <th className="py-3.5 px-4 w-28 text-center">Sisa Stok</th>
-                                <th className="py-3.5 px-4 min-w-[200px]">Keterangan</th>
+                                <th className="py-3.5 px-4 min-w-[180px]">Obat Diberikan</th>
+                                <th className="py-3.5 px-4 min-w-[200px]">Keterangan / Tindakan</th>
                                 <th className="py-3.5 px-4 w-40">Waktu</th>
-                                <th className="py-3.5 px-4 w-24 text-center">Aksi</th>
+                                <th className="py-3.5 px-4 w-20 text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
@@ -441,8 +485,6 @@ export default function RiwayatPenangananPage() {
                                         <td className="py-4 px-4"><div className="h-5 w-16 bg-slate-200 dark:bg-slate-800 rounded-full" /></td>
                                         <td className="py-4 px-4"><div className="h-4 w-32 bg-slate-200 dark:bg-slate-800 rounded" /></td>
                                         <td className="py-4 px-4"><div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded" /></td>
-                                        <td className="py-4 px-4 text-center"><div className="h-4 w-8 bg-slate-200 dark:bg-slate-800 rounded mx-auto" /></td>
-                                        <td className="py-4 px-4 text-center"><div className="h-4 w-8 bg-slate-200 dark:bg-slate-800 rounded mx-auto" /></td>
                                         <td className="py-4 px-4"><div className="h-4 w-44 bg-slate-200 dark:bg-slate-800 rounded" /></td>
                                         <td className="py-4 px-4"><div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded" /></td>
                                         <td className="py-4 px-4 text-center"><div className="h-6 w-14 bg-slate-200 dark:bg-slate-800 rounded mx-auto" /></td>
@@ -450,7 +492,7 @@ export default function RiwayatPenangananPage() {
                                 ))
                             ) : paginatedData.length === 0 ? (
                                 <tr>
-                                    <td colSpan={9} className="py-14 text-center">
+                                    <td colSpan={7} className="py-14 text-center">
                                         <div className="inline-flex p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 mb-2">
                                             <HeartPulse size={28} />
                                         </div>
@@ -458,15 +500,20 @@ export default function RiwayatPenangananPage() {
                                             Belum Ada Catatan Penanganan Medis
                                         </p>
                                         <p className="text-xs text-slate-400 mt-1">
-                                            Klik tombol &quot;Tambah Penanganan&quot; untuk mencatat pasien yang ditangani.
+                                            Klik tombol &quot;Tambah Penanganan&quot; untuk mencatat pasien yang ditangani pada kegiatan {selectedSite.toUpperCase()}.
                                         </p>
                                     </td>
                                 </tr>
                             ) : (
                                 paginatedData.map((item, index) => {
                                     const isPeserta = !!item.peserta_id;
-                                    const obatInfo = item.pemakaian_obat?.master_obat;
-                                    const pemakaian = item.pemakaian_obat?.pemakaian_obat;
+
+                                    // Multi-obat formatting
+                                    const multiObat = Array.isArray(item.riwayat_penanganan_obat) && item.riwayat_penanganan_obat.length > 0
+                                        ? item.riwayat_penanganan_obat
+                                        : null;
+
+                                    const legacyObat = item.pemakaian_obat?.master_obat;
 
                                     return (
                                         <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
@@ -509,33 +556,35 @@ export default function RiwayatPenangananPage() {
                                                 )}
                                             </td>
 
-                                            {/* Nama Obat */}
+                                            {/* Nama Obat (Multi-Obat Display) */}
                                             <td className="py-4 px-4">
-                                                {obatInfo ? (
+                                                {multiObat ? (
+                                                    <div className="space-y-1">
+                                                        {multiObat.map((rel) => (
+                                                            <div key={rel.id} className="flex items-center gap-1.5">
+                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-bold">
+                                                                    <Pill size={11} />
+                                                                    <span>{rel.master_obat?.nama_obat || 'Obat'}</span>
+                                                                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400">({rel.jumlah} pcs)</span>
+                                                                </span>
+                                                                {rel.master_obat?.is_non_depleting && (
+                                                                    <span className="inline-flex items-center gap-0.5 px-1 py-0.5 bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 text-[9px] font-bold rounded-sm">
+                                                                        <ShieldCheck size={9} />
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : legacyObat ? (
                                                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-bold">
                                                         <Pill size={13} />
-                                                        <span>{obatInfo.nama_obat}</span>
+                                                        <span>{legacyObat.nama_obat}</span>
+                                                        <span className="text-[11px] text-emerald-600">({item.pemakaian_obat?.pemakaian_obat || 1} pcs)</span>
                                                     </span>
                                                 ) : (
                                                     <span className="text-xs text-slate-400 italic">
                                                         Tanpa Obat
                                                     </span>
-                                                )}
-                                            </td>
-
-                                            {/* Jumlah Pemakaian */}
-                                            <td className="py-4 px-4 text-center font-bold text-slate-700 dark:text-slate-300 text-xs">
-                                                {pemakaian ? `${pemakaian} pcs` : '-'}
-                                            </td>
-
-                                            {/* Sisa Obat Terkini */}
-                                            <td className="py-4 px-4 text-center">
-                                                {obatInfo ? (
-                                                    <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                                                        {obatInfo.sisa_obat ?? obatInfo.stok_obat}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-xs text-slate-400">-</span>
                                                 )}
                                             </td>
 
@@ -551,25 +600,13 @@ export default function RiwayatPenangananPage() {
 
                                             {/* Aksi */}
                                             <td className="py-4 px-4 text-center">
-                                                <div className="flex items-center justify-center gap-1">
-                                                    <button
-                                                        onClick={() => {
-                                                            setEditingItem(item);
-                                                            setIsModalOpen(true);
-                                                        }}
-                                                        title="Edit Riwayat"
-                                                        className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors"
-                                                    >
-                                                        <Edit3 size={16} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handlePromptDelete(item.id)}
-                                                        title="Hapus Riwayat"
-                                                        className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors"
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </button>
-                                                </div>
+                                                <button
+                                                    onClick={() => handlePromptDelete(item.id)}
+                                                    title="Hapus Riwayat"
+                                                    className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
                                             </td>
                                         </tr>
                                     );
@@ -598,6 +635,7 @@ export default function RiwayatPenangananPage() {
                 masterObatList={masterList}
                 adminList={adminList}
                 editingData={editingItem}
+                site={selectedSite}
             />
 
             {/* Confirm Modal for Delete */}
@@ -607,7 +645,7 @@ export default function RiwayatPenangananPage() {
                 onConfirm={handleConfirmDelete}
                 loading={deletingLoading}
                 title="Hapus Riwayat Penanganan Medis"
-                message="Apakah Anda yakin ingin menghapus catatan penanganan ini? Jika penanganan ini menggunakan obat, stok obat akan otomatis dikembalikan."
+                message="Apakah Anda yakin ingin menghapus catatan penanganan ini? Stok obat yang digunakan akan otomatis dikembalikan ke master obat (kecuali obat non-depleting)."
                 confirmLabel="Ya, Hapus"
                 cancelLabel="Batal"
             />

@@ -4,86 +4,87 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
     BookOpen, RefreshCw, Trash2, Image as ImageIcon, Search,
     CheckCircle2, XCircle, AlertCircle, FileCheck, Layers,
-    ExternalLink, X, Eye, Users, ChevronRight, Download, Maximize2
+    ExternalLink, X, Eye, Users, ChevronRight, Download, Maximize2,
+    Share2, User, Package, Plus, Edit3, Award, Check, Link as LinkIcon,
+    Lock
 } from 'lucide-react';
-import { getMateriListForKabim, getTugasKabimByMateri, deleteTugasKabim } from '@/api/supabase/admin/tugas_kabim';
+import {
+    getMateriListForKabim,
+    getTugasKabimByMateri,
+    deleteTugasKabim,
+    updateNilaiTugasMateri
+} from '@/api/supabase/admin/tugas_kabim';
+import {
+    getTugasSosmedList,
+    updateNilaiTugasSosmed,
+    deleteTugasSosmed,
+    getTugasBarangList,
+    saveTugasBarang,
+    deleteTugasBarang
+} from '@/api/supabase/admin/tugas_penugasan';
+import { getKelompokAdmin } from '@/api/supabase/admin/kelompok';
+import { getDaftarHariPkkmb } from '@/api/supabase/admin/penilaian_keaktifan';
+import { getCurrentAdmin } from '@/api/supabase/admin/auth';
+import { getKabimFilter } from '@/lib/adminRoleData';
 
 export default function AdminKabimTugasManager() {
+    // Active Tab: 'resume' | 'sosmed_klp' | 'sosmed_ind' | 'barang'
+    const [activeTab, setActiveTab] = useState('resume');
+
+    // TAB 1: RESUME MATERI STATES
     const [materiList, setMateriList] = useState([]);
     const [selectedMateri, setSelectedMateri] = useState('');
     const [tugasList, setTugasList] = useState([]);
     const [loadingMateri, setLoadingMateri] = useState(true);
     const [loadingTugas, setLoadingTugas] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'sudah' | 'belum'
+
+    // TAB 2 & 3: SOSMED STATES
+    const [sosmedList, setSosmedList] = useState([]);
+    const [loadingSosmed, setLoadingSosmed] = useState(false);
+
+    // TAB 4: BARANG BAWAAN STATES
+    const [barangList, setBarangList] = useState([]);
+    const [loadingBarang, setLoadingBarang] = useState(false);
+    const [kelompokDropdown, setKelompokDropdown] = useState([]);  // Semua kelompok (sesuai hak akses)
+    const [allowedKelompok, setAllowedKelompok] = useState([]);   // Kelompok yang diizinkan untuk role ini
+    const [lockedKelompokId, setLockedKelompokId] = useState(null); // null = bebas, string = terkunci
+    const [daftarHari, setDaftarHari] = useState([]);
+
+    // Common search & preview
+    const [searchQuery, setSearchQuery] = useState('');
     const [previewImage, setPreviewImage] = useState(null);
     const [activePreviewIndex, setActivePreviewIndex] = useState(0);
-    const [isDeleting, setIsDeleting] = useState(null);
+    const [isProcessing, setIsProcessing] = useState(false);
     const [toastMessage, setToastMessage] = useState(null);
 
-    // Fetch daftar materi saat pertama kali dimount
-    const fetchMateriList = useCallback(async () => {
-        setLoadingMateri(true);
-        const res = await getMateriListForKabim();
-        if (res.success) {
-            setMateriList(res.data || []);
-        } else {
-            showToast(res.error || 'Gagal memuat materi', 'error');
-        }
-        setLoadingMateri(false);
-    }, []);
+    // MODAL BERI NILAI RESUME / SOSMED
+    const [modalNilai, setModalNilai] = useState({
+        open: false,
+        type: 'resume', // 'resume' | 'sosmed'
+        id: null,
+        nama: '',
+        materi_or_platform: '',
+        nilai: 5,
+        catatan: ''
+    });
 
-    // Fetch daftar tugas berdasarkan materi yang dipilih
-    const fetchTugasList = useCallback(async (materiId) => {
-        if (!materiId) {
-            setTugasList([]);
-            return;
-        }
-        setLoadingTugas(true);
-        const res = await getTugasKabimByMateri(materiId);
-        if (res.success) {
-            setTugasList(res.data || []);
-        } else {
-            showToast(res.error || 'Gagal memuat data tugas', 'error');
-            setTugasList([]);
-        }
-        setLoadingTugas(false);
-    }, []);
-
-    useEffect(() => {
-        fetchMateriList();
-    }, [fetchMateriList]);
-
-    useEffect(() => {
-        if (selectedMateri) {
-            fetchTugasList(selectedMateri);
-        } else {
-            setTugasList([]);
-        }
-    }, [selectedMateri, fetchTugasList]);
+    // MODAL INPUT BARANG BAWAAN
+    const [modalBarang, setModalBarang] = useState({
+        open: false,
+        id: null,
+        tipe_barang: 'kelompok', // 'kelompok' | 'individu'
+        kelompok_id: '',
+        kelompok_members_id: '',
+        label_hari: 'Hari 1',
+        total_barang_wajib: 1,
+        barang_dibawa: 1,
+        catatan: ''
+    });
 
     const showToast = (message, type = 'success') => {
         setToastMessage({ message, type });
         setTimeout(() => setToastMessage(null), 3500);
-    };
-
-    const handleDeleteTugas = async (tugasId, namaPeserta) => {
-        if (!tugasId) return;
-        const confirmDelete = window.confirm(
-            `Apakah Anda yakin ingin menghapus tugas dari "${namaPeserta}"?\nData tugas yang dihapus tidak dapat dikembalikan.`
-        );
-        if (!confirmDelete) return;
-
-        setIsDeleting(tugasId);
-        const res = await deleteTugasKabim(tugasId);
-        setIsDeleting(null);
-
-        if (res.success) {
-            showToast(`Tugas milik "${namaPeserta}" berhasil dihapus.`);
-            fetchTugasList(selectedMateri);
-        } else {
-            showToast(res.error || 'Gagal menghapus tugas.', 'error');
-        }
     };
 
     // Format tanggal Indonesia
@@ -103,42 +104,334 @@ export default function AdminKabimTugasManager() {
         }
     };
 
-    // Filtering data pencarian dan status
-    const filteredData = useMemo(() => {
+    // Fetch master materi
+    const fetchMateriList = useCallback(async () => {
+        setLoadingMateri(true);
+        const res = await getMateriListForKabim();
+        if (res.success) {
+            setMateriList(res.data || []);
+        } else {
+            showToast(res.error || 'Gagal memuat materi', 'error');
+        }
+        setLoadingMateri(false);
+    }, []);
+
+    // Fetch tugas resume materi
+    const fetchTugasResume = useCallback(async (materiId) => {
+        if (!materiId) {
+            setTugasList([]);
+            return;
+        }
+        setLoadingTugas(true);
+        const res = await getTugasKabimByMateri(materiId);
+        if (res.success) {
+            setTugasList(res.data || []);
+        } else {
+            showToast(res.error || 'Gagal memuat data tugas', 'error');
+            setTugasList([]);
+        }
+        setLoadingTugas(false);
+    }, []);
+
+    // Fetch tugas sosmed
+    const fetchSosmed = useCallback(async (tipe) => {
+        setLoadingSosmed(true);
+        const res = await getTugasSosmedList({ tipe_tugas: tipe });
+        if (res.success) {
+            setSosmedList(res.data || []);
+        } else {
+            showToast(res.error || 'Gagal memuat data sosial media', 'error');
+        }
+        setLoadingSosmed(false);
+    }, []);
+
+    // Fetch tugas barang bawaan
+    const fetchBarang = useCallback(async () => {
+        setLoadingBarang(true);
+        const res = await getTugasBarangList();
+        if (res.success) {
+            setBarangList(res.data || []);
+        } else {
+            showToast(res.error || 'Gagal memuat data barang bawaan', 'error');
+        }
+        setLoadingBarang(false);
+    }, []);
+
+    // Fetch pendukung kelompok & hari (dengan filter role kabim)
+    const fetchSupportData = useCallback(async () => {
+        try {
+            const [allKelRaw, hariRes, adminData] = await Promise.all([
+                getKelompokAdmin(),
+                getDaftarHariPkkmb(),
+                getCurrentAdmin()
+            ]);
+
+            // getKelompokAdmin() mengembalikan Array langsung (bukan { data: [...] })
+            const allKelompok = Array.isArray(allKelRaw) ? allKelRaw : (allKelRaw?.data || []);
+            setKelompokDropdown(allKelompok);
+
+            if (hariRes?.data) {
+                setDaftarHari(hariRes.data);
+            } else {
+                setDaftarHari(['Hari 1', 'Hari 2', 'Hari 3', 'Hari 4', 'Hari 5']);
+            }
+
+            // Hitung kelompok yang diizinkan sesuai role admin
+            const role = adminData?.role || '';
+            const lockedUrutan = getKabimFilter(role); // null = super_admin/admin_pkkmb (akses semua), array = kabim
+
+            let allowed;
+            if (lockedUrutan === null) {
+                // super_admin / admin_pkkmb — akses semua kelompok
+                allowed = allKelompok;
+                setLockedKelompokId(null);
+            } else {
+                // Kabim — filter hanya kelompok yang diizinkan
+                allowed = allKelompok.filter(k => lockedUrutan.includes(k.urutan));
+                if (allowed.length === 1) {
+                    // Hanya 1 kelompok — kunci otomatis
+                    setLockedKelompokId(allowed[0].id);
+                } else {
+                    setLockedKelompokId(null);
+                }
+            }
+
+            setAllowedKelompok(allowed);
+        } catch (err) {
+            console.error('fetchSupportData error:', err);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchMateriList();
+        fetchSupportData();
+    }, [fetchMateriList, fetchSupportData]);
+
+    useEffect(() => {
+        if (activeTab === 'resume') {
+            if (selectedMateri) fetchTugasResume(selectedMateri);
+        } else if (activeTab === 'sosmed_klp') {
+            fetchSosmed('kelompok');
+        } else if (activeTab === 'sosmed_ind') {
+            fetchSosmed('individu');
+        } else if (activeTab === 'barang') {
+            fetchBarang();
+        }
+    }, [activeTab, selectedMateri, fetchTugasResume, fetchSosmed, fetchBarang]);
+
+    // Handle Delete Resume
+    const handleDeleteResume = async (tugasId, namaPeserta) => {
+        if (!tugasId) return;
+        if (!window.confirm(`Hapus tugas dari "${namaPeserta}"?`)) return;
+
+        setIsProcessing(true);
+        const res = await deleteTugasKabim(tugasId);
+        setIsProcessing(false);
+
+        if (res.success) {
+            showToast(`Tugas milik "${namaPeserta}" berhasil dihapus.`);
+            fetchTugasResume(selectedMateri);
+        } else {
+            showToast(res.error || 'Gagal menghapus tugas.', 'error');
+        }
+    };
+
+    // Handle Delete Sosmed
+    const handleDeleteSosmed = async (id) => {
+        if (!window.confirm('Hapus submission tugas sosial media ini?')) return;
+        setIsProcessing(true);
+        const res = await deleteTugasSosmed(id);
+        setIsProcessing(false);
+        if (res.success) {
+            showToast('Tugas sosial media berhasil dihapus');
+            fetchSosmed(activeTab === 'sosmed_klp' ? 'kelompok' : 'individu');
+        } else {
+            showToast(res.error || 'Gagal menghapus tugas', 'error');
+        }
+    };
+
+    // Handle Delete Barang
+    const handleDeleteBarang = async (id) => {
+        if (!window.confirm('Hapus data barang bawaan ini?')) return;
+        setIsProcessing(true);
+        const res = await deleteTugasBarang(id);
+        setIsProcessing(false);
+        if (res.success) {
+            showToast('Data barang bawaan berhasil dihapus');
+            fetchBarang();
+        } else {
+            showToast(res.error || 'Gagal menghapus barang', 'error');
+        }
+    };
+
+    // Submit Nilai Modal (Resume atau Sosmed)
+    const handleSaveNilai = async () => {
+        if (!modalNilai.id) return;
+        setIsProcessing(true);
+        try {
+            if (modalNilai.type === 'resume') {
+                const res = await updateNilaiTugasMateri({
+                    id: modalNilai.id,
+                    nilai: modalNilai.nilai
+                });
+                if (res.success) {
+                    showToast(`Nilai (${modalNilai.nilai}) berhasil disimpan`);
+                    setModalNilai({ open: false, type: 'resume', id: null, nama: '', materi_or_platform: '', nilai: 5, catatan: '' });
+                    fetchTugasResume(selectedMateri);
+                } else {
+                    showToast(res.error || 'Gagal menyimpan nilai', 'error');
+                }
+            } else {
+                const res = await updateNilaiTugasSosmed({
+                    id: modalNilai.id,
+                    nilai: modalNilai.nilai,
+                    catatan_penilai: modalNilai.catatan
+                });
+                if (res.success) {
+                    showToast(`Nilai sosmed (${modalNilai.nilai}) berhasil disimpan`);
+                    setModalNilai({ open: false, type: 'sosmed', id: null, nama: '', materi_or_platform: '', nilai: 5, catatan: '' });
+                    fetchSosmed(activeTab === 'sosmed_klp' ? 'kelompok' : 'individu');
+                } else {
+                    showToast(res.error || 'Gagal menyimpan nilai', 'error');
+                }
+            }
+        } catch (err) {
+            console.error(err);
+            showToast('Terjadi kesalahan sistem', 'error');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    // Helper: buka modal barang dengan default kelompok_id sesuai lock
+    const openModalBarangBaru = () => {
+        const defaultKelId = lockedKelompokId || allowedKelompok[0]?.id || '';
+        setModalBarang({
+            open: true,
+            id: null,
+            tipe_barang: 'kelompok',
+            kelompok_id: defaultKelId,
+            kelompok_members_id: '',
+            label_hari: daftarHari[0] || 'Hari 1',
+            total_barang_wajib: 1,
+            barang_dibawa: 1,
+            catatan: ''
+        });
+    };
+
+    // Submit Modal Barang Bawaan
+    const handleSaveBarang = async () => {
+        if (!modalBarang.label_hari) {
+            showToast('Label hari wajib dipilih', 'error');
+            return;
+        }
+        if (modalBarang.tipe_barang === 'kelompok' && !modalBarang.kelompok_id) {
+            showToast('Kelompok wajib dipilih', 'error');
+            return;
+        }
+        if (modalBarang.tipe_barang === 'individu' && !modalBarang.kelompok_members_id) {
+            showToast('Anggota wajib dipilih', 'error');
+            return;
+        }
+
+        setIsProcessing(true);
+        try {
+            const res = await saveTugasBarang(modalBarang);
+            if (res.success) {
+                showToast('Pengecekan barang bawaan berhasil disimpan');
+                const defaultKelId = lockedKelompokId || allowedKelompok[0]?.id || '';
+                setModalBarang({
+                    open: false,
+                    id: null,
+                    tipe_barang: 'kelompok',
+                    kelompok_id: defaultKelId,
+                    kelompok_members_id: '',
+                    label_hari: daftarHari[0] || 'Hari 1',
+                    total_barang_wajib: 1,
+                    barang_dibawa: 1,
+                    catatan: ''
+                });
+                fetchBarang();
+            } else {
+                showToast(res.error || 'Gagal menyimpan barang bawaan', 'error');
+            }
+        } catch (err) {
+            console.error(err);
+            showToast('Terjadi kesalahan sistem', 'error');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    // Anggota untuk dropdown individu modal barang
+    // Gunakan allowedKelompok agar hanya tampilkan anggota dari kelompok yang diizinkan role
+    const anggotaDropdownList = useMemo(() => {
+        // Tentukan kelompok_id aktif: dari lock atau dari pilihan user
+        const activeKelId = lockedKelompokId || modalBarang.kelompok_id;
+        if (!activeKelId) {
+            // Jika tidak ada yang dipilih, tampilkan semua anggota dari allowedKelompok
+            return allowedKelompok.flatMap(k => k.kelompok_members || []);
+        }
+        // Cari kelompok dalam allowedKelompok (respects role filter)
+        const found = allowedKelompok.find(k => k.id === activeKelId);
+        return found ? (found.kelompok_members || []) : [];
+    }, [allowedKelompok, lockedKelompokId, modalBarang.kelompok_id]);
+
+    // Filtered Resume data
+    const filteredResume = useMemo(() => {
         return tugasList.filter(item => {
-            const matchesSearch =
-                (item.nama || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (item.nim || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (item.kampus || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (item.kelompok_nama || '').toLowerCase().includes(searchQuery.toLowerCase());
+            const q = searchQuery.toLowerCase();
+            const matchSearch =
+                (item.nama && item.nama.toLowerCase().includes(q)) ||
+                (item.nim && item.nim.toLowerCase().includes(q)) ||
+                (item.kampus && item.kampus.toLowerCase().includes(q));
 
-            if (!matchesSearch) return false;
+            const matchStatus =
+                statusFilter === 'all' ? true :
+                statusFilter === 'sudah' ? item.status_tugas === true :
+                item.status_tugas === false;
 
-            if (statusFilter === 'sudah') return item.status_tugas === true;
-            if (statusFilter === 'belum') return item.status_tugas === false;
-
-            return true;
+            return matchSearch && matchStatus;
         });
     }, [tugasList, searchQuery, statusFilter]);
 
-    // Statistik tugas
-    const stats = useMemo(() => {
-        const total = tugasList.length;
-        const sudah = tugasList.filter(t => t.status_tugas).length;
-        const belum = total - sudah;
-        const percentage = total > 0 ? Math.round((sudah / total) * 100) : 0;
-        return { total, sudah, belum, percentage };
-    }, [tugasList]);
+    // Filtered Sosmed data
+    const filteredSosmed = useMemo(() => {
+        return sosmedList.filter(item => {
+            const q = searchQuery.toLowerCase();
+            const namaKlp = item.kelompok?.nama_kelompok || '';
+            const namaMbr = item.kelompok_members?.nama_anggota || '';
+            const nimMbr = item.kelompok_members?.nim_anggota || '';
+            return namaKlp.toLowerCase().includes(q) ||
+                namaMbr.toLowerCase().includes(q) ||
+                nimMbr.toLowerCase().includes(q) ||
+                (item.platform && item.platform.toLowerCase().includes(q));
+        });
+    }, [sosmedList, searchQuery]);
+
+    // Filtered Barang data
+    const filteredBarang = useMemo(() => {
+        return barangList.filter(item => {
+            const q = searchQuery.toLowerCase();
+            const namaKlp = item.kelompok?.nama_kelompok || '';
+            const namaMbr = item.kelompok_members?.nama_anggota || '';
+            const nimMbr = item.kelompok_members?.nim_anggota || '';
+            return namaKlp.toLowerCase().includes(q) ||
+                namaMbr.toLowerCase().includes(q) ||
+                nimMbr.toLowerCase().includes(q) ||
+                (item.label_hari && item.label_hari.toLowerCase().includes(q));
+        });
+    }, [barangList, searchQuery]);
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-300 pb-20">
-            {/* Notification Toast */}
+        <div className="space-y-6">
+            {/* Toast */}
             {toastMessage && (
                 <div
-                    className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-xl border text-sm font-medium transition-all transform animate-in slide-in-from-bottom-5 ${
+                    className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl text-sm font-medium transition-all ${
                         toastMessage.type === 'error'
-                            ? 'bg-rose-50 dark:bg-rose-950/90 text-rose-700 dark:text-rose-200 border-rose-200 dark:border-rose-800'
-                            : 'bg-emerald-50 dark:bg-emerald-950/90 text-emerald-700 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800'
+                            ? 'bg-rose-600 text-white'
+                            : 'bg-emerald-600 text-white'
                     }`}
                 >
                     {toastMessage.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
@@ -146,53 +439,50 @@ export default function AdminKabimTugasManager() {
                 </div>
             )}
 
-            {/* Header Title */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <div className="flex items-center gap-2.5">
-                        <div className="p-2.5 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl">
-                            <FileCheck size={24} />
-                        </div>
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                                Review Tugas Anggota Kelompok
-                            </h1>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                                Pantau pengumpulan tugas materi peserta PKKMB untuk kelompok binaan Anda.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-3 self-start sm:self-auto">
-                    <button
-                        onClick={() => {
-                            if (selectedMateri) fetchTugasList(selectedMateri);
-                            fetchMateriList();
-                        }}
-                        disabled={loadingTugas || loadingMateri}
-                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl transition-all shadow-sm hover:border-blue-300 dark:hover:border-blue-700 disabled:opacity-50"
-                    >
-                        <RefreshCw size={15} className={loadingTugas || loadingMateri ? 'animate-spin text-blue-600' : ''} />
-                        <span>Segarkan</span>
-                    </button>
-                </div>
+            {/* TAB SYSTEM NAVIGATOR */}
+            <div className="flex flex-wrap p-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 gap-1">
+                {[
+                    { id: 'resume', label: 'Resume Materi', icon: BookOpen },
+                    { id: 'sosmed_klp', label: 'Sosmed Kelompok', icon: Share2 },
+                    { id: 'sosmed_ind', label: 'Sosmed Individu', icon: User },
+                    { id: 'barang', label: 'Barang Bawaan', icon: Package }
+                ].map(tab => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    return (
+                        <button
+                            key={tab.id}
+                            onClick={() => {
+                                setActiveTab(tab.id);
+                                setSearchQuery('');
+                            }}
+                            className={`flex-1 min-w-[150px] py-3 px-4 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
+                                isActive
+                                    ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200/50 dark:border-slate-700'
+                                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                            }`}
+                        >
+                            <Icon size={16} />
+                            {tab.label}
+                        </button>
+                    );
+                })}
             </div>
 
-            {/* Selector Materi & Filter Bar */}
-            <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Dropdown Materi */}
-                    <div className="md:col-span-1">
-                        <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">
-                            Pilih Materi PKKMB <span className="text-rose-500">*</span>
-                        </label>
-                        <div className="relative">
+            {/* TAB 1: RESUME MATERI */}
+            {activeTab === 'resume' && (
+                <div className="space-y-6">
+                    {/* Filter Card */}
+                    <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                        <div>
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                                Pilih Materi PKKMB
+                            </label>
                             <select
                                 value={selectedMateri}
                                 onChange={(e) => setSelectedMateri(e.target.value)}
                                 disabled={loadingMateri}
-                                className="w-full pl-3.5 pr-10 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all appearance-none cursor-pointer"
+                                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
                             >
                                 <option value="">— Pilih Materi Terlebih Dahulu —</option>
                                 {materiList.map((m) => (
@@ -201,291 +491,164 @@ export default function AdminKabimTugasManager() {
                                     </option>
                                 ))}
                             </select>
-                            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                                <BookOpen size={16} />
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                                Cari Nama / NIM
+                            </label>
+                            <div className="relative">
+                                <Search size={16} className="absolute left-3.5 top-3 text-slate-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Cari peserta..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    disabled={!selectedMateri}
+                                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                                Status Pengumpulan
+                            </label>
+                            <div className="grid grid-cols-3 gap-2">
+                                {['all', 'sudah', 'belum'].map(st => (
+                                    <button
+                                        key={st}
+                                        type="button"
+                                        disabled={!selectedMateri}
+                                        onClick={() => setStatusFilter(st)}
+                                        className={`py-2 px-2 text-xs font-semibold rounded-xl border capitalize transition-all ${
+                                            statusFilter === st
+                                                ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+                                                : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                                        }`}
+                                    >
+                                        {st === 'all' ? 'Semua' : st === 'sudah' ? '✅ Sudah' : '❌ Belum'}
+                                    </button>
+                                ))}
                             </div>
                         </div>
                     </div>
 
-                    {/* Input Pencarian */}
-                    <div className="md:col-span-1">
-                        <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">
-                            Cari Anggota / NIM
-                        </label>
-                        <div className="relative">
-                            <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                            <input
-                                type="text"
-                                placeholder="Cari nama, NIM, atau kampus..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                disabled={!selectedMateri}
-                                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Filter Status */}
-                    <div className="md:col-span-1">
-                        <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">
-                            Filter Status Pengumpulan
-                        </label>
-                        <div className="grid grid-cols-3 gap-2">
-                            <button
-                                type="button"
-                                disabled={!selectedMateri}
-                                onClick={() => setStatusFilter('all')}
-                                className={`py-2 px-2 text-xs font-semibold rounded-xl border transition-all truncate ${
-                                    statusFilter === 'all'
-                                        ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 border-blue-200 dark:border-blue-800'
-                                        : 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-750'
-                                } disabled:opacity-50 disabled:cursor-not-allowed`}
-                            >
-                                Semua
-                            </button>
-                            <button
-                                type="button"
-                                disabled={!selectedMateri}
-                                onClick={() => setStatusFilter('sudah')}
-                                className={`py-2 px-2 text-xs font-semibold rounded-xl border transition-all truncate ${
-                                    statusFilter === 'sudah'
-                                        ? 'bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                                        : 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-750'
-                                } disabled:opacity-50 disabled:cursor-not-allowed`}
-                            >
-                                ✅ Sudah
-                            </button>
-                            <button
-                                type="button"
-                                disabled={!selectedMateri}
-                                onClick={() => setStatusFilter('belum')}
-                                className={`py-2 px-2 text-xs font-semibold rounded-xl border transition-all truncate ${
-                                    statusFilter === 'belum'
-                                        ? 'bg-rose-50 dark:bg-rose-900/40 text-rose-600 dark:text-rose-300 border-rose-200 dark:border-rose-800'
-                                        : 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-750'
-                                } disabled:opacity-50 disabled:cursor-not-allowed`}
-                            >
-                                ❌ Belum
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* State jika Materi Belum Dipilih */}
-            {!selectedMateri ? (
-                <div className="bg-white dark:bg-gray-900 rounded-3xl p-12 text-center border border-dashed border-gray-200 dark:border-gray-800 max-w-2xl mx-auto my-8">
-                    <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-4 ring-8 ring-blue-50/50 dark:ring-blue-900/10">
-                        <BookOpen size={30} />
-                    </div>
-                    <h3 className="text-lg font-bold text-gray-800 dark:text-white">
-                        Pilih Materi Terlebih Dahulu
-                    </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-md mx-auto leading-relaxed">
-                        Silakan tentukan materi PKKMB pada dropdown di atas untuk menampilkan daftar anggota kelompok beserta status pengumpulan tugasnya.
-                    </p>
-                </div>
-            ) : (
-                <>
-                    {/* Summary Statistics Cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm flex items-center gap-4">
-                            <div className="p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
-                                <Users size={22} />
+                    {/* Table Resume */}
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+                        {!selectedMateri ? (
+                            <div className="p-16 text-center text-slate-400">
+                                <BookOpen size={36} className="mx-auto mb-2 opacity-50" />
+                                <p className="font-semibold text-sm">Pilih materi PKKMB pada dropdown di atas untuk mereview tugas.</p>
                             </div>
-                            <div>
-                                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-                                    Total Anggota
-                                </p>
-                                <p className="text-xl font-bold text-gray-800 dark:text-white mt-0.5">
-                                    {stats.total} Peserta
-                                </p>
+                        ) : loadingTugas ? (
+                            <div className="p-16 text-center text-slate-400">
+                                <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                                Memuat tugas resume...
                             </div>
-                        </div>
-
-                        <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-emerald-100 dark:border-emerald-900/40 shadow-sm flex items-center gap-4">
-                            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl">
-                                <CheckCircle2 size={22} />
-                            </div>
-                            <div>
-                                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-                                    Sudah Mengumpulkan
-                                </p>
-                                <div className="flex items-baseline gap-2 mt-0.5">
-                                    <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                                        {stats.sudah}
-                                    </span>
-                                    <span className="text-xs font-medium text-emerald-600/80 dark:text-emerald-400/80">
-                                        ({stats.percentage}%)
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-rose-100 dark:border-rose-900/40 shadow-sm flex items-center gap-4">
-                            <div className="p-3 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-xl">
-                                <XCircle size={22} />
-                            </div>
-                            <div>
-                                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-                                    Belum Mengumpulkan
-                                </p>
-                                <div className="flex items-baseline gap-2 mt-0.5">
-                                    <span className="text-xl font-bold text-rose-600 dark:text-rose-400">
-                                        {stats.belum}
-                                    </span>
-                                    <span className="text-xs font-medium text-rose-600/80 dark:text-rose-400/80">
-                                        ({stats.total > 0 ? 100 - stats.percentage : 0}%)
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Table Container */}
-                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
-                        {loadingTugas ? (
-                            <div className="p-16 text-center">
-                                <div className="inline-block animate-spin text-blue-600 mb-3">
-                                    <RefreshCw size={28} />
-                                </div>
-                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                    Memuat data tugas anggota...
-                                </p>
-                            </div>
-                        ) : filteredData.length === 0 ? (
-                            <div className="p-12 text-center">
-                                <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 text-gray-400 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <Search size={20} />
-                                </div>
-                                <h4 className="text-base font-semibold text-gray-700 dark:text-gray-300">
-                                    Tidak ada data yang sesuai
-                                </h4>
-                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                    Coba ubah kata kunci pencarian atau filter status.
-                                </p>
+                        ) : filteredResume.length === 0 ? (
+                            <div className="p-12 text-center text-slate-400">
+                                <p className="font-medium text-sm">Tidak ada data tugas yang sesuai filter.</p>
                             </div>
                         ) : (
                             <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm text-gray-600 dark:text-gray-400 border-collapse">
-                                    <thead className="bg-gray-50 dark:bg-gray-800/80 border-b border-gray-100 dark:border-gray-700 text-xs uppercase tracking-wider font-bold text-gray-500 dark:text-gray-400">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 text-xs uppercase font-medium border-b border-slate-200 dark:border-slate-800">
                                         <tr>
-                                            <th className="py-3.5 px-4 w-12 text-center">No</th>
-                                            <th className="py-3.5 px-4">Materi</th>
+                                            <th className="py-3.5 px-4 w-12 text-center">#</th>
                                             <th className="py-3.5 px-4">Nama / NIM</th>
-                                            <th className="py-3.5 px-4">Kampus</th>
+                                            <th className="py-3.5 px-4">Kelompok</th>
                                             <th className="py-3.5 px-4 text-center">Status</th>
-                                            <th className="py-3.5 px-4 text-center">Bukti Tugas</th>
-                                            <th className="py-3.5 px-4">Tanggal Upload</th>
-                                            <th className="py-3.5 px-4 text-center">Aksi</th>
+                                            <th className="py-3.5 px-4 text-center">Bukti</th>
+                                            <th className="py-3.5 px-4 text-center">Nilai (0/5)</th>
+                                            <th className="py-3.5 px-4 text-center w-36">Aksi</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                                        {filteredData.map((item, index) => (
-                                            <tr
-                                                key={item.id || index}
-                                                className="hover:bg-gray-50/80 dark:hover:bg-gray-800/40 transition-colors"
-                                            >
-                                                {/* No */}
-                                                <td className="py-4 px-4 text-center font-medium text-gray-400 text-xs">
-                                                    {index + 1}
+                                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                                        {filteredResume.map((item, idx) => (
+                                            <tr key={item.id || idx} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
+                                                <td className="py-3.5 px-4 text-center font-medium text-slate-400 text-xs">{idx + 1}</td>
+                                                <td className="py-3.5 px-4">
+                                                    <div className="font-bold text-slate-900 dark:text-white">{item.nama}</div>
+                                                    <div className="text-xs text-slate-500">{item.nim}</div>
                                                 </td>
-
-                                                {/* Materi */}
-                                                <td className="py-4 px-4 text-gray-700 dark:text-gray-300 font-medium">
-                                                    <div className="flex items-center gap-2 max-w-[200px]" title={item.materi_judul}>
-                                                        <BookOpen size={16} className="text-blue-500 shrink-0" />
-                                                        <span className="truncate">{item.materi_judul}</span>
-                                                    </div>
+                                                <td className="py-3.5 px-4 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                                                    Kelompok #{item.kelompok_urutan}
                                                 </td>
-
-                                                {/* Nama & NIM */}
-                                                <td className="py-4 px-4">
-                                                    <div>
-                                                        <div className="font-bold text-gray-900 dark:text-white">
-                                                            {item.nama}
-                                                        </div>
-                                                        <div className="flex items-center gap-2 mt-0.5">
-                                                            <span className="text-xs text-gray-500 dark:text-gray-400">
-                                                                {item.nim}
-                                                            </span>
-                                                            {item.kelompok_nama && (
-                                                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
-                                                                    Kelompok {item.kelompok_urutan}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </td>
-
-                                                {/* Kampus */}
-                                                <td className="py-4 px-4 text-gray-600 dark:text-gray-400">
-                                                    <span className="text-sm font-medium">
-                                                        {item.kampus || '-'}
-                                                    </span>
-                                                    {item.prodi && item.prodi !== '-' && (
-                                                        <span className="block text-xs text-gray-400 mt-0.5">
-                                                            {item.prodi}
-                                                        </span>
-                                                    )}
-                                                </td>
-
-                                                {/* Status (Badge dengan Icon & Text) */}
-                                                <td className="py-4 px-4 text-center">
+                                                <td className="py-3.5 px-4 text-center">
                                                     {item.status_tugas ? (
-                                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 shadow-xs">
-                                                            <span>✅</span>
-                                                            <span>Sudah</span>
+                                                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800">
+                                                            Sudah
                                                         </span>
                                                     ) : (
-                                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 shadow-xs">
-                                                            <span>❌</span>
-                                                            <span>Belum</span>
+                                                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50 px-2.5 py-1 rounded-full border border-rose-200 dark:border-rose-800">
+                                                            Belum
                                                         </span>
                                                     )}
                                                 </td>
-
-                                                {/* Bukti Tugas */}
-                                                <td className="py-4 px-4 text-center">
+                                                <td className="py-3.5 px-4 text-center">
                                                     {item.bukti_tugas ? (
                                                         <button
                                                             onClick={() => {
                                                                 setActivePreviewIndex(0);
                                                                 setPreviewImage(item.bukti_tugas);
                                                             }}
-                                                            className="mx-auto w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-500 flex items-center justify-center hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors shadow-xs"
+                                                            className="p-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-100 transition-colors"
                                                             title="Lihat Foto Bukti"
                                                         >
-                                                            <ImageIcon size={18} />
+                                                            <ImageIcon size={16} />
                                                         </button>
                                                     ) : (
-                                                        <span className="text-gray-400 font-semibold">-</span>
+                                                        <span className="text-slate-300">-</span>
                                                     )}
                                                 </td>
-
-                                                {/* Tanggal Upload */}
-                                                <td className="py-4 px-4 text-xs font-medium text-gray-600 dark:text-gray-400">
-                                                    {item.created_at ? formatTanggal(item.created_at) : '-'}
-                                                </td>
-
-                                                {/* Aksi Hapus */}
-                                                <td className="py-4 px-4 text-center">
-                                                    {item.tugas_id ? (
-                                                        <button
-                                                            onClick={() => handleDeleteTugas(item.tugas_id, item.nama)}
-                                                            disabled={isDeleting === item.tugas_id}
-                                                            title="Hapus tugas peserta ini"
-                                                            className="w-8 h-8 mx-auto rounded-lg bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40 flex items-center justify-center transition-colors disabled:opacity-50"
-                                                        >
-                                                            {isDeleting === item.tugas_id ? (
-                                                                <RefreshCw size={14} className="animate-spin text-red-500" />
-                                                            ) : (
-                                                                <Trash2 size={14} />
-                                                            )}
-                                                        </button>
+                                                <td className="py-3.5 px-4 text-center">
+                                                    {item.nilai !== null && item.nilai !== undefined ? (
+                                                        <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold ${
+                                                            item.nilai >= 5
+                                                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                                                : 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
+                                                        }`}>
+                                                            {item.nilai} Poin
+                                                        </span>
                                                     ) : (
-                                                        <span className="text-gray-400 font-semibold">-</span>
+                                                        <span className="text-xs text-slate-400 italic">Belum Dinilai</span>
                                                     )}
+                                                </td>
+                                                <td className="py-3.5 px-4 text-center">
+                                                    <div className="flex items-center justify-center gap-1.5">
+                                                        {item.tugas_id ? (
+                                                            <>
+                                                                <button
+                                                                    onClick={() =>
+                                                                        setModalNilai({
+                                                                            open: true,
+                                                                            type: 'resume',
+                                                                            id: item.tugas_id,
+                                                                            nama: item.nama,
+                                                                            materi_or_platform: item.materi_judul,
+                                                                            nilai: item.nilai !== null && item.nilai !== undefined ? item.nilai : 5,
+                                                                            catatan: ''
+                                                                        })
+                                                                    }
+                                                                    className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium flex items-center gap-1 shadow-sm"
+                                                                    title="Beri Nilai 0 atau 5"
+                                                                >
+                                                                    <Award size={13} />
+                                                                    Beri Nilai
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDeleteResume(item.tugas_id, item.nama)}
+                                                                    className="p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors"
+                                                                    title="Hapus Tugas"
+                                                                >
+                                                                    <Trash2 size={15} />
+                                                                </button>
+                                                            </>
+                                                        ) : (
+                                                            <span className="text-xs text-slate-400 italic">Belum Submit</span>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -494,10 +657,564 @@ export default function AdminKabimTugasManager() {
                             </div>
                         )}
                     </div>
-                </>
+                </div>
             )}
 
-            {/* Modal Image Preview (Sama dengan PKKMB Tugas) */}
+            {/* TAB 2 & 3: SOSMED (KELOMPOK / INDIVIDU) */}
+            {(activeTab === 'sosmed_klp' || activeTab === 'sosmed_ind') && (
+                <div className="space-y-4">
+                    <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
+                        <div className="relative w-full md:w-80">
+                            <Search size={16} className="absolute left-3.5 top-3 text-slate-400" />
+                            <input
+                                type="text"
+                                placeholder={activeTab === 'sosmed_klp' ? 'Cari kelompok...' : 'Cari nama / NIM peserta...'}
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                            />
+                        </div>
+                        <span className="text-xs text-slate-500">
+                            Total: <strong>{filteredSosmed.length}</strong> submission
+                        </span>
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+                        {loadingSosmed ? (
+                            <div className="p-16 text-center text-slate-400">
+                                <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                                Memuat tugas sosial media...
+                            </div>
+                        ) : filteredSosmed.length === 0 ? (
+                            <div className="p-12 text-center text-slate-400">
+                                <Share2 size={32} className="mx-auto mb-2 opacity-50" />
+                                <p className="font-medium text-sm">Belum ada submission tugas sosial media.</p>
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 text-xs uppercase font-medium border-b border-slate-200 dark:border-slate-800">
+                                        <tr>
+                                            <th className="py-3.5 px-4 w-12 text-center">#</th>
+                                            <th className="py-3.5 px-4">
+                                                {activeTab === 'sosmed_klp' ? 'Kelompok' : 'Peserta / NIM'}
+                                            </th>
+                                            {activeTab === 'sosmed_klp' && <th className="py-3.5 px-4">Hari</th>}
+                                            <th className="py-3.5 px-4">Platform</th>
+                                            <th className="py-3.5 px-4">Link Konten</th>
+                                            <th className="py-3.5 px-4 text-center">Nilai (0/5)</th>
+                                            <th className="py-3.5 px-4">Tanggal Kirim</th>
+                                            <th className="py-3.5 px-4 text-center w-36">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                                        {filteredSosmed.map((item, idx) => (
+                                            <tr key={item.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
+                                                <td className="py-3.5 px-4 text-center font-medium text-slate-400 text-xs">{idx + 1}</td>
+                                                <td className="py-3.5 px-4">
+                                                    {activeTab === 'sosmed_klp' ? (
+                                                        <div className="font-bold text-slate-900 dark:text-white">
+                                                            #{item.kelompok?.urutan} {item.kelompok?.nama_kelompok}
+                                                        </div>
+                                                    ) : (
+                                                        <div>
+                                                            <div className="font-bold text-slate-900 dark:text-white">
+                                                                {item.kelompok_members?.nama_anggota || item.created_by}
+                                                            </div>
+                                                            <div className="text-xs text-slate-500">
+                                                                {item.kelompok_members?.nim_anggota || '-'}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                {activeTab === 'sosmed_klp' && (
+                                                    <td className="py-3.5 px-4">
+                                                        <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                                            {item.label_hari || 'Hari 1'}
+                                                        </span>
+                                                    </td>
+                                                )}
+                                                <td className="py-3.5 px-4">
+                                                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900">
+                                                        {item.platform}
+                                                    </span>
+                                                </td>
+                                                <td className="py-3.5 px-4">
+                                                    <a
+                                                        href={item.link_konten}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline max-w-[200px] truncate"
+                                                    >
+                                                        <ExternalLink size={13} className="shrink-0" />
+                                                        <span className="truncate">{item.link_konten}</span>
+                                                    </a>
+                                                </td>
+                                                <td className="py-3.5 px-4 text-center">
+                                                    {item.nilai !== null && item.nilai !== undefined ? (
+                                                        <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold ${
+                                                            item.nilai >= 5
+                                                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                                                : 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
+                                                        }`}>
+                                                            {item.nilai} Poin
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-xs text-slate-400 italic">Belum Dinilai</span>
+                                                    )}
+                                                </td>
+                                                <td className="py-3.5 px-4 text-xs text-slate-500">
+                                                    {formatTanggal(item.created_at)}
+                                                </td>
+                                                <td className="py-3.5 px-4 text-center">
+                                                    <div className="flex items-center justify-center gap-1.5">
+                                                        <button
+                                                            onClick={() =>
+                                                                setModalNilai({
+                                                                    open: true,
+                                                                    type: 'sosmed',
+                                                                    id: item.id,
+                                                                    nama: activeTab === 'sosmed_klp' ? item.kelompok?.nama_kelompok : item.kelompok_members?.nama_anggota,
+                                                                    materi_or_platform: `${item.platform} (${item.label_hari || ''})`,
+                                                                    nilai: item.nilai !== null && item.nilai !== undefined ? item.nilai : 5,
+                                                                    catatan: item.catatan_penilai || ''
+                                                                })
+                                                            }
+                                                            className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium flex items-center gap-1 shadow-sm"
+                                                        >
+                                                            <Award size={13} />
+                                                            Beri Nilai
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteSosmed(item.id)}
+                                                            className="p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors"
+                                                            title="Hapus Submission"
+                                                        >
+                                                            <Trash2 size={15} />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* TAB 4: BARANG BAWAAN */}
+            {activeTab === 'barang' && (
+                <div className="space-y-4">
+                    <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
+                        <div className="relative w-full md:w-80">
+                            <Search size={16} className="absolute left-3.5 top-3 text-slate-400" />
+                            <input
+                                type="text"
+                                placeholder="Cari kelompok / nama / hari..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                            />
+                        </div>
+
+                        <button
+                            onClick={openModalBarangBaru}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold shadow-md shadow-blue-500/20 flex items-center gap-2"
+                        >
+                            <Plus size={16} />
+                            + Input Pengecekan Barang
+                        </button>
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+                        {loadingBarang ? (
+                            <div className="p-16 text-center text-slate-400">
+                                <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                                Memuat data pengecekan barang...
+                            </div>
+                        ) : filteredBarang.length === 0 ? (
+                            <div className="p-12 text-center text-slate-400">
+                                <Package size={32} className="mx-auto mb-2 opacity-50" />
+                                <p className="font-medium text-sm">Belum ada catatan pengecekan barang bawaan.</p>
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 text-xs uppercase font-medium border-b border-slate-200 dark:border-slate-800">
+                                        <tr>
+                                            <th className="py-3.5 px-4 w-12 text-center">#</th>
+                                            <th className="py-3.5 px-4">Entitas</th>
+                                            <th className="py-3.5 px-4">Tipe</th>
+                                            <th className="py-3.5 px-4">Hari</th>
+                                            <th className="py-3.5 px-4 text-center">Dibawa / Wajib</th>
+                                            <th className="py-3.5 px-4 text-center">Persentase</th>
+                                            <th className="py-3.5 px-4">Catatan</th>
+                                            <th className="py-3.5 px-4 text-center w-28">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                                        {filteredBarang.map((item, idx) => {
+                                            const wajib = Math.max(1, item.total_barang_wajib || 1);
+                                            const bawa = item.barang_dibawa || 0;
+                                            const pct = ((bawa / wajib) * 100).toFixed(1);
+
+                                            return (
+                                                <tr key={item.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
+                                                    <td className="py-3.5 px-4 text-center font-medium text-slate-400 text-xs">{idx + 1}</td>
+                                                    <td className="py-3.5 px-4 font-semibold text-slate-900 dark:text-white">
+                                                        {item.tipe_barang === 'kelompok' ? (
+                                                            <span>#{item.kelompok?.urutan} {item.kelompok?.nama_kelompok}</span>
+                                                        ) : (
+                                                            <div>
+                                                                <div>{item.kelompok_members?.nama_anggota || '-'}</div>
+                                                                <div className="text-xs text-slate-400">{item.kelompok_members?.nim_anggota}</div>
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-3.5 px-4">
+                                                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${
+                                                            item.tipe_barang === 'kelompok'
+                                                                ? 'bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300'
+                                                                : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                                                        }`}>
+                                                            {item.tipe_barang}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3.5 px-4 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                                        {item.label_hari}
+                                                    </td>
+                                                    <td className="py-3.5 px-4 text-center font-mono font-bold text-slate-800 dark:text-slate-200">
+                                                        {bawa} / {wajib}
+                                                    </td>
+                                                    <td className="py-3.5 px-4 text-center">
+                                                        <span className={`font-bold text-xs px-2.5 py-1 rounded-lg ${
+                                                            parseFloat(pct) >= 100
+                                                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                                                                : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
+                                                        }`}>
+                                                            {pct}%
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-3.5 px-4 text-xs text-slate-500 max-w-xs truncate">
+                                                        {item.catatan || '-'}
+                                                    </td>
+                                                    <td className="py-3.5 px-4 text-center">
+                                                        <div className="flex items-center justify-center gap-1">
+                                                            <button
+                                                                onClick={() =>
+                                                                    setModalBarang({
+                                                                        open: true,
+                                                                        id: item.id,
+                                                                        tipe_barang: item.tipe_barang,
+                                                                        kelompok_id: item.kelompok_id || '',
+                                                                        kelompok_members_id: item.kelompok_members_id || '',
+                                                                        label_hari: item.label_hari,
+                                                                        total_barang_wajib: wajib,
+                                                                        barang_dibawa: bawa,
+                                                                        catatan: item.catatan || ''
+                                                                    })
+                                                                }
+                                                                className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg"
+                                                                title="Edit Pengecekan"
+                                                            >
+                                                                <Edit3 size={15} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteBarang(item.id)}
+                                                                className="p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg"
+                                                                title="Hapus Catatan"
+                                                            >
+                                                                <Trash2 size={15} />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL BERI NILAI RESUME / SOSMED */}
+            {modalNilai.open && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-5">
+                        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                                    Beri Nilai Tugas
+                                </h3>
+                                <p className="text-xs text-slate-500">
+                                    {modalNilai.nama} — {modalNilai.materi_or_platform}
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setModalNilai({ open: false, type: 'resume', id: null, nama: '', materi_or_platform: '', nilai: 5, catatan: '' })}
+                                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
+                                    Pilih Nilai Tugas
+                                </label>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setModalNilai(prev => ({ ...prev, nilai: 5 }))}
+                                        className={`p-3.5 rounded-xl border text-center font-bold text-sm transition-all ${
+                                            modalNilai.nilai === 5
+                                                ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/20'
+                                                : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+                                        }`}
+                                    >
+                                        <div className="text-lg mb-0.5">5 Poin</div>
+                                        <div className="text-[11px] font-normal">Mengerjakan Lengkap</div>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setModalNilai(prev => ({ ...prev, nilai: 0 }))}
+                                        className={`p-3.5 rounded-xl border text-center font-bold text-sm transition-all ${
+                                            modalNilai.nilai === 0
+                                                ? 'bg-rose-50 dark:bg-rose-950/60 border-rose-500 text-rose-700 dark:text-rose-300 ring-2 ring-rose-500/20'
+                                                : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+                                        }`}
+                                    >
+                                        <div className="text-lg mb-0.5">0 Poin</div>
+                                        <div className="text-[11px] font-normal">Tidak Mengerjakan</div>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {modalNilai.type === 'sosmed' && (
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                                        Catatan Penilai (Opsional)
+                                    </label>
+                                    <textarea
+                                        rows="2"
+                                        value={modalNilai.catatan}
+                                        onChange={(e) => setModalNilai(prev => ({ ...prev, catatan: e.target.value }))}
+                                        placeholder="Komentar atau feedback..."
+                                        className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs outline-none"
+                                    />
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                            <button
+                                type="button"
+                                onClick={() => setModalNilai({ open: false, type: 'resume', id: null, nama: '', materi_or_platform: '', nilai: 5, catatan: '' })}
+                                className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleSaveNilai}
+                                disabled={isProcessing}
+                                className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md shadow-blue-500/20 flex items-center gap-2"
+                            >
+                                <Check size={16} />
+                                {isProcessing ? 'Menyimpan...' : 'Simpan Nilai'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL INPUT PENGECEKAN BARANG BAWAAN */}
+            {modalBarang.open && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+                        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                                {modalBarang.id ? 'Edit Pengecekan Barang' : 'Input Pengecekan Barang'}
+                            </h3>
+                            <button
+                                onClick={() => setModalBarang(prev => ({ ...prev, open: false }))}
+                                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-3">
+                            {/* Tipe Barang: Kelompok vs Individu */}
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                                    Tipe Pengecekan
+                                </label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setModalBarang(prev => ({ ...prev, tipe_barang: 'kelompok' }))}
+                                        className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
+                                            modalBarang.tipe_barang === 'kelompok'
+                                                ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-500'
+                                                : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                                        }`}
+                                    >
+                                        Per Kelompok
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setModalBarang(prev => ({ ...prev, tipe_barang: 'individu' }))}
+                                        className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
+                                            modalBarang.tipe_barang === 'individu'
+                                                ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-500'
+                                                : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                                        }`}
+                                    >
+                                        Per Individu
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Pilih Kelompok — tergantung hak akses role */}
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                                    Kelompok
+                                </label>
+                                {lockedKelompokId && allowedKelompok.length === 1 ? (
+                                    /* Kabim hanya punya 1 kelompok — tampilkan statis/terkunci */
+                                    <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 rounded-xl">
+                                        <Lock size={14} className="text-indigo-500 shrink-0" />
+                                        <span className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">
+                                            #{allowedKelompok[0]?.urutan} {allowedKelompok[0]?.nama_kelompok}
+                                        </span>
+                                        <span className="ml-auto text-[10px] text-indigo-400 font-medium uppercase tracking-wider">Terkunci</span>
+                                    </div>
+                                ) : (
+                                    /* super_admin / admin_pkkmb / kabim multi kelompok — tampilkan dropdown */
+                                    <select
+                                        value={modalBarang.kelompok_id}
+                                        onChange={(e) => setModalBarang(prev => ({ ...prev, kelompok_id: e.target.value, kelompok_members_id: '' }))}
+                                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none"
+                                    >
+                                        <option value="">— Pilih Kelompok —</option>
+                                        {allowedKelompok.map(k => (
+                                            <option key={k.id} value={k.id}>
+                                                #{k.urutan} {k.nama_kelompok}
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
+                            </div>
+
+                            {/* Pilih Anggota (Jika Tipe Individu) */}
+                            {modalBarang.tipe_barang === 'individu' && (
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                                        Pilih Peserta
+                                    </label>
+                                    <select
+                                        value={modalBarang.kelompok_members_id}
+                                        onChange={(e) => setModalBarang(prev => ({ ...prev, kelompok_members_id: e.target.value }))}
+                                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none"
+                                    >
+                                        <option value="">— Pilih Anggota —</option>
+                                        {anggotaDropdownList.map(m => (
+                                            <option key={m.id} value={m.id}>
+                                                {m.nama_anggota} ({m.nim_anggota || 'Tanpa NIM'})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
+                            {/* Pilih Hari */}
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                                    Hari Pelaksanaan
+                                </label>
+                                <select
+                                    value={modalBarang.label_hari}
+                                    onChange={(e) => setModalBarang(prev => ({ ...prev, label_hari: e.target.value }))}
+                                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none"
+                                >
+                                    {daftarHari.map(h => (
+                                        <option key={h} value={h}>{h}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Jumlah Wajib & Dibawa */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                                        Total Barang Wajib
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={modalBarang.total_barang_wajib}
+                                        onChange={(e) => setModalBarang(prev => ({ ...prev, total_barang_wajib: e.target.value }))}
+                                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                                        Jumlah Dibawa
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        value={modalBarang.barang_dibawa}
+                                        onChange={(e) => setModalBarang(prev => ({ ...prev, barang_dibawa: e.target.value }))}
+                                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold text-emerald-600"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                                    Catatan / Keterangan
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="Contoh: pita merah kurang 1, name tag ada"
+                                    value={modalBarang.catatan}
+                                    onChange={(e) => setModalBarang(prev => ({ ...prev, catatan: e.target.value }))}
+                                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs outline-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                            <button
+                                type="button"
+                                onClick={() => setModalBarang(prev => ({ ...prev, open: false }))}
+                                className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleSaveBarang}
+                                disabled={isProcessing}
+                                className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md shadow-blue-500/20 flex items-center gap-2"
+                            >
+                                <Check size={16} />
+                                {isProcessing ? 'Menyimpan...' : 'Simpan Pengecekan'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL IMAGE PREVIEW (Untuk Bukti Tugas Resume) */}
             {previewImage && (() => {
                 let rawList = [];
                 try {
@@ -508,63 +1225,63 @@ export default function AdminKabimTugasManager() {
                         rawList = previewImage.split(',');
                     }
                 } catch {
-                    rawList = typeof previewImage === 'string' ? previewImage.split(',') : [];
+                    rawList = previewImage.split(',');
                 }
-
-                const imageList = rawList.map(u => {
-                    const trimmed = typeof u === 'string' ? u.trim().replace(/^["'\[\]]+|["'\[\]]+$/g, '') : '';
-                    if (!trimmed) return null;
-                    if (trimmed.startsWith('http')) return trimmed;
-                    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://qttrkptegnfwoseutfga.supabase.co';
-                    return `${supabaseUrl}/storage/v1/object/public/materi-tugas/${trimmed}`;
-                }).filter(Boolean);
-
-                const activeImg = typeof activePreviewIndex === 'number' && imageList[activePreviewIndex]
-                    ? imageList[activePreviewIndex]
-                    : imageList[0];
+                const images = rawList.map(s => s.trim()).filter(Boolean);
+                const currentImg = images[activePreviewIndex] || images[0];
 
                 return (
-                    <div
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in"
-                        onClick={() => setPreviewImage(null)}
-                    >
-                        <div
-                            className="max-w-4xl max-h-[90vh] relative flex flex-col items-center gap-3"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <img
-                                src={activeImg}
-                                alt="Preview Tugas"
-                                className="max-w-full max-h-[75vh] object-contain rounded-xl shadow-2xl bg-black/40"
-                            />
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="relative max-w-4xl w-full bg-white dark:bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]">
+                            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <ImageIcon size={18} className="text-blue-500" />
+                                    <span className="font-bold text-sm text-slate-900 dark:text-white">
+                                        Bukti Tugas ({activePreviewIndex + 1} dari {images.length})
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <a
+                                        href={currentImg}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="p-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-lg"
+                                        title="Buka di Tab Baru"
+                                    >
+                                        <Maximize2 size={16} />
+                                    </a>
+                                    <button
+                                        onClick={() => setPreviewImage(null)}
+                                        className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg"
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                </div>
+                            </div>
 
-                            {/* Thumbnails / Pills if multi images */}
-                            {imageList.length > 1 && (
-                                <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10">
-                                    {imageList.map((imgUrl, idx) => (
+                            <div className="p-4 flex-1 overflow-auto flex items-center justify-center bg-slate-950">
+                                <img
+                                    src={currentImg}
+                                    alt="Bukti Tugas"
+                                    className="max-h-[65vh] object-contain rounded-lg"
+                                />
+                            </div>
+
+                            {images.length > 1 && (
+                                <div className="p-3 border-t border-slate-800 bg-slate-900 flex items-center justify-center gap-2 overflow-x-auto">
+                                    {images.map((img, i) => (
                                         <button
-                                            key={idx}
-                                            onClick={() => setActivePreviewIndex(idx)}
-                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                                                activeImg === imgUrl
-                                                    ? 'bg-blue-600 text-white shadow-md'
-                                                    : 'bg-white/20 text-gray-200 hover:bg-white/30'
+                                            key={i}
+                                            onClick={() => setActivePreviewIndex(i)}
+                                            className={`w-12 h-12 rounded-lg overflow-hidden border-2 transition-all shrink-0 ${
+                                                activePreviewIndex === i ? 'border-blue-500 scale-105' : 'border-slate-700 opacity-60 hover:opacity-100'
                                             }`}
                                         >
-                                            Foto {idx + 1}
+                                            <img src={img} alt={`Thumb ${i + 1}`} className="w-full h-full object-cover" />
                                         </button>
                                     ))}
                                 </div>
                             )}
-
-                            {/* Close Button */}
-                            <button
-                                className="absolute -top-3 -right-3 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform text-lg leading-none"
-                                onClick={() => setPreviewImage(null)}
-                                title="Tutup Preview"
-                            >
-                                &times;
-                            </button>
                         </div>
                     </div>
                 );

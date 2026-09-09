@@ -1,0 +1,3 @@
+fokus ke halaman dashboard di public pkkmb yaitu tepatnya di src/app/pkkmb/dashboard/[id]/page.js
+saya ingin ada recap tambahan lagi yaitu untuk recap absensi dan recap pelanggaran, yang datanya sesuai kelompok_members itu. yang dihalaman dashboard ini hanya menampilkan data yang sesuai saja kalau untuk pembuatan datanya tetap dihalaman panitia.
+bacalah codingan yang relevan dan untuk struktur folder atau struktur schema databasenya bisa dilihat di file AGENTS.md

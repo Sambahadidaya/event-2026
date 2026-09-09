@@ -90,6 +90,7 @@ export default function PkkmbKelompok() {
     const [kelompok, setKelompok] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [activeTab, setActiveTab] = useState('reguler'); // 'reguler' | 'nonreg'
     const [expandedKelompok, setExpandedKelompok] = useState(null);
     const [showScrollTop, setShowScrollTop] = useState(false);
 
@@ -122,12 +123,25 @@ export default function PkkmbKelompok() {
         }
     };
 
-    const filteredKelompok = useMemo(() => {
-        return kelompok.filter(k =>
-            k.nama_kelompok.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            k.nama_kabim.toLowerCase().includes(searchQuery.toLowerCase())
+    // Filter by type
+    const kelompokReguler = useMemo(() => {
+        return kelompok.filter(k => (k.jenis_kelompok || 'reguler') === 'reguler');
+    }, [kelompok]);
+
+    const kelompokNonreg = useMemo(() => {
+        return kelompok.filter(k => k.jenis_kelompok === 'nonreg');
+    }, [kelompok]);
+
+    // Active displayed list
+    const displayedKelompok = useMemo(() => {
+        const source = activeTab === 'nonreg' ? kelompokNonreg : kelompokReguler;
+        if (!searchQuery.trim()) return source;
+        const query = searchQuery.toLowerCase().trim();
+        return source.filter(k =>
+            (k.nama_kelompok || '').toLowerCase().includes(query) ||
+            (k.nama_kabim || '').toLowerCase().includes(query)
         );
-    }, [kelompok, searchQuery]);
+    }, [activeTab, kelompokReguler, kelompokNonreg, searchQuery]);
 
     return (
         <div className="min-h-screen pt-24 pb-12 sm:pt-32 sm:pb-20 text-gray-900 dark:text-gray-150 transition-colors duration-300">
@@ -136,18 +150,61 @@ export default function PkkmbKelompok() {
                 <div className="max-w-7xl mx-auto px-4 md:px-8 space-y-8 pb-20">
                     <PageHero site="pkkmb" icon={Users} title="Kelompok PKKMB" subtitle="Informasi pembagian kelompok dan anggota peserta PKKMB 2026" />
 
-                    {/* Search Bar */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-end gap-4 mt-12">
+                    {/* Controls Bar: Tab Selector (Reguler / Non-Reg) & Search Bar */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-8">
+                        
+                        {/* Tab Switcher */}
+                        <div className="inline-flex p-1.5 bg-white/60 dark:bg-gray-900/60 backdrop-blur-md rounded-2xl border border-gray-200/80 dark:border-gray-800 shadow-xs self-start">
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('reguler')}
+                                className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2.5 cursor-pointer ${
+                                    activeTab === 'reguler'
+                                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20 scale-[1.02]'
+                                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                                }`}
+                            >
+                                <span>Kelompok Reguler</span>
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                                    activeTab === 'reguler'
+                                        ? 'bg-white/20 text-white'
+                                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                                }`}>
+                                    {kelompokReguler.length}
+                                </span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('nonreg')}
+                                className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2.5 cursor-pointer ${
+                                    activeTab === 'nonreg'
+                                        ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-500/20 scale-[1.02]'
+                                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                                }`}
+                            >
+                                <span>Kelompok Non-Reguler</span>
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                                    activeTab === 'nonreg'
+                                        ? 'bg-white/20 text-white'
+                                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                                }`}>
+                                    {kelompokNonreg.length}
+                                </span>
+                            </button>
+                        </div>
+
+                        {/* Search Bar */}
                         <div className="relative w-full md:w-72 lg:w-80">
                             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
                                 <Search size={18} />
                             </div>
                             <input
                                 type="text"
-                                placeholder="Cari kelompok / kabim..."
+                                placeholder={`Cari kelompok / kabim ${activeTab === 'nonreg' ? 'non-reg' : 'reguler'}...`}
                                 value={searchQuery}
                                 onChange={e => setSearchQuery(e.target.value)}
-                                className="w-full pl-11 p-3 text-sm border border-gray-200 dark:border-gray-800 rounded-xl bg-white dark:bg-gray-900 outline-none focus:ring-1 focus:ring-blue-500 transition-all placeholder-gray-400"
+                                className="w-full pl-11 p-3 text-sm border border-gray-200 dark:border-gray-800 rounded-xl bg-white dark:bg-gray-900 outline-none focus:ring-1 focus:ring-blue-500 transition-all placeholder-gray-400 shadow-2xs"
                             />
                         </div>
                     </div>
@@ -167,16 +224,20 @@ export default function PkkmbKelompok() {
                                 </div>
                             ))}
                         </div>
-                    ) : filteredKelompok.length === 0 ? (
-                        <div className="p-12 rounded-3xl text-center border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 mt-12">
+                    ) : displayedKelompok.length === 0 ? (
+                        <div className="p-12 rounded-3xl text-center border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 mt-8">
                             <Users size={48} className="mx-auto text-gray-300 dark:text-gray-700 mb-4" />
-                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Belum Ada Kelompok</h3>
-                            <p className="text-gray-500 dark:text-gray-400">Data kelompok tidak ditemukan atau kosong.</p>
+                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                                {activeTab === 'nonreg' ? 'Belum Ada Kelompok Non-Reguler' : 'Belum Ada Kelompok Reguler'}
+                            </h3>
+                            <p className="text-gray-500 dark:text-gray-400 text-sm">
+                                {searchQuery ? 'Tidak ada kelompok yang sesuai dengan pencarian.' : 'Data kelompok belum diterbitkan untuk kategori ini.'}
+                            </p>
                         </div>
                     ) : (
-                        <div className="mt-12 space-y-4 w-full">
+                        <div className="mt-8 space-y-4 w-full">
                             <HorizontalScrollRow>
-                                {filteredKelompok.map((k, index) => {
+                                {displayedKelompok.map((k, index) => {
                                     const uniqueId = k.id || `kelompok-${index}`;
                                     return (
                                         <KelompokCard
@@ -208,6 +269,8 @@ export default function PkkmbKelompok() {
 }
 
 function KelompokCard({ item, isExpanded, onToggleExpand }) {
+    const isNonReg = item.jenis_kelompok === 'nonreg';
+
     return (
         <div className="glass rounded-3xl overflow-hidden transition-all duration-300 flex flex-col group w-full">
             {/* Seluruh area atas bisa diklik untuk expand/collapse */}
@@ -222,14 +285,27 @@ function KelompokCard({ item, isExpanded, onToggleExpand }) {
                                 <img src={item.foto_kelompok} alt={item.nama_kelompok} className="w-full h-full object-cover" />
                             </div>
                         ) : (
-                            <div className="w-14 h-14 rounded-2xl bg-white/30 dark:bg-black/30 flex items-center justify-center text-gray-400 border border-white/40 dark:border-white/10 shrink-0">
-                                <ImageIcon size={24} className="opacity-40" />
+                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-extrabold text-lg border border-white/40 dark:border-white/10 shrink-0 text-white shadow-xs ${
+                                isNonReg
+                                    ? 'bg-gradient-to-br from-purple-500 to-indigo-600'
+                                    : 'bg-gradient-to-br from-blue-500 to-indigo-600'
+                            }`}>
+                                #{item.urutan || '?'}
                             </div>
                         )}
                         <div className="min-w-0">
-                            <h3 className="text-base font-bold text-gray-900 dark:text-white truncate leading-snug mb-1" title={item.nama_kelompok}>
-                                {item.nama_kelompok}
-                            </h3>
+                            <div className="flex items-center gap-2 mb-1">
+                                <h3 className="text-base font-bold text-gray-900 dark:text-white truncate leading-snug" title={item.nama_kelompok}>
+                                    {item.nama_kelompok}
+                                </h3>
+                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ${
+                                    isNonReg
+                                        ? 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300'
+                                        : 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'
+                                }`}>
+                                    #{item.urutan}
+                                </span>
+                            </div>
                             <div className="flex flex-wrap gap-1.5 items-center">
                                 <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100/70 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300">
                                     PJ: {item.nama_kabim}

@@ -28,6 +28,7 @@ async function invalidateAdminCache() {
 const ALLOWED_KELOMPOK_KEYS = [
     'urutan', 'nama_kelompok', 'nama_kabim',
     'link_instagram', 'foto_kelompok', 'keterangan',
+    'jenis_kelompok', 'is_public'
 ];
 const ALLOWED_MEMBER_KEYS = ['kelompok_id', 'nama_anggota', 'nim_anggota'];
 
@@ -76,7 +77,7 @@ export const getKelompokAdmin = async () => {
         const { data, error } = await supabaseAdmin
             .from('kelompok')
             .select(
-                'id, urutan, nama_kelompok, nama_kabim, link_instagram, foto_kelompok, keterangan, created_at, ' +
+                'id, urutan, nama_kelompok, nama_kabim, link_instagram, foto_kelompok, keterangan, jenis_kelompok, is_public, created_at, ' +
                 'kelompok_members(id, nama_anggota, nim_anggota)'
             )
             .order('urutan', { ascending: true });
@@ -135,14 +136,14 @@ export const getKelompokByUrutan = async (urutan) => {
         if (authError) throw new Error(authError);
 
         const urutanNum = Number(urutan);
-        if (!Number.isInteger(urutanNum) || urutanNum < 1 || urutanNum > 8) {
+        if (!Number.isInteger(urutanNum) || urutanNum < 1 || urutanNum > 15) {
             throw new Error('Invalid urutan value');
         }
 
         const { data, error } = await supabaseAdmin
             .from('kelompok')
             .select(
-                'id, urutan, nama_kelompok, nama_kabim, link_instagram, foto_kelompok, keterangan, created_at, ' +
+                'id, urutan, nama_kelompok, nama_kabim, link_instagram, foto_kelompok, keterangan, jenis_kelompok, is_public, created_at, ' +
                 'kelompok_members(id, nama_anggota, nim_anggota)'
             )
             .eq('urutan', urutanNum)
@@ -199,7 +200,7 @@ export const getKelompokByUrutanArray = async (urutanArray) => {
 
         const validUrutan = urutanArray
             .map(u => Number(u))
-            .filter(u => Number.isInteger(u) && u >= 1 && u <= 8);
+            .filter(u => Number.isInteger(u) && u >= 1 && u <= 15);
 
         if (validUrutan.length === 0) {
             return [];
@@ -208,7 +209,7 @@ export const getKelompokByUrutanArray = async (urutanArray) => {
         const { data, error } = await supabaseAdmin
             .from('kelompok')
             .select(
-                'id, urutan, nama_kelompok, nama_kabim, link_instagram, foto_kelompok, keterangan, created_at, ' +
+                'id, urutan, nama_kelompok, nama_kabim, link_instagram, foto_kelompok, keterangan, jenis_kelompok, is_public, created_at, ' +
                 'kelompok_members(id, nama_anggota, nim_anggota)'
             )
             .in('urutan', validUrutan)

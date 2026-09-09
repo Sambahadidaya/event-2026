@@ -1,17 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Save, AlertCircle, Pill, Package, Layers } from 'lucide-react';
+import { X, Save, AlertCircle, Pill, Package, Layers, ShieldCheck } from 'lucide-react';
 
 export default function MasterObatModal({
     isOpen,
     onClose,
     onSave,
-    editingData = null
+    editingData = null,
+    defaultSite = 'pkkmb'
 }) {
     const [namaObat, setNamaObat] = useState('');
     const [stokObat, setStokObat] = useState('');
     const [sisaObat, setSisaObat] = useState('');
+    const [isNonDepleting, setIsNonDepleting] = useState(false);
+    const [site, setSite] = useState(defaultSite);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -21,14 +24,18 @@ export default function MasterObatModal({
                 setNamaObat(editingData.nama_obat || '');
                 setStokObat(editingData.stok_obat ?? '');
                 setSisaObat(editingData.sisa_obat ?? '');
+                setIsNonDepleting(Boolean(editingData.is_non_depleting));
+                setSite(editingData.site || defaultSite || 'pkkmb');
             } else {
                 setNamaObat('');
                 setStokObat('');
                 setSisaObat('');
+                setIsNonDepleting(false);
+                setSite(defaultSite || 'pkkmb');
             }
             setError('');
         }
-    }, [isOpen, editingData]);
+    }, [isOpen, editingData, defaultSite]);
 
     if (!isOpen) return null;
 
@@ -73,7 +80,9 @@ export default function MasterObatModal({
             await onSave({
                 nama_obat: nama,
                 stok_obat: stok,
-                sisa_obat: sisa
+                sisa_obat: sisa,
+                is_non_depleting: isNonDepleting,
+                site: site || 'pkkmb'
             });
             onClose();
         } catch (err) {
@@ -98,7 +107,7 @@ export default function MasterObatModal({
                                 {editingData ? 'Edit Master Obat' : 'Tambah Obat Baru'}
                             </h3>
                             <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">
-                                Kelola persediaan dan stok obat tim medis
+                                Kelola persediaan dan stok obat tim medis ({site.toUpperCase()})
                             </p>
                         </div>
                     </div>
@@ -123,11 +132,11 @@ export default function MasterObatModal({
                     {/* Nama Obat */}
                     <div className="space-y-1.5">
                         <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                            Nama Obat <span className="text-rose-500">*</span>
+                            Nama Obat / Alat Medis <span className="text-rose-500">*</span>
                         </label>
                         <input
                             type="text"
-                            placeholder="Contoh: Paracetamol 500mg, Promag, Betadine..."
+                            placeholder="Contoh: Paracetamol 500mg, Promag, Minyak Kayu Putih, Tensi..."
                             value={namaObat}
                             onChange={(e) => setNamaObat(e.target.value)}
                             required
@@ -170,8 +179,33 @@ export default function MasterObatModal({
                         </div>
                     </div>
 
-                    <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200/60 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400">
-                        💡 <strong>Catatan:</strong> Sisa obat akan berkurang secara otomatis ketika terdapat penanganan atau log pemakaian obat yang dicatat.
+                    {/* Non-Depleting Checkbox */}
+                    <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 space-y-2">
+                        <label className="flex items-start gap-3 cursor-pointer select-none">
+                            <input
+                                type="checkbox"
+                                checked={isNonDepleting}
+                                onChange={(e) => setIsNonDepleting(e.target.checked)}
+                                className="mt-0.5 w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
+                            />
+                            <div className="space-y-0.5">
+                                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                                    <ShieldCheck size={14} className="text-amber-500" />
+                                    Non-Depleting (Stok Tidak Berkurang Otomatis)
+                                </span>
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                                    Centang untuk obat/alat pakai ulang (misal: Minyak Kayu Putih, Tensi, Oximeter, Termometer, dll) yang pemakaiannya tidak menghabiskan unit stok.
+                                </p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div className="p-3 bg-blue-50/60 dark:bg-blue-950/30 rounded-xl border border-blue-200/50 dark:border-blue-900/40 text-[11px] text-blue-700 dark:text-blue-300">
+                        {isNonDepleting ? (
+                            <span>🛡️ <strong>Info:</strong> Pemakaian obat ini akan tetap tercatat di riwayat & log, tetapi sisa stok tidak akan berkurang secara otomatis.</span>
+                        ) : (
+                            <span>💡 <strong>Catatan:</strong> Sisa stok akan otomatis berkurang setiap kali obat ini digunakan dalam penanganan atau dicatat di log pemakaian.</span>
+                        )}
                     </div>
 
                     {/* Actions */}

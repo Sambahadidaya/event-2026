@@ -137,6 +137,20 @@ export const panduanAdminData = {
         ],
         updateVersi: [
             {
+                versi: '2026.3.3',
+                tanggal: '10 September 2026 00.18 WIB',
+                judul: 'Rilis Panel Admin PKKMB v3.3 — Halaman Baru Untuk Divisi Kabim, dan Divisi Sekretaris',
+                isi: 'Menambahkan halaman baru untuk divisi kabim yaitu master penilaian, penilaian kreativitas, penilaian pelanggaran, dan nilai akhir penilaian. Menambahkan halaman baru untuk divisi sekretaris yaitu Absensi Peserta.',
+                imageKey: 'versi3.3'
+            },
+            {
+                versi: '2026.3.2',
+                tanggal: '07 September 2026 03.18 WIB',
+                judul: 'Rilis Panel Admin PKKMB v3.2 — Halaman Baru Pj_Kabim, Pj_Tatib, Pj_Medis & Pembagian Kelompok',
+                isi: 'Menambahkan halaman panitia Pj Tatib untuk mengelola master pelanggaran dan riwayat pelanggaran, fitur riwayat pelanggaran pada halaman Pj Kabim, halaman panitia Pj Medis untuk mengelola master obat dan riwayat penggunaan obat, halaman panitia Pembagian Kelompok untuk mengelola kelompok, fitur pembuatan QR peserta pada halaman panitia kelompok, serta halaman panitia Absensi untuk melakukan absensi peserta.',
+                imageKey: 'versi2026.3.2'
+            },
+            {
                 versi: 'versi 2026.3.1',
                 tanggal: '06 September 2026',
                 judul: 'Rilis Admin Versi 3.1 — Video Tutorial & Peningkatan Modul Panduan',

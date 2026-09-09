@@ -12,11 +12,10 @@ import {
     CheckCircle2,
     Pill,
     History,
-    Calendar,
-    Activity
+    ShieldCheck
 } from 'lucide-react';
 import { getCurrentAdmin } from '@/api/supabase/admin/auth';
-import { hasAccess } from '@/lib/adminRoleData';
+import { hasAccess, getSiteFromRole } from '@/lib/adminRoleData';
 import {
     getLogObat,
     getMasterObat,
@@ -39,6 +38,8 @@ export default function LogObatPage() {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
+    const [selectedSite, setSelectedSite] = useState('pkkmb');
+    const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -58,12 +59,12 @@ export default function LogObatPage() {
     };
 
     // Load data
-    const fetchData = useCallback(async () => {
+    const fetchData = useCallback(async (siteTarget) => {
         setLoading(true);
         try {
             const [logRes, masterRes] = await Promise.all([
-                getLogObat(),
-                getMasterObat()
+                getLogObat(siteTarget),
+                getMasterObat(siteTarget)
             ]);
 
             if (logRes.success) {
@@ -98,7 +99,14 @@ export default function LogObatPage() {
                 }
 
                 setAdmin(currentAdmin);
-                await fetchData();
+                const isSuper = currentAdmin.role === 'super_admin';
+                setIsSuperAdmin(isSuper);
+
+                const detectedSite = getSiteFromRole(currentAdmin.role);
+                const initialSite = isSuper ? 'pkkmb' : detectedSite;
+                setSelectedSite(initialSite);
+
+                await fetchData(initialSite);
             } catch (err) {
                 console.error('Init error:', err);
                 router.push('/panitia/login');
@@ -107,6 +115,11 @@ export default function LogObatPage() {
 
         init();
     }, [router, fetchData]);
+
+    const handleSiteChange = async (site) => {
+        setSelectedSite(site);
+        await fetchData(site);
+    };
 
     // Search filter
     const filteredData = useMemo(() => {
@@ -124,7 +137,7 @@ export default function LogObatPage() {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchQuery]);
+    }, [searchQuery, selectedSite]);
 
     // Stats
     const stats = useMemo(() => {
@@ -140,11 +153,11 @@ export default function LogObatPage() {
             if (!res.success) throw new Error(res.error);
             showToast('Log pemakaian obat berhasil diperbarui');
         } else {
-            const res = await createLogObat(payload);
+            const res = await createLogObat({ ...payload, site: selectedSite });
             if (!res.success) throw new Error(res.error);
-            showToast('Pemakaian obat berhasil dicatat & sisa stok dikurangi');
+            showToast('Pemakaian obat berhasil dicatat');
         }
-        await fetchData();
+        await fetchData(selectedSite);
     };
 
     // Delete
@@ -159,8 +172,8 @@ export default function LogObatPage() {
         try {
             const res = await deleteLogObat(deletingId);
             if (res.success) {
-                showToast('Log pemakaian obat dihapus & sisa stok obat dikembalikan');
-                await fetchData();
+                showToast('Log pemakaian obat dihapus');
+                await fetchData(selectedSite);
             } else {
                 showToast(res.error || 'Gagal menghapus log pemakaian', 'error');
             }
@@ -199,7 +212,7 @@ export default function LogObatPage() {
                 nama_obat: item.master_obat?.nama_obat || '-',
                 stok_obat: item.master_obat?.stok_obat ?? '-',
                 pemakaian_obat: item.pemakaian_obat ?? 0,
-                sisa_obat: item.master_obat?.sisa_obat ?? '-',
+                sisa_obat: item.master_obat?.is_non_depleting ? 'Utuh (Non-Depleting)' : (item.master_obat?.sisa_obat ?? '-'),
                 created_at_fmt: dateStr
             };
         });
@@ -242,23 +255,49 @@ export default function LogObatPage() {
                             <ClipboardList size={24} />
                         </div>
                         <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-                            Log Pemakaian Obat
+                            Log Pemakaian Obat ({selectedSite.toUpperCase()})
                         </h1>
                     </div>
                     <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                        Catatan audit penggunaan obat medis oleh tim medis selama kegiatan
+                        Catatan audit penggunaan obat medis oleh tim medis selama kegiatan {selectedSite.toUpperCase()}
                     </p>
                 </div>
 
-                <div className="flex items-center gap-2.5 shrink-0">
+                <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                    {/* Super Admin Site Switcher */}
+                    {isSuperAdmin && (
+                        <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700">
+                            <button
+                                onClick={() => handleSiteChange('pkkmb')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    selectedSite === 'pkkmb'
+                                        ? 'bg-blue-600 text-white shadow-xs'
+                                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                                }`}
+                            >
+                                PKKMB
+                            </button>
+                            <button
+                                onClick={() => handleSiteChange('pose')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    selectedSite === 'pose'
+                                        ? 'bg-amber-600 text-white shadow-xs'
+                                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                                }`}
+                            >
+                                POSE
+                            </button>
+                        </div>
+                    )}
+
                     <TombolCetak
-                        pdfTitle="Laporan Log Pemakaian Obat Medis PKKMB 2026"
-                        pdfSite="pkkmb"
+                        pdfTitle={`Laporan Log Pemakaian Obat Medis ${selectedSite.toUpperCase()} 2026`}
+                        pdfSite={selectedSite}
                         pdfData={printData}
                         pdfColumns={printColumns}
                         excelData={printData}
                         excelColumns={printColumns}
-                        excelFilename="log-pemakaian-obat"
+                        excelFilename={`log-pemakaian-obat-${selectedSite}`}
                     />
 
                     <button
@@ -306,7 +345,7 @@ export default function LogObatPage() {
                 <Search size={18} className="text-slate-400 shrink-0" />
                 <input
                     type="text"
-                    placeholder="Cari berdasarkan nama obat..."
+                    placeholder={`Cari berdasarkan nama obat pada data ${selectedSite.toUpperCase()}...`}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full bg-transparent text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none"
@@ -326,7 +365,7 @@ export default function LogObatPage() {
                 <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                     <div>
                         <h3 className="font-bold text-slate-800 dark:text-white text-base">
-                            Daftar Catatan Pengeluaran & Pemakaian Obat
+                            Daftar Catatan Pengeluaran & Pemakaian Obat ({selectedSite.toUpperCase()})
                         </h3>
                         <p className="text-xs text-slate-400">
                             Riwayat log pemakaian obat beserta informasi stok dan sisa obat
@@ -345,7 +384,7 @@ export default function LogObatPage() {
                                 <th className="py-3.5 px-4">Nama Obat</th>
                                 <th className="py-3.5 px-4 w-32 text-center">Stok Awal</th>
                                 <th className="py-3.5 px-4 w-36 text-center">Jumlah Pemakaian</th>
-                                <th className="py-3.5 px-4 w-32 text-center">Sisa Obat Terkini</th>
+                                <th className="py-3.5 px-4 w-36 text-center">Sisa Terkini</th>
                                 <th className="py-3.5 px-4 w-44">Waktu Pemakaian</th>
                                 <th className="py-3.5 px-4 w-28 text-center">Aksi</th>
                             </tr>
@@ -373,15 +412,16 @@ export default function LogObatPage() {
                                             Belum Ada Catatan Pemakaian Obat
                                         </p>
                                         <p className="text-xs text-slate-400 mt-1">
-                                            Klik tombol &quot;Catat Pemakaian&quot; untuk mencatat pengeluaran obat.
+                                            Klik tombol &quot;Catat Pemakaian&quot; untuk mencatat pengeluaran obat {selectedSite.toUpperCase()}.
                                         </p>
                                     </td>
                                 </tr>
                             ) : (
                                 paginatedData.map((item, index) => {
                                     const namaObat = item.master_obat?.nama_obat || 'Obat Tidak Diketahui';
+                                    const isNonDepleting = Boolean(item.master_obat?.is_non_depleting);
                                     const stokAwal = item.master_obat?.stok_obat ?? '-';
-                                    const sisaObat = item.master_obat?.sisa_obat ?? '-';
+                                    const sisaObat = isNonDepleting ? 'Tetap' : (item.master_obat?.sisa_obat ?? '-');
 
                                     return (
                                         <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
@@ -389,9 +429,17 @@ export default function LogObatPage() {
                                                 {startIndex + index + 1}
                                             </td>
                                             <td className="py-4 px-4">
-                                                <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">
-                                                    {namaObat}
-                                                </p>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">
+                                                        {namaObat}
+                                                    </p>
+                                                    {isNonDepleting && (
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 text-[10px] font-bold rounded-md border border-amber-200/80 dark:border-amber-800/80">
+                                                            <ShieldCheck size={11} />
+                                                            Non-Depleting
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="py-4 px-4 text-center font-semibold text-slate-600 dark:text-slate-300">
                                                 {stokAwal}
@@ -402,9 +450,16 @@ export default function LogObatPage() {
                                                 </span>
                                             </td>
                                             <td className="py-4 px-4 text-center">
-                                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                                                    {sisaObat}
-                                                </span>
+                                                {isNonDepleting ? (
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                                                        <ShieldCheck size={11} />
+                                                        {item.master_obat?.sisa_obat ?? item.master_obat?.stok_obat ?? '-'}
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                                        {sisaObat}
+                                                    </span>
+                                                )}
                                             </td>
                                             <td className="py-4 px-4 text-xs text-slate-500 dark:text-slate-400">
                                                 {formatDateTime(item.created_at)}
@@ -465,8 +520,8 @@ export default function LogObatPage() {
                 onConfirm={handleConfirmDelete}
                 loading={deletingLoading}
                 title="Hapus Log Pemakaian Obat"
-                message="Apakah Anda yakin ingin menghapus catatan pemakaian obat ini? Jumlah obat yang pernah dipakai akan otomatis dikembalikan ke sisa stok obat."
-                confirmLabel="Ya, Hapus & Kembalikan Stok"
+                message="Apakah Anda yakin ingin menghapus catatan pemakaian obat ini?"
+                confirmLabel="Ya, Hapus"
                 cancelLabel="Batal"
             />
         </div>

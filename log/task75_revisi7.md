@@ -1,0 +1,1 @@
+fokus ke halaman kabim yang kelompok dan halaman public pkkmb kelompoknya saya ingin memisahkan kelompok yang regulter (yang default ini) dan kelompok untuk nonreg, dan bisa diatur juga dihalaman panitia yang bagann kabim untuk kelompoknya itu apakah ditampilkan di public (yang src/app/pkkmb/kelompok) atau tidak.

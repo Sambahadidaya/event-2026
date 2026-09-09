@@ -1,0 +1,2 @@
+fokus ke halaman panitia yang site pkkmb tepatnya dihalaman pj_kabim dan sekretaris, saya ingin pada absensi peserta itu bisa dibagi dua yang pertama memang cuman sekali absensi dan yang kedua ada yang duakali absensi seperti pagi dan sore, itu bagaimana ya cara membaginya?
+coba bacalah codingan yang relevan tapi jangan semua juga.

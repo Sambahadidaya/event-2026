@@ -5,7 +5,7 @@ import {
     Users, Search, ChevronDown, ChevronRight, Plus, Trash2, Edit, ExternalLink, RefreshCw,
     X, Check, CheckCircle2, UploadCloud, ImageIcon, Crown, Hash, Sparkles, Layers,
     Link, UserCheck, UserPlus, UserX, AlertCircle, ArrowRight, ArrowLeft, Info,
-    Activity, AlertTriangle, Heart, Phone, Eye, GraduationCap, QrCode
+    Activity, AlertTriangle, Heart, Phone, Eye, EyeOff, Globe, GraduationCap, QrCode
 } from 'lucide-react';
 import {
     getKelompokAdmin,
@@ -39,6 +39,9 @@ export default function AdminKelompokManager() {
     const [lockedKabimUrutan, setLockedKabimUrutan] = useState(null); // Array nomor urutan kelompok jika role adalah pj_kabim (e.g. [1] atau [1, 7])
     const [canModify, setCanModify] = useState(false); // Hanya super_admin & admin_pkkmb
 
+    const [jenisTabFilter, setJenisTabFilter] = useState('semua'); // 'semua' | 'reguler' | 'nonreg'
+    const [togglingPublicId, setTogglingPublicId] = useState(null);
+
     // Detail members (Expand state)
     const [expandedKelompokId, setExpandedKelompokId] = useState(null);
 
@@ -65,6 +68,8 @@ export default function AdminKelompokManager() {
         nama_kelompok: '',
         nama_kabim: '',
         urutan: 1,
+        jenis_kelompok: 'reguler', // 'reguler' | 'nonreg'
+        is_public: true,
         link_instagram: '',
         foto_kelompok: '',
         keterangan: ''
@@ -162,14 +167,28 @@ export default function AdminKelompokManager() {
         };
     }, [expandedKelompokId, kelompokList, medisDataMap]);
 
+    // Counter stats
+    const totalReguler = useMemo(() => {
+        return kelompokList.filter(k => (k.jenis_kelompok || 'reguler') === 'reguler').length;
+    }, [kelompokList]);
+
+    const totalNonReg = useMemo(() => {
+        return kelompokList.filter(k => k.jenis_kelompok === 'nonreg').length;
+    }, [kelompokList]);
+
     const filteredData = useMemo(() => {
         const query = searchQuery.toLowerCase().trim();
-        if (!query) return kelompokList;
-        return kelompokList.filter(k =>
-            k.nama_kelompok.toLowerCase().includes(query) ||
-            k.nama_kabim.toLowerCase().includes(query)
-        );
-    }, [kelompokList, searchQuery]);
+        return kelompokList.filter(k => {
+            const matchQuery = !query ||
+                k.nama_kelompok.toLowerCase().includes(query) ||
+                k.nama_kabim.toLowerCase().includes(query);
+            
+            const kJenis = k.jenis_kelompok || 'reguler';
+            const matchJenis = jenisTabFilter === 'semua' || kJenis === jenisTabFilter;
+
+            return matchQuery && matchJenis;
+        });
+    }, [kelompokList, searchQuery, jenisTabFilter]);
 
     const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE) || 1;
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -181,13 +200,38 @@ export default function AdminKelompokManager() {
         setExpandedKelompokId(prev => prev === kelompokId ? null : kelompokId);
     };
 
-    const openAddModal = () => {
+    const handleTogglePublic = async (e, kelompok) => {
+        e.stopPropagation();
+        if (!canModify || togglingPublicId) return;
+
+        const newStatus = kelompok.is_public === false ? true : false;
+        setTogglingPublicId(kelompok.id);
+
+        // Optimistic update
+        setKelompokList(prev => prev.map(k => k.id === kelompok.id ? { ...k, is_public: newStatus } : k));
+
+        const res = await updateKelompok(kelompok.id, { is_public: newStatus });
+        if (!res.success) {
+            // Rollback jika gagal
+            setKelompokList(prev => prev.map(k => k.id === kelompok.id ? { ...k, is_public: !newStatus } : k));
+            alert(res.error || 'Gagal mengubah visibilitas kelompok.');
+        }
+        setTogglingPublicId(null);
+    };
+
+    const openAddModal = (defaultJenis = 'reguler') => {
         setEditingKelompok(null);
         setModalTab('info');
+
+        const initialJenis = defaultJenis === 'nonreg' ? 'nonreg' : (jenisTabFilter === 'nonreg' ? 'nonreg' : 'reguler');
+        const defaultUrutan = initialJenis === 'nonreg' ? 11 : (Math.min(10, totalReguler + 1) || 1);
+
         setFormState({
             nama_kelompok: '',
             nama_kabim: '',
-            urutan: Math.min(8, kelompokList.length + 1) || 1,
+            urutan: defaultUrutan,
+            jenis_kelompok: initialJenis,
+            is_public: true,
             link_instagram: '',
             foto_kelompok: '',
             keterangan: ''
@@ -207,6 +251,8 @@ export default function AdminKelompokManager() {
             nama_kelompok: kelompok.nama_kelompok || '',
             nama_kabim: kelompok.nama_kabim || '',
             urutan: kelompok.urutan || 1,
+            jenis_kelompok: kelompok.jenis_kelompok || 'reguler',
+            is_public: kelompok.is_public !== false,
             link_instagram: kelompok.link_instagram || '',
             foto_kelompok: kelompok.foto_kelompok || '',
             keterangan: kelompok.keterangan || ''
@@ -242,7 +288,8 @@ export default function AdminKelompokManager() {
             await downloadPesertaQRCard({
                 memberId: member.id,
                 namaAnggota: member.nama_anggota,
-                namaKelompok: currentKelompok?.nama_kelompok || ''
+                namaKelompok: currentKelompok?.nama_kelompok || '',
+                namaKabim: currentKelompok?.nama_kabim || ''
             });
         } catch (err) {
             console.error('Error generating QR:', err);
@@ -313,6 +360,8 @@ export default function AdminKelompokManager() {
             nama_kelompok: formState.nama_kelompok.trim(),
             nama_kabim: formState.nama_kabim.trim(),
             urutan: parseInt(formState.urutan, 10) || 1,
+            jenis_kelompok: formState.jenis_kelompok || 'reguler',
+            is_public: formState.is_public !== false,
             link_instagram: formState.link_instagram.trim(),
             foto_kelompok: uploadedUrl,
             keterangan: formState.keterangan.trim()
@@ -395,38 +444,106 @@ export default function AdminKelompokManager() {
                 lastSyncedAt={lastSyncedAt}
             />
 
-            {/* Aksi & Search Bar */}
-            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-                <div className="relative w-full md:w-80">
-                    <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input
-                        type="text"
-                        placeholder="Cari kelompok / kabim..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                </div>
-                {canModify && (
+            {/* Filter Jenis Kelompok & Action Bar */}
+            <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
+                
+                {/* Tab Pill Filter: Semua / Reguler / Non-Reguler */}
+                <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/60 self-start">
                     <button
-                        onClick={openAddModal}
-                        className="w-full md:w-auto px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                        type="button"
+                        onClick={() => { setJenisTabFilter('semua'); setCurrentPage(1); }}
+                        className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                            jenisTabFilter === 'semua'
+                                ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
+                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        }`}
                     >
-                        <Plus size={18} /> Tambah Kelompok
+                        <span>Semua</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                            jenisTabFilter === 'semua'
+                                ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300'
+                                : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+                        }`}>
+                            {kelompokList.length}
+                        </span>
                     </button>
-                )}
+
+                    <button
+                        type="button"
+                        onClick={() => { setJenisTabFilter('reguler'); setCurrentPage(1); }}
+                        className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                            jenisTabFilter === 'reguler'
+                                ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
+                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                    >
+                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                        <span>Reguler (1-10)</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                            jenisTabFilter === 'reguler'
+                                ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300'
+                                : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+                        }`}>
+                            {totalReguler}
+                        </span>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => { setJenisTabFilter('nonreg'); setCurrentPage(1); }}
+                        className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                            jenisTabFilter === 'nonreg'
+                                ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs'
+                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                    >
+                        <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                        <span>Non-Reguler (11-15)</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                            jenisTabFilter === 'nonreg'
+                                ? 'bg-purple-50 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300'
+                                : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+                        }`}>
+                            {totalNonReg}
+                        </span>
+                    </button>
+                </div>
+
+                {/* Search & Tambah Action */}
+                <div className="flex flex-col sm:flex-row gap-3 items-center">
+                    <div className="relative w-full sm:w-72">
+                        <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Cari kelompok / kabim..."
+                            value={searchQuery}
+                            onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                            className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+                    {canModify && (
+                        <button
+                            onClick={() => openAddModal()}
+                            className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] cursor-pointer shrink-0"
+                        >
+                            <Plus size={18} /> Tambah Kelompok
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Tabel Daftar Kelompok */}
             <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-sm">
+                    <table className="w-full text-left border-collapse text-sm min-w-[900px]">
                         <thead>
                             <tr className="bg-gray-50/70 dark:bg-slate-800/50 text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-slate-800">
                                 <th className="p-4 w-16 text-center">Urutan</th>
                                 <th className="p-4">Nama Kelompok</th>
+                                <th className="p-4 text-center">Kategori</th>
                                 <th className="p-4">Nama Kabim</th>
                                 <th className="p-4 text-center">Jumlah Anggota</th>
+                                <th className="p-4 text-center">Tampil Publik</th>
                                 <th className="p-4">Instagram</th>
                                 {canModify && <th className="p-4 text-center w-28">Aksi</th>}
                             </tr>
@@ -435,16 +552,19 @@ export default function AdminKelompokManager() {
                             {loading ? (
                                 Array.from({ length: 3 }).map((_, i) => (
                                     <tr key={i} className="animate-pulse">
-                                        <td colSpan={canModify ? 6 : 5} className="p-4"><div className="h-8 bg-gray-100 dark:bg-slate-800 rounded-lg w-full"></div></td>
+                                        <td colSpan={canModify ? 8 : 7} className="p-4"><div className="h-8 bg-gray-100 dark:bg-slate-800 rounded-lg w-full"></div></td>
                                     </tr>
                                 ))
                             ) : paginatedData.length === 0 ? (
                                 <tr>
-                                    <td colSpan={canModify ? 6 : 5} className="p-8 text-center text-gray-500 dark:text-gray-400">Tidak ada data kelompok.</td>
+                                    <td colSpan={canModify ? 8 : 7} className="p-8 text-center text-gray-500 dark:text-gray-400">Tidak ada data kelompok.</td>
                                 </tr>
                             ) : paginatedData.map((k) => {
                                 const isExpanded = expandedKelompokId === k.id;
                                 const isRowClickable = lockedKabimUrutan === null || lockedKabimUrutan.length > 1;
+                                const isNonReg = k.jenis_kelompok === 'nonreg';
+                                const isPublic = k.is_public !== false;
+
                                 return (
                                     <tr
                                         key={k.id}
@@ -452,8 +572,12 @@ export default function AdminKelompokManager() {
                                         className={`hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors ${isRowClickable ? 'cursor-pointer' : ''} ${isExpanded ? 'bg-blue-50/30 dark:bg-blue-900/15' : ''}`}
                                     >
                                         <td className="p-4 text-center font-bold">
-                                            <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 font-extrabold text-blue-600 dark:text-blue-400 text-xs">
-                                                {k.urutan}
+                                            <span className={`inline-flex items-center justify-center w-8 h-8 rounded-xl font-extrabold text-xs ${
+                                                isNonReg
+                                                    ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 border border-purple-200/50 dark:border-purple-900/40'
+                                                    : 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-900/40'
+                                            }`}>
+                                                #{k.urutan}
                                             </span>
                                         </td>
                                         <td className="p-4 font-bold text-gray-900 dark:text-white">
@@ -461,7 +585,11 @@ export default function AdminKelompokManager() {
                                                 {k.foto_kelompok ? (
                                                     <img src={k.foto_kelompok} alt="" className="w-9 h-9 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shadow-xs" />
                                                 ) : (
-                                                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-extrabold text-xs flex items-center justify-center shadow-xs">
+                                                    <div className={`w-9 h-9 rounded-xl text-white font-extrabold text-xs flex items-center justify-center shadow-xs ${
+                                                        isNonReg
+                                                            ? 'bg-gradient-to-br from-purple-500 to-indigo-600'
+                                                            : 'bg-gradient-to-br from-blue-500 to-indigo-600'
+                                                    }`}>
                                                         {getInitials(k.nama_kelompok)}
                                                     </div>
                                                 )}
@@ -471,17 +599,64 @@ export default function AdminKelompokManager() {
                                                 </div>
                                             </div>
                                         </td>
+                                        <td className="p-4 text-center">
+                                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold ${
+                                                isNonReg
+                                                    ? 'bg-purple-100/70 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/40'
+                                                    : 'bg-blue-100/70 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/40'
+                                            }`}>
+                                                {isNonReg ? 'Non-Reguler' : 'Reguler'}
+                                            </span>
+                                        </td>
                                         <td className="p-4 font-semibold text-gray-700 dark:text-gray-300">
                                             <span className="inline-flex items-center gap-1.5">
-                                                <Crown size={14} className="text-amber-500" />
+                                                <Users size={14} className="text-amber-500" />
                                                 {k.nama_kabim}
                                             </span>
                                         </td>
                                         <td className="p-4 text-center">
-                                            <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/40">
+                                            <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/40">
                                                 {(k.kelompok_members || []).length} Anggota
                                             </span>
                                         </td>
+
+                                        {/* Toggle Tampil Publik */}
+                                        <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
+                                            {canModify ? (
+                                                <button
+                                                    type="button"
+                                                    disabled={togglingPublicId === k.id}
+                                                    onClick={(e) => handleTogglePublic(e, k)}
+                                                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer border ${
+                                                        isPublic
+                                                            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-800/50 hover:bg-emerald-100'
+                                                            : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-200'
+                                                    } ${togglingPublicId === k.id ? 'opacity-50 cursor-wait' : ''}`}
+                                                    title={isPublic ? 'Klik untuk sembunyikan dari halaman publik' : 'Klik untuk tampilkan di halaman publik'}
+                                                >
+                                                    {isPublic ? (
+                                                        <>
+                                                            <Eye size={13} className="text-emerald-500" />
+                                                            <span>Tampil</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <EyeOff size={13} className="text-slate-400" />
+                                                            <span>Sembunyi</span>
+                                                        </>
+                                                    )}
+                                                </button>
+                                            ) : (
+                                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                                    isPublic
+                                                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'
+                                                        : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+                                                }`}>
+                                                    {isPublic ? 'Tampil' : 'Sembunyi'}
+                                                </span>
+                                            )}
+                                        </td>
+
                                         <td className="p-4">
                                             {k.link_instagram ? (
                                                 <a
@@ -584,7 +759,7 @@ export default function AdminKelompokManager() {
                                         const currentKelompok = kelompokList.find(k => k.id === expandedKelompokId);
                                         const medisInfo = medisDataMap[m.nim_anggota] || {};
                                         const hasMedis = (medisInfo.riwayat_penyakit && medisInfo.riwayat_penyakit !== '-') ||
-                                                         (medisInfo.alergi && medisInfo.alergi !== '-');
+                                            (medisInfo.alergi && medisInfo.alergi !== '-');
                                         const isLoadingMemberMedis = loadingMedis && !medisDataMap[m.nim_anggota];
 
                                         return (
@@ -726,8 +901,8 @@ export default function AdminKelompokManager() {
                                 type="button"
                                 onClick={() => setModalTab('info')}
                                 className={`pb-3 px-4 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${modalTab === 'info'
-                                        ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                                        : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
+                                    ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                                    : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
                                     }`}
                             >
                                 <Info size={16} />
@@ -740,15 +915,15 @@ export default function AdminKelompokManager() {
                                 type="button"
                                 onClick={() => setModalTab('members')}
                                 className={`pb-3 px-4 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${modalTab === 'members'
-                                        ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                                        : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
+                                    ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                                    : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
                                     }`}
                             >
                                 <UserPlus size={16} />
                                 2. Anggota Kelompok
                                 <span className={`px-2 py-0.5 text-[11px] font-extrabold rounded-full transition-all ${selectedMembers.length > 0
-                                        ? 'bg-blue-600 text-white shadow-xs'
-                                        : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                                    ? 'bg-blue-600 text-white shadow-xs'
+                                    : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                                     }`}>
                                     {selectedMembers.length} Terpilih
                                 </span>
@@ -782,7 +957,7 @@ export default function AdminKelompokManager() {
                                         {/* Nama Kabim */}
                                         <div className="space-y-1.5">
                                             <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                                                <Crown size={14} className="text-amber-500" />
+                                                <Users size={14} className="text-amber-500" />
                                                 Nama Kakak Pembimbing (Kabim) <span className="text-rose-500">*</span>
                                             </label>
                                             <input
@@ -795,23 +970,90 @@ export default function AdminKelompokManager() {
                                             />
                                         </div>
 
-                                        {/* Urutan Kelompok Selector (Pills 1 to 8) */}
+                                        {/* Jenis Kelompok Selector */}
+                                        <div className="space-y-1.5 md:col-span-2">
+                                            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                                                <Layers size={14} className="text-blue-500" />
+                                                Jenis / Kategori Kelompok <span className="text-rose-500">*</span>
+                                            </label>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const curUrutan = parseInt(formState.urutan, 10);
+                                                        const newUrutan = (curUrutan >= 1 && curUrutan <= 10) ? curUrutan : 1;
+                                                        setFormState(prev => ({ ...prev, jenis_kelompok: 'reguler', urutan: newUrutan }));
+                                                    }}
+                                                    className={`p-3.5 rounded-2xl border text-left flex items-center gap-3 transition-all cursor-pointer ${
+                                                        formState.jenis_kelompok === 'reguler'
+                                                            ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 text-blue-950 dark:text-blue-100 shadow-xs ring-2 ring-blue-500/20'
+                                                            : 'bg-slate-50/60 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300'
+                                                    }`}
+                                                >
+                                                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-extrabold text-sm shrink-0 ${
+                                                        formState.jenis_kelompok === 'reguler'
+                                                            ? 'bg-blue-600 text-white'
+                                                            : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                                                    }`}>
+                                                        R
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-extrabold text-sm">Kelompok Reguler</p>
+                                                        <p className="text-[11px] opacity-75 mt-0.5">Untuk mahasiswa kelas Reguler (Urutan #1 - #10)</p>
+                                                    </div>
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const curUrutan = parseInt(formState.urutan, 10);
+                                                        const newUrutan = (curUrutan >= 11 && curUrutan <= 15) ? curUrutan : 11;
+                                                        setFormState(prev => ({ ...prev, jenis_kelompok: 'nonreg', urutan: newUrutan }));
+                                                    }}
+                                                    className={`p-3.5 rounded-2xl border text-left flex items-center gap-3 transition-all cursor-pointer ${
+                                                        formState.jenis_kelompok === 'nonreg'
+                                                            ? 'bg-purple-50 dark:bg-purple-900/30 border-purple-500 text-purple-950 dark:text-purple-100 shadow-xs ring-2 ring-purple-500/20'
+                                                            : 'bg-slate-50/60 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300'
+                                                    }`}
+                                                >
+                                                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-extrabold text-sm shrink-0 ${
+                                                        formState.jenis_kelompok === 'nonreg'
+                                                            ? 'bg-purple-600 text-white'
+                                                            : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                                                    }`}>
+                                                        NR
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-extrabold text-sm">Kelompok Non-Reguler</p>
+                                                        <p className="text-[11px] opacity-75 mt-0.5">Untuk mahasiswa kelas Non-Reguler (Urutan #11 - #15)</p>
+                                                    </div>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Urutan Kelompok Selector (Pills 1-10 untuk Reguler, 11-15 untuk Non-Reg) */}
                                         <div className="space-y-2 md:col-span-2">
                                             <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
                                                 <Hash size={14} className="text-indigo-500" />
                                                 Urutan / No. Kelompok <span className="text-rose-500">*</span>
+                                                <span className="text-[11px] font-normal text-slate-400 capitalize">
+                                                    ({formState.jenis_kelompok === 'nonreg' ? 'Khusus Non-Reguler #11 - #15' : 'Khusus Reguler #1 - #10'})
+                                                </span>
                                             </label>
-                                            <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
-                                                {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => {
+                                            <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+                                                {(formState.jenis_kelompok === 'nonreg' ? [11, 12, 13, 14, 15] : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).map((num) => {
                                                     const isSelected = parseInt(formState.urutan, 10) === num;
+                                                    const isNonReg = formState.jenis_kelompok === 'nonreg';
                                                     return (
                                                         <button
                                                             key={num}
                                                             type="button"
                                                             onClick={() => setFormState(prev => ({ ...prev, urutan: num }))}
                                                             className={`py-2.5 rounded-xl font-extrabold text-sm border transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 ${isSelected
-                                                                    ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/30 scale-105'
-                                                                    : 'bg-slate-50 dark:bg-slate-800/70 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-blue-400 hover:bg-blue-50/50'
+                                                                ? (isNonReg
+                                                                    ? 'bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-500/30 scale-105'
+                                                                    : 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/30 scale-105')
+                                                                : 'bg-slate-50 dark:bg-slate-800/70 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-blue-400 hover:bg-blue-50/50'
                                                                 }`}
                                                         >
                                                             <span>#{num}</span>
@@ -820,6 +1062,32 @@ export default function AdminKelompokManager() {
                                                     );
                                                 })}
                                             </div>
+                                        </div>
+
+                                        {/* Toggle Tampilkan di Halaman Publik */}
+                                        <div className="space-y-1.5 md:col-span-2 p-4 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-700/60 flex items-center justify-between">
+                                            <div className="space-y-0.5">
+                                                <label className="text-xs font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                                    <Globe size={15} className="text-emerald-500" />
+                                                    Tampilkan di Halaman Publik PKKMB
+                                                </label>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                                    Jika dinonaktifkan, kelompok ini hanya akan terlihat oleh panitia di dashboard dan tidak akan muncul di website peserta.
+                                                </p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormState(prev => ({ ...prev, is_public: !prev.is_public }))}
+                                                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                                    formState.is_public !== false ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'
+                                                }`}
+                                            >
+                                                <span
+                                                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                                                        formState.is_public !== false ? 'translate-x-5' : 'translate-x-0'
+                                                    }`}
+                                                />
+                                            </button>
                                         </div>
 
                                         {/* Link Instagram */}
@@ -862,8 +1130,8 @@ export default function AdminKelompokManager() {
                                                     }
                                                 }}
                                                 className={`relative border-2 border-dashed rounded-2xl p-4 sm:p-5 transition-all text-center ${isDragging
-                                                        ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/20'
-                                                        : 'border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/30 hover:border-slate-300'
+                                                    ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/20'
+                                                    : 'border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/30 hover:border-slate-300'
                                                     }`}
                                             >
                                                 {formState.foto_kelompok ? (
@@ -1074,14 +1342,14 @@ export default function AdminKelompokManager() {
                                                             }
                                                         }}
                                                         className={`p-3 rounded-xl border flex items-center justify-between gap-3 transition-all ${isChecked
-                                                                ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 shadow-xs'
-                                                                : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700/70 hover:border-blue-300 dark:hover:border-slate-600'
+                                                            ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 shadow-xs'
+                                                            : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700/70 hover:border-blue-300 dark:hover:border-slate-600'
                                                             } ${isAssignedOther ? 'opacity-40 cursor-not-allowed bg-slate-100 dark:bg-slate-900' : 'cursor-pointer hover:scale-[1.01]'}`}
                                                     >
                                                         <div className="flex items-center gap-2.5 min-w-0 flex-1">
                                                             <div className={`w-8 h-8 rounded-xl font-extrabold text-xs flex items-center justify-center shrink-0 transition-colors ${isChecked
-                                                                    ? 'bg-blue-600 text-white'
-                                                                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                                                                ? 'bg-blue-600 text-white'
+                                                                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                                                                 }`}>
                                                                 {getInitials(p.nama)}
                                                             </div>
@@ -1098,7 +1366,11 @@ export default function AdminKelompokManager() {
                                                                         </span>
                                                                     )}
                                                                     {p.kelas && (
-                                                                        <span className="px-1.5 py-0.2 rounded bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-medium">
+                                                                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                                                            p.kelas.toLowerCase().includes('nonreg') || p.kelas.toLowerCase().includes('non')
+                                                                                ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800'
+                                                                                : 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400'
+                                                                        }`}>
                                                                             {p.kelas}
                                                                         </span>
                                                                     )}
@@ -1113,8 +1385,8 @@ export default function AdminKelompokManager() {
                                                             </span>
                                                         ) : (
                                                             <div className={`w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 transition-all ${isChecked
-                                                                    ? 'bg-blue-600 border-blue-600 text-white'
-                                                                    : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700'
+                                                                ? 'bg-blue-600 border-blue-600 text-white'
+                                                                : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700'
                                                                 }`}>
                                                                 {isChecked && <Check size={13} className="stroke-[3]" />}
                                                             </div>
