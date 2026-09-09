@@ -1214,14 +1214,18 @@ ALTER TABLE public.kelompok
     CHECK (jenis_kelompok IN ('reguler', 'nonreg')),
   ADD COLUMN IF NOT EXISTS is_public BOOLEAN NOT NULL DEFAULT true;
 
--- ============================================================
--- TASK 76: SISTEM PENILAIAN KOMPREHENSIF KABIM PKKMB 2026
--- ============================================================
--- 1. Master Kriteria Penilaian
-CREATE TABLE public.master_penilaian_pkkmb (
+-- ==========================================================
+-- TASK 76 — SISTEM PENILAIAN KOMPREHENSIF PKKMB 2026
+-- ==========================================================
+
+-- 1. Master Kriteria & Bobot Penilaian (Reguler vs Nonreguler)
+-- ==========================================================
+CREATE TABLE IF NOT EXISTS public.master_penilaian_pkkmb (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    kategori_peserta VARCHAR(20) NOT NULL CHECK (kategori_peserta IN ('reguler', 'nonreg')),
+    kategori_peserta VARCHAR(20) NOT NULL
+        CHECK (kategori_peserta IN ('reguler', 'nonreg')),
     kode_kriteria VARCHAR(50) NOT NULL,
+    -- Nilai: 'kehadiran' | 'keaktifan' | 'kedisiplinan' | 'penugasan' | 'kreativitas'
     nama_kriteria VARCHAR(100) NOT NULL,
     bobot_persen NUMERIC(5,2) NOT NULL DEFAULT 20.00,
     keterangan TEXT,
@@ -1232,24 +1236,77 @@ CREATE TABLE public.master_penilaian_pkkmb (
     CONSTRAINT master_penilaian_pkkmb_unique UNIQUE (kategori_peserta, kode_kriteria)
 );
 
--- 2. Master Nilai Pelanggaran
-ALTER TABLE public.master_pelanggaran ADD COLUMN IF NOT EXISTS poin_pengurangan NUMERIC(5,2) DEFAULT 5;
+-- Seed bobot default (20% untuk 5 kriteria di reguler dan nonreg)
+INSERT INTO public.master_penilaian_pkkmb
+    (kategori_peserta, kode_kriteria, nama_kriteria, bobot_persen, urutan)
+VALUES
+    ('reguler','kehadiran',    'Kehadiran',    20.00, 1),
+    ('reguler','keaktifan',    'Keaktifan',    20.00, 2),
+    ('reguler','kedisiplinan', 'Kedisiplinan', 20.00, 3),
+    ('reguler','penugasan',    'Penugasan',    20.00, 4),
+    ('reguler','kreativitas',  'Kreativitas',  20.00, 5),
+    ('nonreg', 'kehadiran',    'Kehadiran',    20.00, 1),
+    ('nonreg', 'keaktifan',    'Keaktifan',    20.00, 2),
+    ('nonreg', 'kedisiplinan', 'Kedisiplinan', 20.00, 3),
+    ('nonreg', 'penugasan',    'Penugasan',    20.00, 4),
+    ('nonreg', 'kreativitas',  'Kreativitas',  20.00, 5)
+ON CONFLICT (kategori_peserta, kode_kriteria) DO NOTHING;
 
-CREATE TABLE public.master_poin_kategori_pelanggaran (
+ALTER TABLE public.master_penilaian_pkkmb ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "public read master_penilaian_pkkmb" ON public.master_penilaian_pkkmb;
+CREATE POLICY "public read master_penilaian_pkkmb"
+    ON public.master_penilaian_pkkmb FOR SELECT TO public USING (true);
+DROP POLICY IF EXISTS "auth all master_penilaian_pkkmb" ON public.master_penilaian_pkkmb;
+CREATE POLICY "auth all master_penilaian_pkkmb"
+    ON public.master_penilaian_pkkmb FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+
+-- 2. Master Nilai Pelanggaran & Default Kategori Poin
+-- ==========================================================
+-- Tambah kolom poin_pengurangan ke master_pelanggaran yang sudah ada
+ALTER TABLE public.master_pelanggaran
+    ADD COLUMN IF NOT EXISTS poin_pengurangan NUMERIC(5,2) DEFAULT 5;
+
+-- Update default poin berdasarkan jenis
+UPDATE public.master_pelanggaran
+    SET poin_pengurangan = 2  WHERE jenis_pelanggaran = 'Ringan' AND (poin_pengurangan IS NULL OR poin_pengurangan = 5);
+UPDATE public.master_pelanggaran
+    SET poin_pengurangan = 5  WHERE jenis_pelanggaran = 'Sedang' AND (poin_pengurangan IS NULL);
+UPDATE public.master_pelanggaran
+    SET poin_pengurangan = 10 WHERE jenis_pelanggaran = 'Berat'  AND (poin_pengurangan IS NULL OR poin_pengurangan = 5);
+
+-- Tabel konfigurasi default poin per kategori pelanggaran
+CREATE TABLE IF NOT EXISTS public.master_poin_kategori_pelanggaran (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    jenis_pelanggaran VARCHAR(50) NOT NULL UNIQUE CHECK (jenis_pelanggaran IN ('Ringan', 'Sedang', 'Berat')),
+    jenis_pelanggaran VARCHAR(50) NOT NULL
+        UNIQUE CHECK (jenis_pelanggaran IN ('Ringan', 'Sedang', 'Berat')),
     default_poin NUMERIC(5,2) NOT NULL DEFAULT 5,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 3. Penilaian Kreativitas Kelompok
-CREATE TABLE public.penilaian_kreativitas_pkkmb (
+INSERT INTO public.master_poin_kategori_pelanggaran (jenis_pelanggaran, default_poin)
+VALUES ('Ringan', 2), ('Sedang', 5), ('Berat', 10)
+ON CONFLICT (jenis_pelanggaran) DO NOTHING;
+
+ALTER TABLE public.master_poin_kategori_pelanggaran ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "public read master_poin_kategori" ON public.master_poin_kategori_pelanggaran;
+CREATE POLICY "public read master_poin_kategori"
+    ON public.master_poin_kategori_pelanggaran FOR SELECT TO public USING (true);
+DROP POLICY IF EXISTS "auth all master_poin_kategori" ON public.master_poin_kategori_pelanggaran;
+CREATE POLICY "auth all master_poin_kategori"
+    ON public.master_poin_kategori_pelanggaran FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+
+-- 3. Penilaian Kreativitas Kelompok (Yel-yel, Kreasi Seni, Vlog)
+-- ==========================================================
+CREATE TABLE IF NOT EXISTS public.penilaian_kreativitas_pkkmb (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     kelompok_id UUID NOT NULL REFERENCES public.kelompok(id) ON DELETE CASCADE,
-    skor_yelyel NUMERIC(5,2) DEFAULT 0,
+    skor_yelyel      NUMERIC(5,2) DEFAULT 0,
     skor_kreasi_seni NUMERIC(5,2) DEFAULT 0,
-    skor_vlog NUMERIC(5,2) DEFAULT 0,
-    nilai_akhir NUMERIC(5,2) GENERATED ALWAYS AS ((skor_yelyel + skor_kreasi_seni + skor_vlog) / 3.0) STORED,
+    skor_vlog        NUMERIC(5,2) DEFAULT 0,
+    nilai_akhir      NUMERIC(5,2) GENERATED ALWAYS AS
+        ((skor_yelyel + skor_kreasi_seni + skor_vlog) / 3.0) STORED,
     catatan TEXT,
     created_by VARCHAR(100),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -1257,13 +1314,25 @@ CREATE TABLE public.penilaian_kreativitas_pkkmb (
     CONSTRAINT penilaian_kreativitas_kelompok_unique UNIQUE (kelompok_id)
 );
 
--- 4. Penilaian Keaktifan Harian Peserta
-CREATE TABLE public.penilaian_keaktifan_pkkmb (
+ALTER TABLE public.penilaian_kreativitas_pkkmb ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "public read penilaian_kreativitas_pkkmb" ON public.penilaian_kreativitas_pkkmb;
+CREATE POLICY "public read penilaian_kreativitas_pkkmb"
+    ON public.penilaian_kreativitas_pkkmb FOR SELECT TO public USING (true);
+DROP POLICY IF EXISTS "auth all penilaian_kreativitas_pkkmb" ON public.penilaian_kreativitas_pkkmb;
+CREATE POLICY "auth all penilaian_kreativitas_pkkmb"
+    ON public.penilaian_kreativitas_pkkmb FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+
+-- 4. Penilaian Keaktifan Harian (Dihubungkan per Hari Unik Pelaksanaan)
+-- ==========================================================
+CREATE TABLE IF NOT EXISTS public.penilaian_keaktifan_pkkmb (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    kelompok_members_id UUID NOT NULL REFERENCES public.kelompok_members(id) ON DELETE CASCADE,
-    label_hari VARCHAR(100) NOT NULL,
+    kelompok_members_id UUID NOT NULL
+        REFERENCES public.kelompok_members(id) ON DELETE CASCADE,
+    label_hari VARCHAR(100) NOT NULL, -- Contoh: 'Hari 1', 'Hari 2', 'Technical Meeting'
     jadwal_acara_pkkmb_id UUID REFERENCES public.jadwal_acara_pkkmb(id) ON DELETE SET NULL,
-    skor_keaktifan NUMERIC(5,2) NOT NULL DEFAULT 60.00 CHECK (skor_keaktifan >= 0 AND skor_keaktifan <= 100),
+    skor_keaktifan NUMERIC(5,2) NOT NULL DEFAULT 60.00
+        CHECK (skor_keaktifan >= 0 AND skor_keaktifan <= 100),
     catatan TEXT,
     created_by VARCHAR(100),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -1271,29 +1340,61 @@ CREATE TABLE public.penilaian_keaktifan_pkkmb (
     CONSTRAINT penilaian_keaktifan_unique UNIQUE (kelompok_members_id, label_hari)
 );
 
--- 5. Tugas Sosial Media PKKMB
-CREATE TABLE public.tugas_sosmed_pkkmb (
+ALTER TABLE public.penilaian_keaktifan_pkkmb ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "public read penilaian_keaktifan_pkkmb" ON public.penilaian_keaktifan_pkkmb;
+CREATE POLICY "public read penilaian_keaktifan_pkkmb"
+    ON public.penilaian_keaktifan_pkkmb FOR SELECT TO public USING (true);
+DROP POLICY IF EXISTS "auth all penilaian_keaktifan_pkkmb" ON public.penilaian_keaktifan_pkkmb;
+CREATE POLICY "auth all penilaian_keaktifan_pkkmb"
+    ON public.penilaian_keaktifan_pkkmb FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+
+-- 5. Tugas Sosial Media PKKMB (Kelompok Harian & Individu Sekali)
+-- ==========================================================
+CREATE TABLE IF NOT EXISTS public.tugas_sosmed_pkkmb (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    tipe_tugas VARCHAR(20) NOT NULL CHECK (tipe_tugas IN ('kelompok', 'individu')),
+    tipe_tugas VARCHAR(20) NOT NULL
+        CHECK (tipe_tugas IN ('kelompok', 'individu')),
+    -- Untuk tugas kelompok
     kelompok_id UUID REFERENCES public.kelompok(id) ON DELETE CASCADE,
+    -- Untuk tugas individu
     kelompok_members_id UUID REFERENCES public.kelompok_members(id) ON DELETE CASCADE,
+    -- Hari tugas (harian untuk kelompok, opsional/label untuk individu)
     label_hari VARCHAR(100),
     jadwal_acara_pkkmb_id UUID REFERENCES public.jadwal_acara_pkkmb(id) ON DELETE SET NULL,
-    platform VARCHAR(50) NOT NULL CHECK (platform IN ('TikTok', 'Instagram', 'YouTube', 'Lainnya')),
+    platform VARCHAR(50) NOT NULL
+        CHECK (platform IN ('TikTok', 'Instagram', 'YouTube', 'Lainnya')),
     link_konten TEXT NOT NULL,
     keterangan TEXT,
+    -- Penilaian kabim (0 = tidak mengerjakan, 5 = mengerjakan)
     nilai NUMERIC(5,2) DEFAULT NULL,
     catatan_penilai TEXT,
-    created_by VARCHAR(100),
+    created_by VARCHAR(100), -- nama yang submit
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 6. Tugas Barang Bawaan PKKMB
-CREATE TABLE public.tugas_barang_pkkmb (
+ALTER TABLE public.tugas_sosmed_pkkmb ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "public read tugas_sosmed_pkkmb" ON public.tugas_sosmed_pkkmb;
+CREATE POLICY "public read tugas_sosmed_pkkmb"
+    ON public.tugas_sosmed_pkkmb FOR SELECT TO public USING (true);
+DROP POLICY IF EXISTS "public insert tugas_sosmed_pkkmb" ON public.tugas_sosmed_pkkmb;
+CREATE POLICY "public insert tugas_sosmed_pkkmb"
+    ON public.tugas_sosmed_pkkmb FOR INSERT TO public WITH CHECK (true);
+DROP POLICY IF EXISTS "auth all tugas_sosmed_pkkmb" ON public.tugas_sosmed_pkkmb;
+CREATE POLICY "auth all tugas_sosmed_pkkmb"
+    ON public.tugas_sosmed_pkkmb FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+
+-- 6. Tugas Barang Bawaan PKKMB (Perkelompok & Perindividu, Harian)
+-- ==========================================================
+CREATE TABLE IF NOT EXISTS public.tugas_barang_pkkmb (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    tipe_barang VARCHAR(20) NOT NULL CHECK (tipe_barang IN ('kelompok', 'individu')),
+    tipe_barang VARCHAR(20) NOT NULL
+        CHECK (tipe_barang IN ('kelompok', 'individu')),
+    -- Untuk barang kelompok
     kelompok_id UUID REFERENCES public.kelompok(id) ON DELETE CASCADE,
+    -- Untuk barang individu
     kelompok_members_id UUID REFERENCES public.kelompok_members(id) ON DELETE CASCADE,
     label_hari VARCHAR(100) NOT NULL,
     jadwal_acara_pkkmb_id UUID REFERENCES public.jadwal_acara_pkkmb(id) ON DELETE SET NULL,
@@ -1305,8 +1406,20 @@ CREATE TABLE public.tugas_barang_pkkmb (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 7. Kolom Nilai Resume Materi
-ALTER TABLE public.tugas_materi ADD COLUMN IF NOT EXISTS nilai NUMERIC(5,2) DEFAULT NULL;
+ALTER TABLE public.tugas_barang_pkkmb ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "public read tugas_barang_pkkmb" ON public.tugas_barang_pkkmb;
+CREATE POLICY "public read tugas_barang_pkkmb"
+    ON public.tugas_barang_pkkmb FOR SELECT TO public USING (true);
+DROP POLICY IF EXISTS "auth all tugas_barang_pkkmb" ON public.tugas_barang_pkkmb;
+CREATE POLICY "auth all tugas_barang_pkkmb"
+    ON public.tugas_barang_pkkmb FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+
+-- 7. Tambah Kolom Nilai pada Tugas Resume Materi (tugas_materi)
+-- ==========================================================
+ALTER TABLE public.tugas_materi
+    ADD COLUMN IF NOT EXISTS nilai NUMERIC(5,2) DEFAULT NULL;
+-- Catatan: nilai = 0 (tidak mengerjakan/kurang) atau 5 (mengerjakan/lengkap)
 
 ```
 
@@ -1349,28 +1462,34 @@ ALTER TABLE public.tugas_materi ADD COLUMN IF NOT EXISTS nilai NUMERIC(5,2) DEFA
 │   │   │   │   ├── jadwal.js
 │   │   │   │   ├── juara.js
 │   │   │   │   ├── kelompok.js
+│   │   │   │   ├── master_nilai_pelanggaran.js
+│   │   │   │   ├── master_penilaian.js
 │   │   │   │   ├── materi.js
-│   │   │   │   ├── medis.jsjs
+│   │   │   │   ├── medis.js
+│   │   │   │   ├── nilai_akhir_pkkmb.js
 │   │   │   │   ├── obat.js
 │   │   │   │   ├── pdf.js
 │   │   │   │   ├── pelanggaran.js
 │   │   │   │   ├── pembayaran_pkkmb.js
-│   │   │   │   ├── pengembang.jsjs
+│   │   │   │   ├── pengembang.js
+│   │   │   │   ├── penilaian_keaktifan.js
+│   │   │   │   ├── penilaian_kreativitas.js
 │   │   │   │   ├── penilaian.js
 │   │   │   │   ├── peserta.js
-│   │   │   │   ├── sales.jsjs
+│   │   │   │   ├── sales.js
 │   │   │   │   ├── sertifikat.js
 │   │   │   │   ├── submission.js
 │   │   │   │   ├── team.js
-│   │   │   │   └── tugas_kabim.js
+│   │   │   │   ├── tugas_kabim.js
+│   │   │   │   └── tugas_penugasan.js
 │   │   │   ├── public/
 │   │   │   │   ├── admin.js
 │   │   │   │   ├── berita.js
 │   │   │   │   ├── jadwal.js
 │   │   │   │   ├── juara.js
-│   │   │   │   ├── kelompok.jsjs
+│   │   │   │   ├── kelompok.js
 │   │   │   │   ├── materi.js
-│   │   │   │   ├── medis.jsjs
+│   │   │   │   ├── medis.js
 │   │   │   │   ├── pdf.js
 │   │   │   │   ├── pembayaran_pkkmb.js
 │   │   │   │   ├── pengembang.js
@@ -1379,7 +1498,8 @@ ALTER TABLE public.tugas_materi ADD COLUMN IF NOT EXISTS nilai NUMERIC(5,2) DEFA
 │   │   │   │   ├── register_lanjut.js
 │   │   │   │   ├── sales.js
 │   │   │   │   ├── submission.js
-│   │   │   │   └── team.js
+│   │   │   │   ├── team.js
+│   │   │   │   └── tugas_sosmed.js
 │   │   │   ├── storage.js
 │   │   │   └── time.js
 │   │   └── openai/
@@ -1463,6 +1583,14 @@ ALTER TABLE public.tugas_materi ADD COLUMN IF NOT EXISTS nilai NUMERIC(5,2) DEFA
 │   │   │   │   │   └── page.js
 │   │   │   │   ├── kelompok/
 │   │   │   │   │   └── page.js
+│   │   │   │   ├── master_nilai_pelanggaran/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── master_penilaian/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── nilai_akhir/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── penilaian_kreativitas/
+│   │   │   │   │   └── page.js
 │   │   │   │   ├── riwayat_pelanggaran/
 │   │   │   │   │   └── page.js
 │   │   │   │   └── tugas/
@@ -1532,10 +1660,13 @@ ALTER TABLE public.tugas_materi ADD COLUMN IF NOT EXISTS nilai NUMERIC(5,2) DEFA
 │   │   │   │   │   └── page.js
 │   │   │   │   └── team/
 │   │   │   │       └── page.js
-│   │   │   └── sales/
-│   │   │       ├── dashboard/
-│   │   │       │   └── page.js
-│   │   │       └── riwayat/
+│   │   │   ├── sales/
+│   │   │   │   ├── dashboard/
+│   │   │   │   │   └── page.js
+│   │   │   │   └── riwayat/
+│   │   │   │       └── page.js
+│   │   │   └── sekretaris/
+│   │   │       └── absensi_peserta/
 │   │   │           └── page.js
 │   │   ├── pkkmb/
 │   │   │   ├── layout.js
@@ -1563,8 +1694,11 @@ ALTER TABLE public.tugas_materi ADD COLUMN IF NOT EXISTS nilai NUMERIC(5,2) DEFA
 │   │   │   │       └── page.js
 │   │   │   ├── panduan/
 │   │   │   │   └── page.js
-│   │   │   └── pemberitahuan/
-│   │   │       └── page.js
+│   │   │   ├── pemberitahuan/
+│   │   │   │   └── page.js
+│   │   │   └── tugas/
+│   │   │      └── sosmed/
+│   │   │          └── page.js
 │   │   └── pose/
 │   │       ├── layout.js
 │   │       ├── page.js
@@ -1746,7 +1880,7 @@ ALTER TABLE public.tugas_materi ADD COLUMN IF NOT EXISTS nilai NUMERIC(5,2) DEFA
 │   │       │   ├── AbsensiFormModal.js
 │   │       │   ├── AbsensiPesertaFormModal.js
 │   │       │   ├── AbsensiRekapTable.js
-│   │       │   ├── FormAbsenModal.jsjs
+│   │       │   ├── FormAbsenModal.js
 │   │       │   └── SearchableDropdown.js
 │   │       ├── finance/
 │   │       │   ├── BuktiPreviewModal.js
@@ -1788,7 +1922,7 @@ ALTER TABLE public.tugas_materi ADD COLUMN IF NOT EXISTS nilai NUMERIC(5,2) DEFA
 │   │       ├── AdminKeuanganDashboard.js
 │   │       ├── AdminPanitiamedis.js
 │   │       ├── AdminPenilaianPJ.js
-│   │       ├── AdminPesertaMedis.jsjs
+│   │       ├── AdminPesertaMedis.js
 │   │       ├── AdminPesertaPengumpulan.js
 │   │       ├── AdminPesertaRegister.js
 │   │       ├── AdminPesertaWajib.js
@@ -1815,7 +1949,7 @@ ALTER TABLE public.tugas_materi ADD COLUMN IF NOT EXISTS nilai NUMERIC(5,2) DEFA
 │   │       ├── TombolCetak.js
 │   │       ├── ConfirmModal.js
 │   │       ├── UpdateVersionAdminModal.js
-│   │       └── WelcomeGuideAdminModal.jsjs
+│   │       └── WelcomeGuideAdminModal.js
 │   ├── data/
 │   │   ├── ketentuanData.js
 │   │   ├── lombaPose.js
@@ -1846,14 +1980,14 @@ ALTER TABLE public.tugas_materi ADD COLUMN IF NOT EXISTS nilai NUMERIC(5,2) DEFA
 │       │   ├── sertifikatLayout.js
 │       │   ├── sertifikatPose.js
 │       │   ├── teamReport.js
-│       │   └── template.jsjs
+│       │   └── template.js
 │       ├── qr/
 │       │   ├── adminQrCard.js
 │       │   ├── pesertaQrCard.js
 │       │   └── qrcode.js
 │       ├── security/
 │       │   ├── inputGuard.js
-│       │   └── rateLimiter.jsjs
+│       │   └── rateLimiter.js
 │       ├── adminRoleData.js
 │       ├── dashboardUtils.js
 │       ├── dateUtils.js
