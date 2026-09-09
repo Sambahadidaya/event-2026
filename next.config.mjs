@@ -39,7 +39,7 @@ const nextConfig = {
               "media-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://*.tiktokcdn.com https://*.cdninstagram.com",
               "connect-src 'self' https://*.supabase.co https://*.supabase.in https://www.tiktok.com https://*.tiktok.com https://www.instagram.com https://*.instagram.com https://www.youtube.com",
               "font-src 'self' data:",
-              "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://youtu.be https://www.tiktok.com https://*.tiktok.com https://www.instagram.com https://*.instagram.com https://*.supabase.co https://*.supabase.in"
+              "frame-src 'self' https://drive.google.com https://docs.google.com https://www.youtube.com https://www.youtube-nocookie.com https://youtu.be https://www.tiktok.com https://*.tiktok.com https://www.instagram.com https://*.instagram.com https://*.supabase.co https://*.supabase.in"
             ].join('; ')
           },
           {

@@ -132,6 +132,9 @@ export const rolePermissions = {
     '/panitia/absensi_panitia/dashboard',
     '/panitia/absensi_panitia/form',
     '/panitia/absensi_panitia/absensi',
+    '/panitia/multimedia/berita',
+    '/panitia/multimedia/dokumentasi',
+    '/panitia/multimedia/konten',
   ],
   admin_pose: [
     '/panitia/pose/jadwal_acara',
@@ -168,6 +171,9 @@ export const rolePermissions = {
     '/panitia/absensi_panitia/absensi',
     '/panitia/sales/dashboard',
     '/panitia/sales/riwayat',
+    '/panitia/multimedia/berita',
+    '/panitia/multimedia/dokumentasi',
+    '/panitia/multimedia/konten',
   ],
   admin_pkkmb_sekretaris: [
     '/panitia/absensi_panitia/dashboard',
@@ -306,6 +312,16 @@ export const rolePermissions = {
   admin_pose_belumdiatur: [
     '/panitia/pose/berita',
   ],
+  admin_pkkmb_mulmed: [
+    '/panitia/multimedia/berita',
+    '/panitia/multimedia/dokumentasi',
+    '/panitia/multimedia/konten',
+  ],
+  admin_pose_mulmed: [
+    '/panitia/multimedia/berita',
+    '/panitia/multimedia/dokumentasi',
+    '/panitia/multimedia/konten',
+  ],
   // Spread dynamically generated PJ Lomba roles
   ...pjLombaPermissions,
   // Spread dynamically generated PJ Kabim roles
@@ -322,6 +338,8 @@ LOMBA_ROLE_MAP['admin_pose_sekretaris_lomba_seni'] = 'Dance';
 export const getRoleLabel = (roleKey) => {
   if (!roleKey) return 'Admin';
   if (roleKey === 'super_admin') return 'Super Admin';
+  if (roleKey === 'admin_pkkmb_mulmed') return 'Multimedia PKKMB';
+  if (roleKey === 'admin_pose_mulmed') return 'Multimedia POSE';
   if (roleKey === 'admin_pkkmb_pj_medis') return 'PJ Medis PKKMB';
   if (roleKey === 'admin_pose_pj_medis') return 'PJ Medis POSE';
   if (roleKey === 'admin_pkkmb_pj_acara') return 'PJ Acara PKKMB';
@@ -349,6 +367,7 @@ export const getRoleLabel = (roleKey) => {
 const ROUTE_CATEGORY_MAP = [
   { prefix: '/panitia/pkkmb', label: 'PKKMB' },
   { prefix: '/panitia/pose', label: 'POSE' },
+  { prefix: '/panitia/multimedia', label: 'Divisi Multimedia' },
   { prefix: '/panitia/pj_lomba', label: 'PJ Lomba' },
   { prefix: '/panitia/pj_kabim', label: 'PJ Kabim' },
   { prefix: '/panitia/pj_medis', label: 'PJ Medis' },
@@ -423,6 +442,8 @@ export const getKabimFilter = (role) => {
  */
 const formatRoleLabel = (roleKey) => {
   if (roleKey === 'super_admin') return 'Super Admin';
+  if (roleKey === 'admin_pkkmb_mulmed') return 'Multimedia PKKMB';
+  if (roleKey === 'admin_pose_mulmed') return 'Multimedia POSE';
   if (roleKey === 'admin_pkkmb_pj_medis') return 'PJ Medis PKKMB';
   if (roleKey === 'admin_pkkmb_pj_acara') return 'PJ Acara PKKMB';
   if (roleKey === 'admin_pkkmb_pj_tatib') return 'PJ Tatib PKKMB';
@@ -549,6 +570,21 @@ export const MENU_SECTION_ROUTES = {
   admin: [
     '/panitia/admin/status',
     '/panitia/admin/pengembang',
+  ],
+  mulmed: [
+    '/panitia/multimedia/berita',
+    '/panitia/multimedia/dokumentasi',
+    '/panitia/multimedia/konten',
+  ],
+  mulmedPkkmb: [
+    '/panitia/multimedia/berita',
+    '/panitia/multimedia/dokumentasi',
+    '/panitia/multimedia/konten',
+  ],
+  mulmedPose: [
+    '/panitia/multimedia/berita',
+    '/panitia/multimedia/dokumentasi',
+    '/panitia/multimedia/konten',
   ],
 };
 

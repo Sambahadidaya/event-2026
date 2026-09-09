@@ -13,6 +13,7 @@ export default function PkkmbLayout({ children }) {
         { href: '/pkkmb/pemberitahuan', label: 'Pemberitahuan' },
         { href: '/pkkmb/kelompok', label: 'Kelompok' },
         { href: '/pkkmb/jadwal', label: 'Jadwal' },
+        { href: '/pkkmb/dokumentasi', label: 'Dokumentasi' },
         { href: '/pkkmb/contact', label: 'Kontak' },
         { href: '/pkkmb/ketentuan', label: 'Ketentuan & Privasi' },
         { href: '/pkkmb/panduan', label: 'Panduan' }

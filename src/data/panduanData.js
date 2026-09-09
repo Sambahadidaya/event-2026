@@ -136,6 +136,35 @@ export const panduanData = {
                 ]
             },
             {
+                id: 'dokumentasi',
+                title: 'Panduan Halaman Dokumentasi & Multimedia',
+                content: 'Pusat galeri dokumentasi foto, cuplikan kegiatan, arsip album Google Drive, serta video sorotan dan aftermovie PKKMB 2026.',
+                imageKey: 'pemberitahuan',
+                youtubeId: 'kosong',
+                subsections: [
+                    {
+                        id: 'dokumentasi-filter',
+                        title: 'Filter Tipe Konten (Semua, Dokumentasi, Konten Video)',
+                        content: 'Gunakan tombol filter di bagian atas halaman untuk menampilkan seluruh multimedia, hanya album dokumentasi kegiatan, atau hanya konten video sorotan.'
+                    },
+                    {
+                        id: 'dokumentasi-album-detail',
+                        title: 'Melihat Detail Album & Cuplikan (Foto & Video)',
+                        content: 'Klik tombol "Lihat Detail & Cuplikan" pada kartu album untuk membuka modal interaktif. Anda dapat memutar cuplikan video kegiatan atau melihat foto momen terbaik beresolusi tinggi.'
+                    },
+                    {
+                        id: 'dokumentasi-unduh-drive',
+                        title: 'Mengunduh Arsip Foto di Google Drive',
+                        content: 'Gunakan tombol "Unduh Album di Google Drive" atau "Buka Folder Google Drive Asli" pada modal untuk mengunduh seluruh arsip foto kegiatan secara lengkap dan beresolusi penuh.'
+                    },
+                    {
+                        id: 'dokumentasi-konten-video',
+                        title: 'Menonton Video Sorotan & Aftermovie',
+                        content: 'Pada bagian Konten & Video Sorotan, klik tombol putar pada kartu video untuk menonton tayangan aftermovie, video promosi, dan rekaman kreatif multimedia PKKMB.'
+                    }
+                ]
+            },
+            {
                 id: 'ketentuan',
                 title: 'Panduan Halaman Ketentuan & Tata Tertib',
                 content: 'Informasi lengkap aturan kedisiplinan, tata cara berpakaian, atribut resmi, serta sistem sanksi PKKMB 2026.',
@@ -185,6 +214,20 @@ export const panduanData = {
             content: 'Kami berkomitmen penuh menjaga privasi dan keamanan data pribadi calon mahasiswa baru Politeknik LP3I:\n- Data identitas (NIM, Nama Lengkap, Program Studi, Kampus, dan Nomor WhatsApp) hanya digunakan untuk keperluan administrasi resmi, pembagian kelompok, validasi tugas materi, dan koordinasi kepanitiaan.\n- Seluruh dokumen dan foto tugas yang diunggah dilindungi dalam infrastruktur penyimpanan cloud tersertifikasi dan hanya dapat ditinjau oleh panitia serta mentor pendamping.\n- Data peserta dienkripsi secara aman dan tidak akan diperjualbelikan atau dialihkan kepada pihak ketiga di luar lingkungan Politeknik LP3I tanpa persetujuan tertulis.'
         },
         updateVersi: [
+            {
+                versi: 'versi 2026.3.3',
+                tanggal: '10 September 2026 02.31 WIB',
+                judul: 'Rilis Versi 3.3 — Halaman Baru Untuk Dokumentasi',
+                isi: 'Menambahkan halaman baru untuk dokumentasi PKKMB 2026 yaitu halaman foto kegiatan dan halaman konten video.',
+                imageKey: 'versi3.3'
+            },
+            {
+                versi: 'versi 2026.3.2',
+                tanggal: '10 September 2026 02.31 WIB',
+                judul: 'Rilis Versi 3.2 — Halaman Baru Dashboard',
+                isi: 'Menambahkan halaman baru untuk melihat rekap tugas, absensi, dan pelanggaran',
+                imageKey: 'versi3.2'
+            },
             {
                 versi: 'versi 2026.3.1',
                 tanggal: '02 September 2026 10.00 WIB',
@@ -431,6 +474,35 @@ export const panduanData = {
                 ]
             },
             {
+                id: 'dokumentasi',
+                title: 'Panduan Halaman Dokumentasi & Multimedia',
+                content: 'Galeri momen keseruan pertandingan, selebrasi juara, arsip foto Google Drive, serta video highlight dan aftermovie kompetisi POSE 2026.',
+                imageKey: 'pemberitahuan',
+                youtubeId: 'kosong',
+                subsections: [
+                    {
+                        id: 'dokumentasi-pose-filter',
+                        title: 'Filter & Pencarian Galeri',
+                        content: 'Gunakan filter kategori multimedia (Semua, Dokumentasi, Konten Video) serta kolom pencarian dan filter tanggal untuk menemukan dokumentasi cabang lomba spesifik.'
+                    },
+                    {
+                        id: 'dokumentasi-pose-cuplikan',
+                        title: 'Melihat Cuplikan Lomba & Foto Highlight',
+                        content: 'Buka album dokumentasi untuk melihat rekaman video cuplikan pertandingan, foto podium juara, dan momen menarik dalam tampilan modal interaktif.'
+                    },
+                    {
+                        id: 'dokumentasi-pose-drive',
+                        title: 'Akses Album Google Drive Lengkap',
+                        content: 'Klik tautan folder Google Drive pada kartu atau modal dokumentasi untuk mengunduh seluruh dokumentasi foto kegiatan POSE beresolusi penuh.'
+                    },
+                    {
+                        id: 'dokumentasi-pose-video',
+                        title: 'Menonton Video Highlight & Aftermovie',
+                        content: 'Jelajahi video sorotan dan aftermovie kompetisi POSE yang disajikan dengan pemutar video interaktif beresolusi tinggi.'
+                    }
+                ]
+            },
+            {
                 id: 'ketentuan',
                 title: 'Panduan Halaman Ketentuan Perlombaan',
                 content: 'Peraturan teknis, format kompetisi, kriteria diskualifikasi, dan regulasi resmi tiap cabang lomba POSE 2026.',
@@ -489,6 +561,13 @@ export const panduanData = {
             content: 'Kebijakan perlindungan privasi data peserta, tim delegasi, dan sivitas akademika dalam kegiatan POSE 2026:\n- Data registrasi tim, kontak kapten, kartu identitas mahasiswa (NIM), serta bukti transaksi disimpan dengan standar keamanan enkripsi untuk verifikasi keabsahan peserta.\n- Data publikasi tim pada halaman Tim dan Jadwal dibatasi hanya pada Nama Tim, Cabang Lomba, Nama Anggota, dan Asal Kampus demi menjaga kenyamanan privasi peserta.\n- Seluruh dokumen bukti pembayaran, berkas karya submission, dan rekaman penilaian juri disimpan dalam storage server berkeamanan tinggi dan hanya dapat diakses oleh panitia penanggung jawab serta dewan juri.'
         },
         updateVersi: [
+            {
+                versi: 'versi 2026.3.2',
+                tanggal: '10 September 2026 02.31 WIB',
+                judul: 'Rilis Versi 3.2 — Halaman Baru Untuk Dokumentasi',
+                isi: 'Menambahkan halaman baru untuk dokumentasi POSE 2026 yaitu halaman foto kegiatan dan halaman konten video.',
+                imageKey: 'versi3.2'
+            },
             {
                 versi: 'versi 2026.3.1',
                 tanggal: '02 September 2026 10.00 WIB',

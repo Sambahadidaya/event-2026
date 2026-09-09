@@ -6,8 +6,6 @@ import {
     Award,
     Search,
     Filter,
-    Download,
-    Printer,
     CheckCircle2,
     XCircle,
     AlertTriangle,
@@ -32,7 +30,7 @@ import {
     getPenilaianKeaktifanByMember,
     savePenilaianKeaktifan
 } from '@/api/supabase/admin/penilaian_keaktifan';
-import * as XLSX from 'xlsx';
+import TombolCetak from '@/components/panitia/TombolCetak';
 
 export default function NilaiAkhirPkkmbPage() {
     const router = useRouter();
@@ -186,39 +184,6 @@ export default function NilaiAkhirPkkmbPage() {
         }
     };
 
-    // Export Excel
-    const handleExportExcel = () => {
-        if (pesertaList.length === 0) {
-            showToast('Tidak ada data untuk diekspor', 'error');
-            return;
-        }
-
-        const rows = pesertaList.map((p, idx) => ({
-            No: idx + 1,
-            'Nama Peserta': p.nama,
-            NIM: p.nim,
-            Kelompok: `#${p.kelompok_urutan} ${p.kelompok_nama}`,
-            Kategori: p.kategori?.toUpperCase(),
-            'Kehadiran (20%)': p.nilai_kehadiran,
-            'Keaktifan (20%)': p.nilai_keaktifan,
-            'Kedisiplinan (20%)': p.nilai_kedisiplinan,
-            'Penugasan (20%)': p.nilai_penugasan,
-            'Kreativitas (20%)': p.nilai_kreativitas,
-            'Nilai Akhir': p.nilai_akhir,
-            'Status Kelulusan': p.status_kelulusan
-        }));
-
-        const worksheet = XLSX.utils.json_to_sheet(rows);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Rekap Nilai PKKMB 2026');
-        XLSX.writeFile(workbook, `Rekap_Nilai_Akhir_PKKMB_2026_${selectedKategori}.xlsx`);
-        showToast('File Excel berhasil diunduh');
-    };
-
-    // Print Report
-    const handlePrint = () => {
-        window.print();
-    };
 
     return (
         <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
@@ -253,20 +218,75 @@ export default function NilaiAkhirPkkmbPage() {
                 </div>
 
                 <div className="flex items-center gap-2 print:hidden">
-                    <button
-                        onClick={handleExportExcel}
-                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold shadow-md shadow-emerald-500/20 flex items-center gap-2 transition-all"
-                    >
-                        <Download size={16} />
-                        Export Excel
-                    </button>
-                    <button
-                        onClick={handlePrint}
-                        className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-sm font-medium transition-all"
-                        title="Cetak Laporan"
-                    >
-                        <Printer size={16} />
-                    </button>
+                    <TombolCetak
+                        label="Cetak / Export"
+                        pdfTitle={`Rekapitulasi Nilai Akhir & Kelulusan PKKMB 2026`}
+                        pdfSite="pkkmb"
+                        pdfDocumentType="kabim_nilai_report"
+                        pdfData={pesertaList.map(p => ({
+                            nama: p.nama,
+                            nim: p.nim || '-',
+                            kelompok: `#${p.kelompok_urutan} ${p.kelompok_nama}`,
+                            kategori: p.kategori?.toUpperCase(),
+                            nilai_kehadiran: p.nilai_kehadiran ?? 0,
+                            nilai_keaktifan: p.nilai_keaktifan ?? 0,
+                            nilai_kedisiplinan: p.nilai_kedisiplinan ?? 0,
+                            nilai_penugasan: p.nilai_penugasan ?? 0,
+                            nilai_kreativitas: p.nilai_kreativitas ?? 0,
+                            nilai_akhir: p.nilai_akhir ?? 0,
+                            status_kelulusan: p.status_kelulusan || 'Pending'
+                        }))}
+                        pdfColumns={[
+                            { key: 'nama', label: 'Nama Peserta' },
+                            { key: 'nim', label: 'NIM', align: 'center' },
+                            { key: 'kelompok', label: 'Kelompok' },
+                            { key: 'nilai_kehadiran', label: 'Kehadiran (20%)', align: 'center' },
+                            { key: 'nilai_keaktifan', label: 'Keaktifan (20%)', align: 'center' },
+                            { key: 'nilai_kedisiplinan', label: 'Kedisiplinan (20%)', align: 'center' },
+                            { key: 'nilai_penugasan', label: 'Penugasan (20%)', align: 'center' },
+                            { key: 'nilai_kreativitas', label: 'Kreativitas (20%)', align: 'center' },
+                            { key: 'nilai_akhir', label: 'Nilai Akhir', align: 'center' },
+                            { key: 'status_kelulusan', label: 'Kelulusan', align: 'center' }
+                        ]}
+                        pdfExtraProps={{
+                            printedBy: admin?.nama || admin?.email || 'PJ Kabim',
+                            sessionName: `Kategori: ${selectedKategori.toUpperCase()}${selectedKelompok !== 'all' ? ` | Kelompok Terpilih` : ' | Semua Kelompok Binaan'}`,
+                            landscape: true,
+                            summaryCards: [
+                                { label: 'Total Mahasiswa', value: stats.total || pesertaList.length, color: '#1e3a8a' },
+                                { label: 'Lulus', value: stats.lulus || 0, color: '#059669' },
+                                { label: 'Tidak Lulus', value: stats.tidak_lulus || 0, color: '#dc2626' },
+                                { label: 'Rata-rata Nilai', value: stats.rata_rata || '0.00', color: '#7c3aed' }
+                            ]
+                        }}
+                        excelData={pesertaList.map(p => ({
+                            nama: p.nama,
+                            nim: p.nim || '-',
+                            kelompok: `#${p.kelompok_urutan} ${p.kelompok_nama}`,
+                            kategori: p.kategori?.toUpperCase(),
+                            nilai_kehadiran: p.nilai_kehadiran ?? 0,
+                            nilai_keaktifan: p.nilai_keaktifan ?? 0,
+                            nilai_kedisiplinan: p.nilai_kedisiplinan ?? 0,
+                            nilai_penugasan: p.nilai_penugasan ?? 0,
+                            nilai_kreativitas: p.nilai_kreativitas ?? 0,
+                            nilai_akhir: p.nilai_akhir ?? 0,
+                            status_kelulusan: p.status_kelulusan || 'Pending'
+                        }))}
+                        excelColumns={[
+                            { key: 'nama', label: 'Nama Peserta' },
+                            { key: 'nim', label: 'NIM' },
+                            { key: 'kelompok', label: 'Kelompok' },
+                            { key: 'kategori', label: 'Kategori' },
+                            { key: 'nilai_kehadiran', label: 'Kehadiran (20%)' },
+                            { key: 'nilai_keaktifan', label: 'Keaktifan (20%)' },
+                            { key: 'nilai_kedisiplinan', label: 'Kedisiplinan (20%)' },
+                            { key: 'nilai_penugasan', label: 'Penugasan (20%)' },
+                            { key: 'nilai_kreativitas', label: 'Kreativitas (20%)' },
+                            { key: 'nilai_akhir', label: 'Nilai Akhir' },
+                            { key: 'status_kelulusan', label: 'Status Kelulusan' }
+                        ]}
+                        excelFilename={`Rekap_Nilai_Akhir_PKKMB_2026_${selectedKategori}`}
+                    />
                 </div>
             </div>
 

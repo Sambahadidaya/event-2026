@@ -21,6 +21,7 @@ import { getCurrentAdmin } from '@/api/supabase/admin/auth';
 import { getKabimFilter } from '@/lib/adminRoleData';
 import DashboardHeaderFilters from '@/components/panitia/DashboardHeaderFilters';
 import TablePagination from '@/components/panitia/TablePagination';
+import TombolCetak from '@/components/panitia/TombolCetak';
 import { uploadFile } from '@/api/supabase/storage';
 import { downloadPesertaQRCard } from '@/lib/qr/pesertaQrCard';
 
@@ -521,6 +522,56 @@ export default function AdminKelompokManager() {
                             className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
+                    <TombolCetak
+                        label="Cetak / Export"
+                        pdfTitle="Rekapitulasi Data Kelompok PKKMB 2026"
+                        pdfSite="pkkmb"
+                        pdfDocumentType="kabim_kelompok_report"
+                        pdfData={kelompokList.map(k => ({
+                            urutan: `Kelompok ${k.urutan}`,
+                            nama_kelompok: k.nama_kelompok,
+                            kategori: k.urutan <= 10 ? 'Reguler' : 'Non-Reguler',
+                            nama_kabim: k.nama_kabim || '-',
+                            jumlah_anggota: `${(k.kelompok_members || []).length} Anggota`,
+                            instagram: k.instagram_link ? `@${k.instagram_link.replace(/^https?:\/\/(www\.)?instagram\.com\//, '').replace(/\/$/, '')}` : '-'
+                        }))}
+                        pdfColumns={[
+                            { key: 'urutan', label: 'Urutan', align: 'center' },
+                            { key: 'nama_kelompok', label: 'Nama Kelompok' },
+                            { key: 'kategori', label: 'Kategori', align: 'center' },
+                            { key: 'nama_kabim', label: 'Pembimbing (Kabim)' },
+                            { key: 'jumlah_anggota', label: 'Jumlah Anggota', align: 'center' },
+                            { key: 'instagram', label: 'Instagram' }
+                        ]}
+                        pdfExtraProps={{
+                            printedBy: adminRole?.replace(/_/g, ' ') || 'PJ Kabim',
+                            sessionName: lockedKabimUrutan && lockedKabimUrutan.length > 0 ? `Kelompok Asuhan: ${lockedKabimUrutan.join(' & ')}` : 'Semua Kelompok Binaan PKKMB',
+                            summaryCards: [
+                                { label: 'Total Kelompok', value: kelompokList.length, color: '#1e3a8a' },
+                                { label: 'Reguler (1-10)', value: totalReguler, color: '#0284c7' },
+                                { label: 'Non-Reguler (11-15)', value: totalNonReg, color: '#7c3aed' },
+                                { label: 'Total Anggota', value: kelompokList.reduce((acc, k) => acc + (k.kelompok_members || []).length, 0), color: '#059669' }
+                            ]
+                        }}
+                        excelData={kelompokList.map(k => ({
+                            urutan: k.urutan,
+                            nama_kelompok: k.nama_kelompok,
+                            kategori: k.urutan <= 10 ? 'Reguler' : 'Non-Reguler',
+                            nama_kabim: k.nama_kabim || '-',
+                            jumlah_anggota: (k.kelompok_members || []).length,
+                            instagram: k.instagram_link || '-'
+                        }))}
+                        excelColumns={[
+                            { key: 'urutan', label: 'Nomor Kelompok' },
+                            { key: 'nama_kelompok', label: 'Nama Kelompok' },
+                            { key: 'kategori', label: 'Kategori' },
+                            { key: 'nama_kabim', label: 'Nama Kabim' },
+                            { key: 'jumlah_anggota', label: 'Jumlah Anggota' },
+                            { key: 'instagram', label: 'Link Instagram' }
+                        ]}
+                        excelFilename="rekap-data-kelompok-pkkmb-2026"
+                    />
+
                     {canModify && (
                         <button
                             onClick={() => openAddModal()}

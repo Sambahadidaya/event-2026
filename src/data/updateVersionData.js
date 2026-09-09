@@ -1,33 +1,28 @@
 export const updateVersionConfig = {
     pkkmb: {
-        currentVersion: '2026.3.1',
+        currentVersion: '2026.3.3',
         storageKey: 'pkkmb_last_seen_version',
         updates: [
             {
-                version: '2026.3.1',
-                date: '02 September 2026 10.00 WIB',
-                title: 'Rilis Versi 3.1 — Memperbaiki error tertentu',
+                version: '2026.3.3',
+                date: '10 September 2026 02.31 WIB',
+                title: 'Rilis Versi 3.3 — Halaman Baru Untuk Dokumentasi',
                 highlights: [
-                    'Memperbaiki sebagian link yang tidak dapat mengirimkan form pendaftaran'
+                    'Menambahkan halaman baru untuk dokumentasi PKKMB 2026 yaitu halaman foto kegiatan dan halaman konten video.'
                 ]
             }
         ]
     },
     pose: {
-        currentVersion: '2026.3.1',
+        currentVersion: '2026.3.2',
         storageKey: 'pose_last_seen_version',
         updates: [
             {
-                version: '2026.3.1',
-                date: '02 September 2026 10.00 WIB',
-                title: 'Rilis Versi 3.1 — Menambah Sponsor & Penyederhanaan sistem submit,nilai dan sertifikat',
+                version: '2026.3.2',
+                date: '10 September 2026 02.31 WIB',
+                title: 'Rilis Versi 3.2 — Halaman Baru Untuk Dokumentasi',
                 highlights: [
-                    'Menambahkan sponsor POSE pada footer',
-                    'Memindahkan halaman dashboard pada navigasi',
-                    'Menghapus navigasi submit, nilai, sertifikat',
-                    'Memindahkan tombol submit, nilai, sertifikat ke halaman dashboard',
-                    'Menyederhanakan navigasi dashboard',
-                    'Memperbaiki sistem agar lebih cepat dimuat'
+                    'Menambahkan halaman baru untuk dokumentasi POSE 2026 yaitu halaman foto kegiatan dan halaman konten video.'
                 ]
             }
         ]

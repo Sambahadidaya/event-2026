@@ -4,18 +4,19 @@ import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import ThemeToggle from '@/components/ThemeToggle';
-import { User, LayoutDashboard, FileText, ChevronDown, ChevronRight, LogOut, ShieldAlert, Menu, BarChart3, MessageCircle, Mail, Newspaper, Users, Monitor, Lock, Calendar, Settings, BookOpen, FileCheck, ClipboardList, Trophy, Wallet, Receipt, Tags, BookMarked, ArrowLeftRight, BookOpenCheck, TrendingUp, TrendingDown, Scale, Table2, PieChart, CreditCard, UserCheck, Award, HeartPulse, Pill, History, Sliders, Sparkles } from 'lucide-react';
+import { User, LayoutDashboard, FileText, ChevronDown, ChevronRight, LogOut, ShieldAlert, Menu, BarChart3, MessageCircle, Mail, Newspaper, Users, Monitor, Lock, Calendar, Settings, BookOpen, FileCheck, ClipboardList, Trophy, Wallet, Receipt, Tags, BookMarked, ArrowLeftRight, BookOpenCheck, TrendingUp, TrendingDown, Scale, Table2, PieChart, CreditCard, UserCheck, Award, HeartPulse, Pill, History, Sliders, Sparkles, Film, Camera, Video } from 'lucide-react';
 import { logoutAdmin, getCurrentAdmin } from '@/api/supabase/admin/auth';
 import { setAdminOffline, logoutPanitiaAction } from '@/api/logic/panitiaAuthLogic';
 import { updateAdminStatus } from '@/api/supabase/admin/admin';
-import { hasAccess, rolePermissions, canAccessSection } from '@/lib/adminRoleData';
+import { hasAccess, rolePermissions, canAccessSection, getSiteFromRole } from '@/lib/adminRoleData';
 import SamsAsisten from '@/components/SamsAsisten';
 import OfflineGuard from '@/components/OfflineGuard';
+import WelcomeGuideAdminModal from '@/components/panitia/WelcomeGuideAdminModal';
 
 export default function PanitiaLayout({ children }) {
     const [isDesktop, setIsDesktop] = useState(true);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-    const [menuOpen, setMenuOpen] = useState({ dashboard: true, pkkmb: false, pose: false, form: false, sekretaris: false, pj_lomba: false, keuangan: false, admin: false, sales: false, kabim: false, Medis: false, pj_acara: false, Mulmed: false, Tatib: false });
+    const [menuOpen, setMenuOpen] = useState({ dashboard: true, pkkmb: false, pose: false, form: false, sekretaris: false, pj_lomba: false, keuangan: false, admin: false, sales: false, kabim: false, Medis: false, pj_acara: false, mulmed: false, Tatib: false });
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [showDesktopWarning, setShowDesktopWarning] = useState(false);
     const [hasSeenDesktopWarning, setHasSeenDesktopWarning] = useState(false);
@@ -519,6 +520,33 @@ export default function PanitiaLayout({ children }) {
                             </div>
                         )}
 
+                        {canAccessSection(adminData?.role, 'mulmed') && (
+                            <div className="mb-6">
+                                {!collapsed && (
+                                    <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Divisi Multimedia</p>
+                                )}
+
+                                <button
+                                    onClick={() => toggleMenu('mulmed')}
+                                    title="Divisi Multimedia"
+                                    className={`w-full flex ${collapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium text-sm transition-all group mt-1`}
+                                >
+                                    <span className={`flex items-center gap-3 text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ${collapsed ? 'gap-0' : ''}`}>
+                                        <Film size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
+                                        {!collapsed && 'Divisi Multimedia'}
+                                    </span>
+                                    {!collapsed && (menuOpen.mulmed ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />)}
+                                </button>
+                                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${menuOpen.mulmed ? 'max-h-48 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                    <ul className={`${collapsed ? 'pl-0 space-y-1' : 'pl-4 pr-3'} py-1 space-y-1.5 text-sm`}>
+                                        <NavLink href="/panitia/multimedia/berita" icon={Newspaper} label="Berita & Informasi" colorTheme="blue" />
+                                        <NavLink href="/panitia/multimedia/dokumentasi" icon={Camera} label="Dokumentasi Acara" colorTheme="blue" />
+                                        <NavLink href="/panitia/multimedia/konten" icon={Video} label="Konten Multimedia" colorTheme="blue" />
+                                    </ul>
+                                </div>
+                            </div>
+                        )}
+
                         {canAccessSection(adminData?.role, 'pjLomba') && (
                             <div className="mb-6">
                                 {!collapsed && (
@@ -711,6 +739,9 @@ export default function PanitiaLayout({ children }) {
                         </div>
                     </div>
                 )}
+
+                {/* Pop-up Sambutan & Panduan Admin */}
+                <WelcomeGuideAdminModal site={getSiteFromRole(adminData?.role)} />
             </div>
         </OfflineGuard>
     );

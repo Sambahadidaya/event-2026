@@ -10,6 +10,7 @@ import { generatePenilaianPDF } from '@/lib/pdf/penilaian';
 import { generateAbsensiPDF } from '@/lib/pdf/absensi';
 import { generateSalesPDF } from '@/lib/pdf/sales';
 import { generateMedisPDF, generateMedisPanitiaPDF } from '@/lib/pdf/medis';
+import { generateKabimPDF } from '@/lib/pdf/kabim';
 
 /**
  * Server action to generate PDF securely for logged in admin users
@@ -43,7 +44,10 @@ export async function generatePdfAction(payload = {}) {
             namaLombaFilter = 'all',
             summaryData = [],
             detailData = [],
-            printedBy = 'Admin'
+            printedBy = 'Admin',
+            sessionName = '',
+            summaryCards = [],
+            landscape = null
         } = payload;
 
         let pdfBuffer = null;
@@ -213,6 +217,37 @@ export async function generatePdfAction(payload = {}) {
                 data,
                 title,
                 printedBy
+            });
+        } else if (
+            type === 'kabim_report' ||
+            type === 'absensi_peserta_report' ||
+            type === 'kabim_nilai_report' ||
+            type === 'kabim_pelanggaran_report' ||
+            type === 'kabim_kreativitas_report' ||
+            type === 'kabim_tugas_report' ||
+            type === 'kabim_kelompok_report'
+        ) {
+            const kabimPrintedBy = printedBy !== 'Admin' ? printedBy : 'PJ Kabim';
+            const docRes = await createDocument({
+                site: site || 'pkkmb',
+                document_type: 'kabim_report',
+                reference_id: null,
+                reference_table: null,
+                printed_by: kabimPrintedBy
+            });
+
+            const docData = docRes.data || {};
+            pdfBuffer = await generateKabimPDF({
+                title,
+                site: site || 'pkkmb',
+                columns,
+                data,
+                sessionName,
+                summaryCards,
+                landscape,
+                documentId: docData.id || '',
+                documentCode: docData.document_code || 'KBM-2026-000000',
+                printedBy: docData.printed_by || kabimPrintedBy
             });
         } else {
             // Default report PDF

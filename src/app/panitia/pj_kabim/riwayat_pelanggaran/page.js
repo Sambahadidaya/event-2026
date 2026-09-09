@@ -17,6 +17,7 @@ import {
 import { getCurrentAdmin } from '@/api/supabase/admin/auth';
 import { hasAccess, getKabimFilter } from '@/lib/adminRoleData';
 import { getRiwayatPelanggaranForKabim } from '@/api/supabase/admin/pelanggaran';
+import TombolCetak from '@/components/panitia/TombolCetak';
 
 export default function RiwayatPelanggaranKabimPage() {
     const router = useRouter();
@@ -290,6 +291,61 @@ export default function RiwayatPelanggaranKabimPage() {
                             </button>
                         ))}
                     </div>
+
+                    <TombolCetak
+                        label="Cetak / Export"
+                        pdfTitle="Rekapitulasi Riwayat Pelanggaran Kelompok"
+                        pdfSite="pkkmb"
+                        pdfDocumentType="kabim_pelanggaran_report"
+                        pdfData={filteredList.map(item => ({
+                            nama_anggota: item.kelompok_members?.nama_anggota || '-',
+                            nim_anggota: item.kelompok_members?.nim_anggota || '-',
+                            kelompok: `Kel. ${item.kelompok_members?.kelompok?.urutan || '-'}`,
+                            nama_pelanggaran: item.master_pelanggaran?.nama_pelanggaran || '-',
+                            jenis_pelanggaran: item.master_pelanggaran?.jenis_pelanggaran || '-',
+                            poin_pelanggaran: item.master_pelanggaran?.poin_pengurangan ? `-${item.master_pelanggaran.poin_pengurangan}` : '-',
+                            waktu: formatDateTime(item.created_at)
+                        }))}
+                        pdfColumns={[
+                            { key: 'nama_anggota', label: 'Nama Peserta' },
+                            { key: 'nim_anggota', label: 'NIM', align: 'center' },
+                            { key: 'kelompok', label: 'Kelompok', align: 'center' },
+                            { key: 'nama_pelanggaran', label: 'Pelanggaran' },
+                            { key: 'jenis_pelanggaran', label: 'Tingkat', align: 'center' },
+                            { key: 'poin_pelanggaran', label: 'Poin', align: 'center' },
+                            { key: 'waktu', label: 'Waktu Catat', align: 'center' }
+                        ]}
+                        pdfExtraProps={{
+                            printedBy: admin?.nama || admin?.email || 'PJ Kabim',
+                            sessionName: lockedKabimUrutan && lockedKabimUrutan.length > 0 ? `Kelompok Binaan: ${lockedKabimUrutan.join(', ')}` : 'Semua Kelompok Binaan',
+                            summaryCards: [
+                                { label: 'Total Pelanggaran', value: stats.total, color: '#1e3a8a' },
+                                { label: 'Peserta Melanggar', value: stats.uniquePeserta, color: '#dc2626' },
+                                { label: 'Ringan', value: stats.ringan, color: '#d97706' },
+                                { label: 'Sedang', value: stats.sedang, color: '#ea580c' },
+                                { label: 'Berat', value: stats.berat, color: '#e11d48' }
+                            ]
+                        }}
+                        excelData={filteredList.map(item => ({
+                            nama_anggota: item.kelompok_members?.nama_anggota || '-',
+                            nim_anggota: item.kelompok_members?.nim_anggota || '-',
+                            kelompok: `Kelompok ${item.kelompok_members?.kelompok?.urutan || '-'}`,
+                            nama_pelanggaran: item.master_pelanggaran?.nama_pelanggaran || '-',
+                            jenis_pelanggaran: item.master_pelanggaran?.jenis_pelanggaran || '-',
+                            poin_pelanggaran: item.master_pelanggaran?.poin_pengurangan || 0,
+                            waktu: formatDateTime(item.created_at)
+                        }))}
+                        excelColumns={[
+                            { key: 'nama_anggota', label: 'Nama Peserta' },
+                            { key: 'nim_anggota', label: 'NIM' },
+                            { key: 'kelompok', label: 'Kelompok' },
+                            { key: 'nama_pelanggaran', label: 'Nama Pelanggaran' },
+                            { key: 'jenis_pelanggaran', label: 'Tingkat Sanksi' },
+                            { key: 'poin_pelanggaran', label: 'Poin Pengurangan' },
+                            { key: 'waktu', label: 'Waktu Pencatatan' }
+                        ]}
+                        excelFilename="rekap-pelanggaran-kelompok-pkkmb-2026"
+                    />
                 </div>
             </div>
 

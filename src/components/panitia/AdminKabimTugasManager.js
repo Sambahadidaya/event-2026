@@ -26,8 +26,10 @@ import { getKelompokAdmin } from '@/api/supabase/admin/kelompok';
 import { getDaftarHariPkkmb } from '@/api/supabase/admin/penilaian_keaktifan';
 import { getCurrentAdmin } from '@/api/supabase/admin/auth';
 import { getKabimFilter } from '@/lib/adminRoleData';
+import TombolCetak from '@/components/panitia/TombolCetak';
 
 export default function AdminKabimTugasManager() {
+    const [admin, setAdmin] = useState(null);
     // Active Tab: 'resume' | 'sosmed_klp' | 'sosmed_ind' | 'barang'
     const [activeTab, setActiveTab] = useState('resume');
 
@@ -165,6 +167,7 @@ export default function AdminKabimTugasManager() {
                 getDaftarHariPkkmb(),
                 getCurrentAdmin()
             ]);
+            setAdmin(adminData);
 
             // getKelompokAdmin() mengembalikan Array langsung (bukan { data: [...] })
             const allKelompok = Array.isArray(allKelRaw) ? allKelRaw : (allKelRaw?.data || []);
@@ -377,6 +380,10 @@ export default function AdminKabimTugasManager() {
         return found ? (found.kelompok_members || []) : [];
     }, [allowedKelompok, lockedKelompokId, modalBarang.kelompok_id]);
 
+    const selectedMateriObj = useMemo(() => {
+        return materiList.find(m => String(m.id) === String(selectedMateri));
+    }, [materiList, selectedMateri]);
+
     // Filtered Resume data
     const filteredResume = useMemo(() => {
         return tugasList.filter(item => {
@@ -534,6 +541,64 @@ export default function AdminKabimTugasManager() {
                         </div>
                     </div>
 
+                    {/* Action & Export Bar Resume */}
+                    {selectedMateri && (
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                            <div>
+                                <h3 className="font-bold text-sm text-slate-800 dark:text-white">
+                                    Rekap Pengumpulan: {selectedMateriObj?.judul || 'Materi'}
+                                </h3>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                    Total Masuk: <strong className="text-blue-600 dark:text-blue-400">{filteredResume.length} tugas</strong>
+                                </p>
+                            </div>
+                            <TombolCetak
+                                label="Cetak / Export"
+                                pdfTitle={`Rekap Tugas Resume - ${selectedMateriObj?.judul || 'Materi'}`}
+                                pdfSite="pkkmb"
+                                pdfDocumentType="kabim_tugas_report"
+                                pdfData={filteredResume.map(t => ({
+                                    nama: t.nama || '-',
+                                    nim: t.nim || '-',
+                                    kampus: t.kampus || '-',
+                                    status_tugas: t.status_tugas ? 'Sudah Dinilai' : 'Belum Dinilai',
+                                    nilai: t.nilai !== null && t.nilai !== undefined ? `${t.nilai} / 5` : '-'
+                                }))}
+                                pdfColumns={[
+                                    { key: 'nama', label: 'Nama Mahasiswa' },
+                                    { key: 'nim', label: 'NIM', align: 'center' },
+                                    { key: 'kampus', label: 'Kampus' },
+                                    { key: 'status_tugas', label: 'Status Nilai', align: 'center' },
+                                    { key: 'nilai', label: 'Nilai Resume', align: 'center' }
+                                ]}
+                                pdfExtraProps={{
+                                    printedBy: admin?.nama || admin?.email || 'PJ Kabim',
+                                    sessionName: selectedMateriObj ? `Materi: ${selectedMateriObj.judul} (Pemateri: ${selectedMateriObj.pemateri || '-'})` : '',
+                                    summaryCards: [
+                                        { label: 'Total Tugas Masuk', value: filteredResume.length, color: '#1e3a8a' },
+                                        { label: 'Sudah Dinilai', value: filteredResume.filter(t => t.status_tugas).length, color: '#059669' },
+                                        { label: 'Belum Dinilai', value: filteredResume.filter(t => !t.status_tugas).length, color: '#dc2626' }
+                                    ]
+                                }}
+                                excelData={filteredResume.map(t => ({
+                                    nama: t.nama || '-',
+                                    nim: t.nim || '-',
+                                    kampus: t.kampus || '-',
+                                    status_tugas: t.status_tugas ? 'Sudah Dinilai' : 'Belum Dinilai',
+                                    nilai: t.nilai !== null && t.nilai !== undefined ? t.nilai : '-'
+                                }))}
+                                excelColumns={[
+                                    { key: 'nama', label: 'Nama Mahasiswa' },
+                                    { key: 'nim', label: 'NIM' },
+                                    { key: 'kampus', label: 'Kampus' },
+                                    { key: 'status_tugas', label: 'Status' },
+                                    { key: 'nilai', label: 'Nilai (0-5)' }
+                                ]}
+                                excelFilename={`rekap-tugas-resume-${selectedMateriObj?.judul?.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'materi'}`}
+                            />
+                        </div>
+                    )}
+
                     {/* Table Resume */}
                     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
                         {!selectedMateri ? (
@@ -674,9 +739,63 @@ export default function AdminKabimTugasManager() {
                                 className="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
                             />
                         </div>
-                        <span className="text-xs text-slate-500">
-                            Total: <strong>{filteredSosmed.length}</strong> submission
-                        </span>
+                        <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
+                            <span className="text-xs text-slate-500">
+                                Total: <strong>{filteredSosmed.length}</strong> submission
+                            </span>
+                            <TombolCetak
+                                label="Cetak / Export"
+                                pdfTitle={`Rekap Tugas ${activeTab === 'sosmed_klp' ? 'Sosial Media Kelompok' : 'Sosial Media Individu'}`}
+                                pdfSite="pkkmb"
+                                pdfDocumentType="kabim_tugas_report"
+                                pdfData={filteredSosmed.map(item => ({
+                                    subjek: activeTab === 'sosmed_klp'
+                                        ? (item.kelompok?.nama_kelompok || '-')
+                                        : `${item.kelompok_members?.nama_anggota || '-'} (${item.kelompok_members?.nim_anggota || '-'})`,
+                                    hari: item.label_hari || '-',
+                                    platform: item.platform || '-',
+                                    link_konten: item.link_konten || '-',
+                                    nilai: item.nilai !== null && item.nilai !== undefined ? `${item.nilai} / 5` : 'Belum Dinilai',
+                                    tanggal: formatTanggal(item.created_at)
+                                }))}
+                                pdfColumns={[
+                                    { key: 'subjek', label: activeTab === 'sosmed_klp' ? 'Kelompok' : 'Peserta (NIM)' },
+                                    ...(activeTab === 'sosmed_klp' ? [{ key: 'hari', label: 'Hari', align: 'center' }] : []),
+                                    { key: 'platform', label: 'Platform', align: 'center' },
+                                    { key: 'link_konten', label: 'Link Konten' },
+                                    { key: 'nilai', label: 'Nilai', align: 'center' },
+                                    { key: 'tanggal', label: 'Waktu Kirim', align: 'center' }
+                                ]}
+                                pdfExtraProps={{
+                                    printedBy: admin?.nama || admin?.email || 'PJ Kabim',
+                                    sessionName: activeTab === 'sosmed_klp' ? 'Penugasan Sosmed Kelompok PKKMB' : 'Penugasan Sosmed Individu PKKMB',
+                                    summaryCards: [
+                                        { label: 'Total Submission', value: filteredSosmed.length, color: '#1e3a8a' },
+                                        { label: 'Sudah Dinilai', value: filteredSosmed.filter(s => s.nilai !== null && s.nilai !== undefined).length, color: '#059669' },
+                                        { label: 'Belum Dinilai', value: filteredSosmed.filter(s => s.nilai === null || s.nilai === undefined).length, color: '#dc2626' }
+                                    ]
+                                }}
+                                excelData={filteredSosmed.map(item => ({
+                                    subjek: activeTab === 'sosmed_klp'
+                                        ? (item.kelompok?.nama_kelompok || '-')
+                                        : `${item.kelompok_members?.nama_anggota || '-'} (${item.kelompok_members?.nim_anggota || '-'})`,
+                                    hari: item.label_hari || '-',
+                                    platform: item.platform || '-',
+                                    link_konten: item.link_konten || '-',
+                                    nilai: item.nilai !== null && item.nilai !== undefined ? item.nilai : 'Belum Dinilai',
+                                    tanggal: formatTanggal(item.created_at)
+                                }))}
+                                excelColumns={[
+                                    { key: 'subjek', label: activeTab === 'sosmed_klp' ? 'Kelompok' : 'Peserta' },
+                                    ...(activeTab === 'sosmed_klp' ? [{ key: 'hari', label: 'Hari' }] : []),
+                                    { key: 'platform', label: 'Platform' },
+                                    { key: 'link_konten', label: 'Link Konten' },
+                                    { key: 'nilai', label: 'Nilai' },
+                                    { key: 'tanggal', label: 'Waktu Kirim' }
+                                ]}
+                                excelFilename={`rekap-tugas-sosmed-${activeTab === 'sosmed_klp' ? 'kelompok' : 'individu'}`}
+                            />
+                        </div>
                     </div>
 
                     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
@@ -819,13 +938,72 @@ export default function AdminKabimTugasManager() {
                             />
                         </div>
 
-                        <button
-                            onClick={openModalBarangBaru}
-                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold shadow-md shadow-blue-500/20 flex items-center gap-2"
-                        >
-                            <Plus size={16} />
-                            + Input Pengecekan Barang
-                        </button>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <TombolCetak
+                                label="Cetak / Export"
+                                pdfTitle="Rekap Pengecekan Barang Bawaan PKKMB"
+                                pdfSite="pkkmb"
+                                pdfDocumentType="kabim_tugas_report"
+                                pdfData={filteredBarang.map(item => ({
+                                    subjek: item.tipe_barang === 'kelompok'
+                                        ? (item.kelompok?.nama_kelompok || '-')
+                                        : `${item.kelompok_members?.nama_anggota || '-'} (${item.kelompok_members?.nim_anggota || '-'})`,
+                                    tipe: item.tipe_barang?.toUpperCase() || '-',
+                                    hari: item.label_hari || '-',
+                                    wajib: item.total_barang_wajib || 0,
+                                    dibawa: item.barang_dibawa || 0,
+                                    status: (item.barang_dibawa || 0) >= (item.total_barang_wajib || 1) ? 'Lengkap' : 'Tidak Lengkap',
+                                    catatan: item.catatan || '-'
+                                }))}
+                                pdfColumns={[
+                                    { key: 'subjek', label: 'Kelompok / Peserta' },
+                                    { key: 'tipe', label: 'Tipe', align: 'center' },
+                                    { key: 'hari', label: 'Hari', align: 'center' },
+                                    { key: 'wajib', label: 'Wajib', align: 'center' },
+                                    { key: 'dibawa', label: 'Dibawa', align: 'center' },
+                                    { key: 'status', label: 'Status', align: 'center' },
+                                    { key: 'catatan', label: 'Catatan' }
+                                ]}
+                                pdfExtraProps={{
+                                    printedBy: admin?.nama || admin?.email || 'PJ Kabim',
+                                    sessionName: 'Pengecekan Perlengkapan & Barang Bawaan Peserta PKKMB 2026',
+                                    summaryCards: [
+                                        { label: 'Total Pengecekan', value: filteredBarang.length, color: '#1e3a8a' },
+                                        { label: 'Lengkap', value: filteredBarang.filter(b => (b.barang_dibawa || 0) >= (b.total_barang_wajib || 1)).length, color: '#059669' },
+                                        { label: 'Tidak Lengkap', value: filteredBarang.filter(b => (b.barang_dibawa || 0) < (b.total_barang_wajib || 1)).length, color: '#dc2626' }
+                                    ]
+                                }}
+                                excelData={filteredBarang.map(item => ({
+                                    subjek: item.tipe_barang === 'kelompok'
+                                        ? (item.kelompok?.nama_kelompok || '-')
+                                        : `${item.kelompok_members?.nama_anggota || '-'} (${item.kelompok_members?.nim_anggota || '-'})`,
+                                    tipe: item.tipe_barang || '-',
+                                    hari: item.label_hari || '-',
+                                    wajib: item.total_barang_wajib || 0,
+                                    dibawa: item.barang_dibawa || 0,
+                                    status: (item.barang_dibawa || 0) >= (item.total_barang_wajib || 1) ? 'Lengkap' : 'Kurang Lengkap',
+                                    catatan: item.catatan || '-'
+                                }))}
+                                excelColumns={[
+                                    { key: 'subjek', label: 'Kelompok / Peserta' },
+                                    { key: 'tipe', label: 'Tipe Barang' },
+                                    { key: 'hari', label: 'Hari Pelaksanaan' },
+                                    { key: 'wajib', label: 'Total Wajib' },
+                                    { key: 'dibawa', label: 'Barang Dibawa' },
+                                    { key: 'status', label: 'Status Kelengkapan' },
+                                    { key: 'catatan', label: 'Catatan' }
+                                ]}
+                                excelFilename="rekap-pengecekan-barang-pkkmb-2026"
+                            />
+
+                            <button
+                                onClick={openModalBarangBaru}
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold shadow-md shadow-blue-500/20 flex items-center gap-2"
+                            >
+                                <Plus size={16} />
+                                + Input Pengecekan Barang
+                            </button>
+                        </div>
                     </div>
 
                     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">

@@ -23,6 +23,7 @@ import {
     getPenilaianKreativitasList,
     savePenilaianKreativitas
 } from '@/api/supabase/admin/penilaian_kreativitas';
+import TombolCetak from '@/components/panitia/TombolCetak';
 
 export default function PenilaianKreativitasPage() {
     const router = useRouter();
@@ -202,7 +203,7 @@ export default function PenilaianKreativitasPage() {
                     />
                 </div>
 
-                <div className="flex items-center gap-2 w-full md:w-auto">
+                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
                     {['all', 'reguler', 'nonreg'].map(tab => (
                         <button
                             key={tab}
@@ -216,6 +217,78 @@ export default function PenilaianKreativitasPage() {
                             {tab === 'all' ? 'Semua Kategori' : tab === 'reguler' ? 'Reguler' : 'Non-Reguler'}
                         </button>
                     ))}
+
+                    <TombolCetak
+                        label="Cetak / Export"
+                        pdfTitle="Rekapitulasi Penilaian Kreativitas Kelompok"
+                        pdfSite="pkkmb"
+                        pdfDocumentType="kabim_kreativitas_report"
+                        pdfData={filteredList.map(item => {
+                            const yel = Number(item.penilaian?.skor_yelyel || 0);
+                            const kreasi = Number(item.penilaian?.skor_kreasi_seni || 0);
+                            const vlog = Number(item.penilaian?.skor_vlog || 0);
+                            const avg = Number(item.penilaian?.nilai_akhir_kreativitas || ((yel + kreasi + vlog) / 3)).toFixed(1);
+                            return {
+                                kelompok: `#${item.urutan} ${item.nama_kelompok}`,
+                                nama_kabim: item.nama_kabim || '-',
+                                kategori: (item.jenis_kelompok || 'reguler').toUpperCase(),
+                                skor_yelyel: yel || 0,
+                                skor_kreasi_seni: kreasi || 0,
+                                skor_vlog: vlog || 0,
+                                nilai_akhir: avg
+                            };
+                        })}
+                        pdfColumns={[
+                            { key: 'kelompok', label: 'Kelompok' },
+                            { key: 'nama_kabim', label: 'Pembimbing (Kabim)' },
+                            { key: 'kategori', label: 'Kategori', align: 'center' },
+                            { key: 'skor_yelyel', label: 'Yel-yel', align: 'center' },
+                            { key: 'skor_kreasi_seni', label: 'Kreasi Seni', align: 'center' },
+                            { key: 'skor_vlog', label: 'Vlog', align: 'center' },
+                            { key: 'nilai_akhir', label: 'Rata-rata Nilai', align: 'center' }
+                        ]}
+                        pdfExtraProps={{
+                            printedBy: admin?.nama || admin?.email || 'PJ Kabim',
+                            sessionName: `Kategori: ${selectedJenis.toUpperCase()}`,
+                            summaryCards: [
+                                { label: 'Total Kelompok', value: filteredList.length, color: '#7c3aed' },
+                                {
+                                    label: 'Rata-rata Keseluruhan',
+                                    value: filteredList.length > 0
+                                        ? (filteredList.reduce((acc, curr) => acc + Number(curr.penilaian?.nilai_akhir_kreativitas || 0), 0) / filteredList.length).toFixed(1)
+                                        : '0.0',
+                                    color: '#059669'
+                                }
+                            ]
+                        }}
+                        excelData={filteredList.map(item => {
+                            const yel = Number(item.penilaian?.skor_yelyel || 0);
+                            const kreasi = Number(item.penilaian?.skor_kreasi_seni || 0);
+                            const vlog = Number(item.penilaian?.skor_vlog || 0);
+                            const avg = Number(item.penilaian?.nilai_akhir_kreativitas || ((yel + kreasi + vlog) / 3)).toFixed(1);
+                            return {
+                                kelompok: `#${item.urutan} ${item.nama_kelompok}`,
+                                nama_kabim: item.nama_kabim || '-',
+                                kategori: (item.jenis_kelompok || 'reguler').toUpperCase(),
+                                skor_yelyel: yel || 0,
+                                skor_kreasi_seni: kreasi || 0,
+                                skor_vlog: vlog || 0,
+                                nilai_akhir: avg,
+                                catatan: item.penilaian?.catatan || '-'
+                            };
+                        })}
+                        excelColumns={[
+                            { key: 'kelompok', label: 'Kelompok' },
+                            { key: 'nama_kabim', label: 'Pembimbing' },
+                            { key: 'kategori', label: 'Kategori' },
+                            { key: 'skor_yelyel', label: 'Skor Yel-yel' },
+                            { key: 'skor_kreasi_seni', label: 'Skor Kreasi Seni' },
+                            { key: 'skor_vlog', label: 'Skor Vlog' },
+                            { key: 'nilai_akhir', label: 'Nilai Akhir Rata-rata' },
+                            { key: 'catatan', label: 'Catatan' }
+                        ]}
+                        excelFilename="rekap-penilaian-kreativitas-pkkmb-2026"
+                    />
                 </div>
             </div>
 

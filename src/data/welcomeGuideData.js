@@ -167,6 +167,25 @@ export const welcomeGuideConfig = {
             ],
             ctaLabel: 'Buka Panduan Kontak',
             ctaHref: '/pose/panduan#kontak'
+        },
+
+        // 10. Halaman Dokumentasi & Multimedia POSE
+        '/pose/dokumentasi': {
+            pageKey: 'dokumentasi',
+            currentVersion: '2026.1.0',
+            storageKey: 'pose_welcome_guide_dokumentasi',
+            title: 'Panduan Dokumentasi & Multimedia POSE',
+            subtitle: 'Galeri Momen, Cuplikan Lomba, dan Video Highlight',
+            greeting: 'Saksikan keseruan aksi atlet, selebrasi juara, galeri foto kegiatan, dan video sorotan kompetisi POSE 2026.',
+            youtubeId: 'kosong',
+            highlights: [
+                'Gunakan filter (Semua, Dokumentasi, Konten Video) dan pencarian tanggal',
+                'Buka kartu album untuk melihat rekaman cuplikan pertandingan dan foto momen terbaik',
+                'Akses tautan folder Google Drive untuk mengunduh foto kegiatan beresolusi penuh',
+                'Tonton video aftermovie dan tayangan kreatif multimedia POSE 2026'
+            ],
+            ctaLabel: 'Buka Panduan Dokumentasi',
+            ctaHref: '/pose/panduan#dokumentasi'
         }
     },
 
@@ -278,6 +297,25 @@ export const welcomeGuideConfig = {
             ],
             ctaLabel: 'Buka Panduan Kontak',
             ctaHref: '/pkkmb/panduan#kontak'
+        },
+
+        // 7. Halaman Dokumentasi & Multimedia PKKMB
+        '/pkkmb/dokumentasi': {
+            pageKey: 'dokumentasi',
+            currentVersion: '2026.1.0',
+            storageKey: 'pkkmb_welcome_guide_dokumentasi',
+            title: 'Panduan Dokumentasi & Multimedia PKKMB',
+            subtitle: 'Galeri Foto Kegiatan, Cuplikan, dan Video Aftermovie',
+            greeting: 'Kilas balik momen bersejarah dan keseruan masa pengenalan kampus mahasiswa baru Politeknik LP3I 2026.',
+            youtubeId: null,
+            highlights: [
+                'Filter tampilan berdasarkan Semua, Album Dokumentasi, atau Konten Video',
+                'Klik "Lihat Detail & Cuplikan" untuk memutar cuplikan video atau melihat foto kegiatan',
+                'Unduh seluruh arsip foto resolusi tinggi melalui tautan Google Drive resmi',
+                'Putar video sorotan, teaser, dan aftermovie persembahan Divisi Multimedia'
+            ],
+            ctaLabel: 'Buka Panduan Dokumentasi',
+            ctaHref: '/pkkmb/panduan#dokumentasi'
         }
     }
 };

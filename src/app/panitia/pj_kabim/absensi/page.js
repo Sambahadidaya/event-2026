@@ -380,6 +380,17 @@ export default function AbsensiPesertaPage() {
                                 { key: 'created_by', label: 'Diinput Oleh', align: 'center' }
                             ]}
                             pdfDocumentType="absensi_peserta_report"
+                            pdfExtraProps={{
+                                printedBy: admin?.nama || admin?.email || 'PJ Kabim',
+                                sessionName: selectedJadwal?.judul || 'Sesi Acara',
+                                summaryCards: [
+                                    { label: 'Hadir', value: totalCounts.hadir, color: '#059669' },
+                                    { label: 'Izin', value: totalCounts.izin, color: '#0284c7' },
+                                    { label: 'Sakit', value: totalCounts.sakit, color: '#d97706' },
+                                    { label: 'Alpha', value: totalCounts.alpha, color: '#dc2626' },
+                                    { label: 'Belum Diabsen', value: totalCounts.belum, color: '#64748b' }
+                                ]
+                            }}
                             excelData={filteredData.map(item => ({
                                 nama_anggota: item.nama_anggota,
                                 nim_anggota: item.nim_anggota || '-',

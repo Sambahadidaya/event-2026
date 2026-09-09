@@ -17,6 +17,7 @@ export default function PoseLayout({ children }) {
         { href: '/pose/register', label: 'Daftar' },
         // { href: '/pose/submission', label: 'Submit' },
         // { href: '/pose/nilai', label: 'Nilai' },
+        { href: '/pose/dokumentasi', label: 'Dokumentasi' },
         { href: '/pose/contact', label: 'Kontak' },
         { href: '/pose/ketentuan', label: 'S&K Lomba' },
         { href: '/pose/panduan', label: 'Panduan & Privasi' }

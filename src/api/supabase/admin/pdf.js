@@ -31,12 +31,20 @@ export const createDocument = async ({
             }
         }
         if (!adminName) {
-            adminName = user?.email || 'Panitia Keuangan';
+            adminName = user?.email || (document_type?.includes('kabim') || document_type?.includes('absensi_peserta') ? 'PJ Kabim' : 'Panitia Keuangan');
         }
 
         // Auto-generate code if not provided
         if (!document_code) {
-            const prefix = document_type === 'invoice' ? 'INV' : document_type === 'receipt' ? 'KWT' : document_type === 'certificate' ? 'CERT' : 'RPT';
+            const prefix = document_type === 'invoice' 
+                ? 'INV' 
+                : document_type === 'receipt' 
+                ? 'KWT' 
+                : document_type === 'certificate' 
+                ? 'CERT' 
+                : (document_type?.includes('kabim') || document_type?.includes('absensi_peserta'))
+                ? 'KBM'
+                : 'RPT';
             const year = new Date().getFullYear();
             const randomNum = Math.floor(100000 + Math.random() * 900000);
             document_code = `${prefix}-${year}-${randomNum}`;

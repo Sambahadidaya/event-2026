@@ -1421,6 +1421,56 @@ ALTER TABLE public.tugas_materi
     ADD COLUMN IF NOT EXISTS nilai NUMERIC(5,2) DEFAULT NULL;
 -- Catatan: nilai = 0 (tidak mengerjakan/kurang) atau 5 (mengerjakan/lengkap)
 
+CREATE TABLE public.dokumentasi (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    site site_type NOT NULL,
+    judul VARCHAR(100),
+    header_foto VARCHAR(255),
+    tanggal DATE,
+    link_gdrive VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.dokumentasi ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read dokumentasi" ON public.dokumentasi FOR SELECT TO public USING (true);
+CREATE POLICY "auth all dokumentasi" ON public.dokumentasi FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+CREATE TABLE public.dokumentasi_cuplikan (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    dokumentasi_id UUID NOT NULL REFERENCES public.dokumentasi(id) ON DELETE CASCADE,
+    judul_cuplikan VARCHAR(100),
+    link_gdrive_video VARCHAR (255), -- GDrive file ID atau full embed URL
+    urutan INT4 DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.dokumentasi_cuplikan ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read cuplikan" ON public.dokumentasi_cuplikan FOR SELECT TO public USING (true);
+CREATE POLICY "auth all cuplikan" ON public.dokumentasi_cuplikan FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+
+CREATE TABLE public.konten_multimedia (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    site site_type NOT NULL,
+    judul VARCHAR(100),
+    deskripsi VARCHAR(255),
+    thumbnail VARCHAR(255),            -- opsional, gambar header upload manual
+    link_gdrive_video VARCHAR(255),  -- GDrive file ID (diembed via iframe)
+    tanggal DATE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+ALTER TABLE public.konten_multimedia ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public read konten" ON public.konten_multimedia FOR SELECT TO public USING (true);
+CREATE POLICY "auth all konten" ON public.konten_multimedia FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('dokumentasi-header', 'dokumentasi-header', true, 5242880,
+        ARRAY['image/jpeg','image/png','image/webp','image/gif']);
+CREATE POLICY "public read dok-header" ON storage.objects FOR SELECT TO public USING (bucket_id = 'dokumentasi-header');
+CREATE POLICY "public upload dok-header" ON storage.objects FOR INSERT TO public WITH CHECK (bucket_id = 'dokumentasi-header');
+CREATE POLICY "auth delete dok-header" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'dokumentasi-header');
+
+ALTER TABLE public.dokumentasi_cuplikan ADD COLUMN tipe_cuplikan VARCHAR(10) DEFAULT 'video';
+
 ```
 
 ---
@@ -1457,6 +1507,7 @@ ALTER TABLE public.tugas_materi
 │   │   │   │   ├── audit.js
 │   │   │   │   ├── auth.js
 │   │   │   │   ├── berita.js
+│   │   │   │   ├── dokumentasi.js
 │   │   │   │   ├── finance.js
 │   │   │   │   ├── jadwal_pkkmb.js
 │   │   │   │   ├── jadwal.js
@@ -1485,6 +1536,7 @@ ALTER TABLE public.tugas_materi
 │   │   │   ├── public/
 │   │   │   │   ├── admin.js
 │   │   │   │   ├── berita.js
+│   │   │   │   ├── dokumentasi.js
 │   │   │   │   ├── jadwal.js
 │   │   │   │   ├── juara.js
 │   │   │   │   ├── kelompok.js
@@ -1571,6 +1623,13 @@ ALTER TABLE public.tugas_materi
 │   │   │   │       └── page.js
 │   │   │   ├── login/
 │   │   │   │   └── page.js
+│   │   │   ├── multimedia/
+│   │   │   │   ├── berita/
+│   │   │   │   │   └── page.js
+│   │   │   │   ├── dokumentasi/
+│   │   │   │   │   └── page.js
+│   │   │   │   └── konten/
+│   │   │   │       └── page.js
 │   │   │   ├── panduan/
 │   │   │   │   └── page.js
 │   │   │   ├── pj_acara/
@@ -1677,6 +1736,8 @@ ALTER TABLE public.tugas_materi
 │   │   │   │   ├── [id]
 │   │   │   │   │   └── page.js
 │   │   │   │   └── page.js
+│   │   │   ├── dokumentasi/
+│   │   │   │   └── page.js
 │   │   │   ├── form/
 │   │   │   │   └── [lynk_id]
 │   │   │   │       └── page.js
@@ -1706,6 +1767,8 @@ ALTER TABLE public.tugas_materi
 │   │       │   └── page.js
 │   │       ├── dashboard/
 │   │       │   └── page.js
+│   │   │   ├── dokumentasi/
+│   │   │   │   └── page.js
 │   │       ├── form/
 │   │       │   └── [lynk_id]
 │   │       │       └── page.js
@@ -1868,6 +1931,7 @@ ALTER TABLE public.tugas_materi
 │   │   │   ├── PengembangBarrier.js
 │   │   │   ├── PjLombaContactSection.js
 │   │   │   ├── PublicFooter.js
+│   │   │   ├── PublicMultimediaView.js
 │   │   │   ├── ScheduleBarrier.js
 │   │   │   ├── SiteBackground.js
 │   │   │   ├── TombolCetakSertifikat.js
@@ -1912,6 +1976,8 @@ ALTER TABLE public.tugas_materi
 │   │       ├── pj_tatib/
 │   │       │   ├── MasterPelanggaranModal.js
 │   │       │   └── RiwayatPelanggaranModal.js
+│   │       ├── AdminBeritaMultimediaManager.js
+│   │       ├── AdminDokumentasiManager.js
 │   │       ├── AdminFormPengumpulan.js
 │   │       ├── AdminFormRegister.js
 │   │       ├── AdminFormWajib.js
@@ -1920,6 +1986,7 @@ ALTER TABLE public.tugas_materi
 │   │       ├── AdminKabimTugasManager.js
 │   │       ├── AdminKelompokManager.js
 │   │       ├── AdminKeuanganDashboard.js
+│   │       ├── AdminKontenMultimediaManager.js
 │   │       ├── AdminPanitiamedis.js
 │   │       ├── AdminPenilaianPJ.js
 │   │       ├── AdminPesertaMedis.js
@@ -1972,6 +2039,7 @@ ALTER TABLE public.tugas_materi
 │       │   ├── browser.js
 │       │   ├── certificate.js
 │       │   ├── invoice.js
+│       │   ├── kabim.js
 │       │   ├── medis.js
 │       │   ├── panduanKetentuan.js
 │       │   ├── penilaian.js
@@ -1991,6 +2059,7 @@ ALTER TABLE public.tugas_materi
 │       ├── adminRoleData.js
 │       ├── dashboardUtils.js
 │       ├── dateUtils.js
+│       ├── driveUtils.js
 │       ├── faqData.js
 │       ├── faqDataAdmin.js
 │       ├── kodeFormUtils.js

@@ -133,9 +133,40 @@ export const panduanAdminData = {
                         content: 'Catat setiap pos pengeluaran operasional panitia, pengadaan logistik, konsumsi, dan cetak sertifikat sesuai standar akuntansi berpasangan.'
                     }
                 ]
+            },
+            {
+                id: 'admin-pkkmb-multimedia',
+                title: 'Panduan Divisi Multimedia PKKMB',
+                content: 'Manajemen rilis berita, album foto dokumentasi kegiatan, cuplikan foto/video, serta konten video aftermovie PKKMB 2026.',
+                imageKey: 'berita',
+                youtubeId: 'kosong',
+                subsections: [
+                    {
+                        id: 'admin-pkkmb-mulmed-berita',
+                        title: 'Manajemen Berita & Informasi',
+                        content: 'Gunakan modal formulir untuk membuat atau mengedit berita resmi kegiatan PKKMB lengkap dengan tanggal kegiatan dan isi warta.'
+                    },
+                    {
+                        id: 'admin-pkkmb-mulmed-dokumentasi',
+                        title: 'Manajemen Album Dokumentasi & Cuplikan',
+                        content: 'Kelola album foto header, tautan folder Google Drive, serta tambahkan cuplikan video Google Drive atau foto sorotan per kegiatan.'
+                    },
+                    {
+                        id: 'admin-pkkmb-mulmed-konten',
+                        title: 'Manajemen Konten Video & Aftermovie',
+                        content: 'Publikasikan video promosi, teaser, dan aftermovie kegiatan dengan menyematkan link video Google Drive dan gambar thumbnail.'
+                    }
+                ]
             }
         ],
         updateVersi: [
+            {
+                versi: '2026.3.4',
+                tanggal: '10 September 2026 02.18 WIB',
+                judul: 'Rilis Panel Admin PKKMB v3.4 — Halaman Baru Untuk Divisi Multimedia',
+                isi: 'Menambahkan halaman baru untuk divisi multimedia yaitu manajemen berita, manajemen dokumentasi, dan manajemen konten video.',
+                imageKey: 'versi3.4'
+            },
             {
                 versi: '2026.3.3',
                 tanggal: '10 September 2026 00.18 WIB',
@@ -311,9 +342,40 @@ export const panduanAdminData = {
                         content: 'Rekap dana kas masuk dari pendaftaran dan pengeluaran untuk sewa venue, wasit, medali, serta total hadiah pemenang lomba.'
                     }
                 ]
+            },
+            {
+                id: 'admin-pose-multimedia',
+                title: 'Panduan Divisi Multimedia POSE',
+                content: 'Pengelolaan berita perlombaan, album dokumentasi foto pertandingan, cuplikan momen juara, dan konten video highlight POSE 2026.',
+                imageKey: 'berita',
+                youtubeId: 'kosong',
+                subsections: [
+                    {
+                        id: 'admin-pose-mulmed-berita',
+                        title: 'Manajemen Berita & Pengumuman POSE',
+                        content: 'Terbitkan informasi atau pengumuman cabang lomba melalui modal pembuatan berita dengan tanggal kegiatan yang terintegrasi.'
+                    },
+                    {
+                        id: 'admin-pose-mulmed-dokumentasi',
+                        title: 'Manajemen Dokumentasi & Cuplikan Pertandingan',
+                        content: 'Buat album dokumentasi per cabang lomba atau per hari tanding, sertakan link folder Google Drive, dan tambahkan cuplikan video atau foto selebrasi juara.'
+                    },
+                    {
+                        id: 'admin-pose-mulmed-konten',
+                        title: 'Manajemen Konten Video & Highlight',
+                        content: 'Unggah video rangkuman pertandingan terbaik dan teaser cabang lomba menggunakan link Google Drive dengan thumbnail menarik.'
+                    }
+                ]
             }
         ],
         updateVersi: [
+            {
+                versi: 'versi 2026.3.2',
+                tanggal: '10 September 2026 02.31 WIB',
+                judul: 'Rilis Admin Versi 3.2 — Halaman Baru Untuk Divisi Multimedia',
+                isi: 'Integrasi pemutar video per modul panduan admin POSE, Halaman Baru Untuk Divisi Multimedia.',
+                imageKey: 'versi1.2'
+            },
             {
                 versi: 'versi 2026.3.1',
                 tanggal: '06 September 2026',

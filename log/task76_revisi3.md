@@ -1,0 +1,1 @@
+fokus ke halaman panitia tepatnya pada bagian pj_kabim. saya ingin disemua halaman pj_kabim ini saat mencetak pdfnya mempunyai template pdfnya sendiri, bukan dari template keuangan!!. masa pj_kabim ada menu keuangan itu tidak masuk akal.
