@@ -30,22 +30,25 @@ Object.values(NAMA_LOMBA).flat().forEach(nama => {
 // KABIM ROLE MAP — Mendukung 1 atau multi kelompok per role (Customizable)
 // ============================================================
 export const KABIM_ROLE_MAP = {
-  'admin_pkkmb_pj_kabim_1': [1],
-  'admin_pkkmb_pj_kabim_2': [2],
-  'admin_pkkmb_pj_kabim_3': [3],
-  'admin_pkkmb_pj_kabim_4': [4],
-  'admin_pkkmb_pj_kabim_5': [5],
-  'admin_pkkmb_pj_kabim_6': [6],
-  'admin_pkkmb_pj_kabim_7': [7],
-  'admin_pkkmb_pj_kabim_8': [8],
-  'admin_pkkmb_pj_kabim_9': [9],
-  'admin_pkkmb_pj_kabim_10': [10],
-  'admin_pkkmb_pj_kabim_11': [11],
-  'admin_pkkmb_pj_kabim_12': [12],
-  'admin_pkkmb_pj_kabim_13': [13],
-  'admin_pkkmb_pj_kabim_14': [14],
-  'admin_pkkmb_pj_kabim_15': [15],
-  'admin_pkkmb_pj_kabim_A': [2, 4], // Role contoh kombinasi multi kelompok (bisa ditambah/dikustomisasi)
+  // 'admin_pkkmb_pj_kabim_1': [1],
+  // 'admin_pkkmb_pj_kabim_2': [2],
+  // 'admin_pkkmb_pj_kabim_3': [3],
+  // 'admin_pkkmb_pj_kabim_4': [4],
+  // 'admin_pkkmb_pj_kabim_5': [5],
+  // 'admin_pkkmb_pj_kabim_6': [6],
+  // 'admin_pkkmb_pj_kabim_7': [7],
+  // 'admin_pkkmb_pj_kabim_8': [8],
+  // 'admin_pkkmb_pj_kabim_9': [9],
+  // 'admin_pkkmb_pj_kabim_10': [10],
+  // 'admin_pkkmb_pj_kabim_11': [11],
+  // 'admin_pkkmb_pj_kabim_12': [12],
+  // 'admin_pkkmb_pj_kabim_13': [13],
+  // 'admin_pkkmb_pj_kabim_14': [14],
+  // 'admin_pkkmb_pj_kabim_15': [15],
+  'admin_pkkmb_pj_kabim_A': [1, 5, 10], // Role contoh kombinasi multi kelompok (bisa ditambah/dikustomisasi)
+  'admin_pkkmb_pj_kabim_B': [2, 6, 10], // Role contoh kombinasi multi kelompok (bisa ditambah/dikustomisasi)
+  'admin_pkkmb_pj_kabim_C': [3, 7, 10], // Role contoh kombinasi multi kelompok (bisa ditambah/dikustomisasi)
+  'admin_pkkmb_pj_kabim_D': [4, 8, 10], // Role contoh kombinasi multi kelompok (bisa ditambah/dikustomisasi)
 };
 
 // Route yang bisa diakses oleh setiap role kabim
