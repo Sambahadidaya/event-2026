@@ -5,7 +5,7 @@ import { getFormRegisterFields } from '@/api/supabase/public/peserta';
 import Link from 'next/link';
 import { ArrowRight, Trophy, Image as ImageIcon, ArrowUp, ChevronLeft, ChevronRight, Search, Filter } from 'lucide-react';
 import PageHero from '@/components/public/PageHero';
-import ScheduleBarrier from '@/components/public/ScheduleBarrier';
+// import ScheduleBarrier from '@/components/public/ScheduleBarrier';
 import { KATEGORI, JENIS_LOMBA } from '@/lib/lombaData';
 
 function HorizontalScrollRow({ children }) {
@@ -189,148 +189,149 @@ export default function PoseRegisterPage() {
     });
 
     return (
-        <ScheduleBarrier pageType="register">
+        // <ScheduleBarrier pageType="register">
+        <>
             <div className="min-h-screen pt-24 pb-12 sm:pt-32 sm:pb-20 bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-150 transition-colors duration-300">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <PageHero
-                        title="Pendaftaran Lomba"
-                        subtitle="Pilih lomba yang ingin kamu ikuti dan jadilah juara!"
-                        icon={Trophy}
-                    />
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <PageHero
+                    title="Pendaftaran Lomba"
+                    subtitle="Pilih lomba yang ingin kamu ikuti dan jadilah juara!"
+                    icon={Trophy}
+                />
 
-                    <div className="max-w-3xl mx-auto mt-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
-                        <div>
-                            <h4 className="font-bold text-gray-955 dark:text-white">Status Pendaftaran Anda</h4>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Lihat Perkembangan Pendaftaran Anda yang sudah pernah mendaftar dari perangkat ini.</p>
-                        </div>
-                        <Link href="/pose/register/dashboard" className="shrink-0 px-5 py-2.5 bg-black hover:bg-gray-850 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-black text-sm font-semibold rounded-xl transition-colors shadow-xs whitespace-nowrap">
-                            Lihat Dashboard Saya
-                        </Link>
+                <div className="max-w-3xl mx-auto mt-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
+                    <div>
+                        <h4 className="font-bold text-gray-955 dark:text-white">Status Pendaftaran Anda</h4>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Lihat Perkembangan Pendaftaran Anda yang sudah pernah mendaftar dari perangkat ini.</p>
                     </div>
+                    <Link href="/pose/register/dashboard" className="shrink-0 px-5 py-2.5 bg-black hover:bg-gray-850 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-black text-sm font-semibold rounded-xl transition-colors shadow-xs whitespace-nowrap">
+                        Lihat Dashboard Saya
+                    </Link>
+                </div>
 
-                    {/* Filter and Search Bar */}
-                    <div className="mt-12 space-y-6">
-                        <div className="flex flex-col gap-2">
-                            <span className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Pilih Kategori</span>
-                            <div className="flex gap-2 overflow-x-auto scrollbar-none pb-2">
+                {/* Filter and Search Bar */}
+                <div className="mt-12 space-y-6">
+                    <div className="flex flex-col gap-2">
+                        <span className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Pilih Kategori</span>
+                        <div className="flex gap-2 overflow-x-auto scrollbar-none pb-2">
+                            <button
+                                onClick={() => setSelectedKategori('Semua')}
+                                className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all whitespace-nowrap ${selectedKategori === 'Semua' ? 'bg-black dark:bg-white text-white dark:text-black border-transparent' : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-850'}`}
+                            >
+                                Semua Kategori
+                            </button>
+                            {activeCategories.map(kat => (
                                 <button
-                                    onClick={() => setSelectedKategori('Semua')}
-                                    className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all whitespace-nowrap ${selectedKategori === 'Semua' ? 'bg-black dark:bg-white text-white dark:text-black border-transparent' : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-850'}`}
+                                    key={kat}
+                                    onClick={() => setSelectedKategori(kat)}
+                                    className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all whitespace-nowrap ${selectedKategori === kat ? 'bg-black dark:bg-white text-white dark:text-black border-transparent' : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-850'}`}
                                 >
-                                    Semua Kategori
+                                    {kat}
                                 </button>
-                                {activeCategories.map(kat => (
-                                    <button
-                                        key={kat}
-                                        onClick={() => setSelectedKategori(kat)}
-                                        className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all whitespace-nowrap ${selectedKategori === kat ? 'bg-black dark:bg-white text-white dark:text-black border-transparent' : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-850'}`}
-                                    >
-                                        {kat}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                            <div className="flex gap-2">
-                                {['Semua', ...JENIS_LOMBA].map(jenis => (
-                                    <button
-                                        key={jenis}
-                                        onClick={() => setSelectedJenis(jenis)}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${selectedJenis === jenis ? 'bg-black dark:bg-white text-white dark:text-black border-transparent shadow-xs' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-855'}`}
-                                    >
-                                        {jenis}
-                                    </button>
-                                ))}
-                            </div>
-
-                            <div className="relative w-full md:w-80">
-                                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={16} />
-                                <input
-                                    type="text"
-                                    placeholder="Cari cabang lomba..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-sm text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-black dark:focus:ring-white outline-none transition-all placeholder-gray-400"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {loading ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-12 animate-pulse">
-                            {[1, 2, 3].map(n => (
-                                <div key={n} className="bg-white dark:bg-gray-900 rounded-3xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-xs">
-                                    <div className="h-48 bg-gray-200 dark:bg-gray-800 w-full" />
-                                    <div className="p-6 space-y-4">
-                                        <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/3" />
-                                        <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded w-3/4" />
-                                        <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded-xl w-full mt-4" />
-                                    </div>
-                                </div>
                             ))}
                         </div>
-                    ) : filteredForms.length === 0 ? (
-                        <div className="text-center mt-20 p-12 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl">
-                            <Trophy size={48} className="mx-auto text-gray-400 mb-4" />
-                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Tidak Ada Lomba</h3>
-                            <p className="text-gray-500 dark:text-gray-400">Tidak ada pendaftaran lomba yang cocok dengan filter atau pencarian Anda.</p>
+                    </div>
+
+                    <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                        <div className="flex gap-2">
+                            {['Semua', ...JENIS_LOMBA].map(jenis => (
+                                <button
+                                    key={jenis}
+                                    onClick={() => setSelectedJenis(jenis)}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${selectedJenis === jenis ? 'bg-black dark:bg-white text-white dark:text-black border-transparent shadow-xs' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-855'}`}
+                                >
+                                    {jenis}
+                                </button>
+                            ))}
                         </div>
-                    ) : isFilterActive ? (
-                        // Fix 3: Menggunakan HorizontalScrollRow agar memanjang ke samping seperti biasa saat difilter
-                        <div className="mt-12 space-y-4">
-                            <span className="text-sm font-bold text-gray-400 dark:text-gray-500 block uppercase tracking-wider md:text-left">
-                                Hasil Pencarian Lomba
-                            </span>
-                            <HorizontalScrollRow>
-                                {filteredForms.map((form) => (
-                                    <FormCard key={form.id} form={form} />
-                                ))}
-                            </HorizontalScrollRow>
+
+                        <div className="relative w-full md:w-80">
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={16} />
+                            <input
+                                type="text"
+                                placeholder="Cari cabang lomba..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-sm text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-black dark:focus:ring-white outline-none transition-all placeholder-gray-400"
+                            />
                         </div>
-                    ) : (
-                        <div className="mt-12 space-y-16">
-                            {activeCategories.map(kat => {
-                                const katForms = forms.filter(form => {
-                                    const formKats = form.kategori_pendaftar ? form.kategori_pendaftar.split(',') : [];
-                                    return formKats.includes(kat);
-                                });
-
-                                if (katForms.length === 0) return null;
-
-                                return (
-                                    <div key={kat} className="space-y-8 border-b border-gray-150 dark:border-gray-900 pb-12 last:border-b-0">
-                                        <div className="flex items-center justify-center md:justify-start gap-3">
-                                            <div className="w-1.5 h-6 bg-black dark:bg-white rounded-full"></div>
-                                            <h2 className="text-2xl font-black tracking-tight text-gray-950 dark:text-white">
-                                                {kat}
-                                            </h2>
-                                        </div>
-
-                                        {JENIS_LOMBA.map(jenis => {
-                                            const jenisForms = katForms.filter(f => f.jenis_lomba === jenis);
-                                            if (jenisForms.length === 0) return null;
-
-                                            return (
-                                                <div key={jenis} className="space-y-4">
-                                                    <span className="text-sm font-bold text-gray-400 dark:text-gray-500 block uppercase tracking-wider text-center md:text-left">
-                                                        {jenis}
-                                                    </span>
-                                                    <HorizontalScrollRow>
-                                                        {jenisForms.map((form) => (
-                                                            <FormCard key={form.id} form={form} />
-                                                        ))}
-                                                    </HorizontalScrollRow>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
+                    </div>
                 </div>
+
+                {loading ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-12 animate-pulse">
+                        {[1, 2, 3].map(n => (
+                            <div key={n} className="bg-white dark:bg-gray-900 rounded-3xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-xs">
+                                <div className="h-48 bg-gray-200 dark:bg-gray-800 w-full" />
+                                <div className="p-6 space-y-4">
+                                    <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/3" />
+                                    <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded w-3/4" />
+                                    <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded-xl w-full mt-4" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : filteredForms.length === 0 ? (
+                    <div className="text-center mt-20 p-12 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl">
+                        <Trophy size={48} className="mx-auto text-gray-400 mb-4" />
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Tidak Ada Lomba</h3>
+                        <p className="text-gray-500 dark:text-gray-400">Tidak ada pendaftaran lomba yang cocok dengan filter atau pencarian Anda.</p>
+                    </div>
+                ) : isFilterActive ? (
+                    // Fix 3: Menggunakan HorizontalScrollRow agar memanjang ke samping seperti biasa saat difilter
+                    <div className="mt-12 space-y-4">
+                        <span className="text-sm font-bold text-gray-400 dark:text-gray-500 block uppercase tracking-wider md:text-left">
+                            Hasil Pencarian Lomba
+                        </span>
+                        <HorizontalScrollRow>
+                            {filteredForms.map((form) => (
+                                <FormCard key={form.id} form={form} />
+                            ))}
+                        </HorizontalScrollRow>
+                    </div>
+                ) : (
+                    <div className="mt-12 space-y-16">
+                        {activeCategories.map(kat => {
+                            const katForms = forms.filter(form => {
+                                const formKats = form.kategori_pendaftar ? form.kategori_pendaftar.split(',') : [];
+                                return formKats.includes(kat);
+                            });
+
+                            if (katForms.length === 0) return null;
+
+                            return (
+                                <div key={kat} className="space-y-8 border-b border-gray-150 dark:border-gray-900 pb-12 last:border-b-0">
+                                    <div className="flex items-center justify-center md:justify-start gap-3">
+                                        <div className="w-1.5 h-6 bg-black dark:bg-white rounded-full"></div>
+                                        <h2 className="text-2xl font-black tracking-tight text-gray-950 dark:text-white">
+                                            {kat}
+                                        </h2>
+                                    </div>
+
+                                    {JENIS_LOMBA.map(jenis => {
+                                        const jenisForms = katForms.filter(f => f.jenis_lomba === jenis);
+                                        if (jenisForms.length === 0) return null;
+
+                                        return (
+                                            <div key={jenis} className="space-y-4">
+                                                <span className="text-sm font-bold text-gray-400 dark:text-gray-500 block uppercase tracking-wider text-center md:text-left">
+                                                    {jenis}
+                                                </span>
+                                                <HorizontalScrollRow>
+                                                    {jenisForms.map((form) => (
+                                                        <FormCard key={form.id} form={form} />
+                                                    ))}
+                                                </HorizontalScrollRow>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
+        </div>
 
             {showScrollTop && (
                 <button
@@ -341,7 +342,8 @@ export default function PoseRegisterPage() {
                     <ArrowUp size={20} />
                 </button>
             )}
-        </ScheduleBarrier>
+            {/* </ScheduleBarrier> */}
+        </>
     );
 }
 

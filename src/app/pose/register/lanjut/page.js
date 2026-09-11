@@ -5,7 +5,7 @@ import { getFormRegisterLanjutFields } from '@/api/supabase/public/peserta';
 import Link from 'next/link';
 import { ArrowRight, Trophy, Image as ImageIcon, ArrowUp, ChevronLeft, ChevronRight, Search, Filter } from 'lucide-react';
 import PageHero from '@/components/public/PageHero';
-import ScheduleBarrier from '@/components/public/ScheduleBarrier';
+// import ScheduleBarrier from '@/components/public/ScheduleBarrier';
 import { KATEGORI, JENIS_LOMBA } from '@/lib/lombaData';
 
 function HorizontalScrollRow({ children }) {
@@ -189,7 +189,8 @@ export default function PoseRegisterPage() {
     });
 
     return (
-        <ScheduleBarrier pageType="register">
+        // <ScheduleBarrier pageType="register">
+        <>
             <div className="min-h-screen pt-24 pb-12 sm:pt-32 sm:pb-20 bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-150 transition-colors duration-300">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <PageHero
@@ -341,7 +342,8 @@ export default function PoseRegisterPage() {
                     <ArrowUp size={20} />
                 </button>
             )}
-        </ScheduleBarrier>
+            {/* </ScheduleBarrier> */}
+        </>
     );
 }
 
