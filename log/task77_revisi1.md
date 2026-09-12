@@ -1,0 +1,4 @@
+fokus ke halaman registrasi mobile legend 
+src/app/pose/register/[id]/page.js dan src/app/pose/register/lanjut/[id]/page.js dan pembuatan formnya yang di src/app/panitia/form/form
+saya ingin menambah kategori baru yaitu untuk kategori campur yang harus ada mahasiswa lp3inya dan umum, yang dimana jika diregister src/app/pose/register/[id]/page.js itukan data mahasiswa lp3inya dari form wajib, nah saya juga untuk kategori campur itu datanya mahasiswa lp3i dan dari luar tapi tentunya harus ada mahasiswa lp3inya dan untuk kategori campur ini dikenakan biaya tambahan sebesar 30rb/team(tapi nominalnya diatur didatabase juga bukan secara statis), dan begitu juga dihalaman register lanjutannya. yang secara tidak langsung harus buat kolom baru didatabase tabel form_register_pricing dan ada nilai tambahan dikolom kategori_pendaftar ditabel form_register.
+dan begitu juga untuk lomba olahraga lainnya seperti badminton.

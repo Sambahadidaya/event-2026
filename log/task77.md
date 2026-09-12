@@ -1,0 +1,2 @@
+fokus ke halaman register public yang site pose tepatnya dihalaman src/app/pose/register/[id]/page.js dan src/app/pose/register/lanjut/[id]/page.js
+kenapa masih terblokir waktunya dan ada kalimat "Pendaftaran Sudah Ditutup Pendaftaran lomba telah ditutup pada Sabtu, 12 September 2026 pukul 06.59" padahal scedulebarrirnya sudah saya komentari
