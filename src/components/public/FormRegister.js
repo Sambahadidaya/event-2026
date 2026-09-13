@@ -82,12 +82,13 @@ export default function FormRegister({ formConfig, nominalOverride = null, requi
 
     const nominalAktif = nominalOverride !== null ? nominalOverride : baseNominal;
 
-    const requiresBukti = requiresBuktiOverride !== null
-        ? (requiresBuktiOverride || kategori !== 'Mahasiswa LP3I')
-        : (formConfig?.butuh_bukti !== false || kategori !== 'Mahasiswa LP3I');
-
     const isMhsLP3I = kategori === 'Mahasiswa LP3I';
     const isAlumniLP3I = kategori === 'Alumni LP3I';
+    const isCampur = kategori === 'Campur';
+
+    const requiresBukti = requiresBuktiOverride !== null
+        ? (requiresBuktiOverride || (kategori !== 'Mahasiswa LP3I' && (kategori !== 'Campur' || nominalAktif > 0)))
+        : (kategori === 'Campur' ? (nominalAktif > 0 && formConfig?.butuh_bukti !== false) : (formConfig?.butuh_bukti !== false || kategori !== 'Mahasiswa LP3I'));
 
     useEffect(() => {
         if (formConfig?.jenis_kategori) {
@@ -108,8 +109,23 @@ export default function FormRegister({ formConfig, nominalOverride = null, requi
             if (umumType === 'mahasiswa_saja') isStudentDefault = true;
             else if (umumType === 'non_mahasiswa') isStudentDefault = false;
         }
-        const defaultKampus = '';
-        setMembers([{ nama: '', nim: '', kampus: defaultKampus, kampusLainnya: '', email_wa: '', kontakType: 'whatsapp', jabatan: '', isStudent: isStudentDefault, prodi: '', semester: '', kelas: '', isProdiLainnya: false }]);
+        const defaultKampus = kategori === 'Campur' ? 'Kampus Bandung' : '';
+        const defaultMemberType = 'lp3i';
+        setMembers([{
+            nama: '',
+            nim: '',
+            kampus: defaultKampus,
+            kampusLainnya: '',
+            email_wa: '',
+            kontakType: 'whatsapp',
+            jabatan: isIndividu ? '' : (kategori === 'Campur' ? 'Kapten' : ''),
+            isStudent: isStudentDefault,
+            prodi: '',
+            semester: '',
+            kelas: '',
+            isProdiLainnya: false,
+            memberType: defaultMemberType
+        }]);
         setSelectedAngkatan('');
         setSumberLomba('');
         setNamaReferal('');
@@ -197,7 +213,22 @@ export default function FormRegister({ formConfig, nominalOverride = null, requi
             if (umumType === 'mahasiswa_saja') isStudentDefault = true;
             else if (umumType === 'non_mahasiswa') isStudentDefault = false;
         }
-        setMembers([...members, { nama: '', nim: '', kampus: '', kampusLainnya: '', email_wa: '', kontakType: 'whatsapp', jabatan: '', isStudent: isStudentDefault, prodi: '', semester: '', kelas: '', isProdiLainnya: false }]);
+        const defaultType = isCampur ? 'umum' : 'lp3i';
+        setMembers([...members, {
+            nama: '',
+            nim: '',
+            kampus: defaultType === 'lp3i' ? 'Kampus Bandung' : '',
+            kampusLainnya: '',
+            email_wa: '',
+            kontakType: 'whatsapp',
+            jabatan: '',
+            isStudent: isStudentDefault,
+            prodi: '',
+            semester: '',
+            kelas: '',
+            isProdiLainnya: false,
+            memberType: defaultType
+        }]);
     };
 
     const handleRemoveMember = (index) => {
@@ -210,7 +241,7 @@ export default function FormRegister({ formConfig, nominalOverride = null, requi
         const newMembers = [...members];
         newMembers[index][field] = value;
 
-        if (field === 'nim' && value.length >= 9 && isMhsLP3I) {
+        if (field === 'nim' && value.length >= 9 && (isMhsLP3I || (isCampur && newMembers[index].memberType === 'lp3i'))) {
             const parsed = parseNIM(value, newMembers[index].kampus);
             if (parsed && parsed.angkatan) {
                 newMembers[index].angkatan = parsed.angkatan;
@@ -298,13 +329,15 @@ export default function FormRegister({ formConfig, nominalOverride = null, requi
             }
         }
 
-        if (isMhsLP3I && formConfig?.nama_lomba) {
+        if ((isMhsLP3I || isCampur) && formConfig?.nama_lomba) {
             for (const m of members) {
-                const finalKampusCek = m.kampus === 'Lainnya' ? m.kampusLainnya : m.kampus;
-                if (m.nim && finalKampusCek) {
-                    const alreadyRegistered = await checkPesertaRegisteredForLomba(m.nim, finalKampusCek, formConfig.nama_lomba);
-                    if (alreadyRegistered) {
-                        return window.alert(`Pendaftaran ditolak: NIM ${m.nim} dari kampus ${finalKampusCek} sudah terdaftar di lomba ${formConfig.nama_lomba} ini.`);
+                if (isMhsLP3I || m.memberType === 'lp3i') {
+                    const finalKampusCek = m.kampus === 'Lainnya' ? m.kampusLainnya : m.kampus;
+                    if (m.nim && finalKampusCek) {
+                        const alreadyRegistered = await checkPesertaRegisteredForLomba(m.nim, finalKampusCek, formConfig.nama_lomba);
+                        if (alreadyRegistered) {
+                            return window.alert(`Pendaftaran ditolak: Anggota ${m.nama || ''} (NIM ${m.nim}) dari kampus ${finalKampusCek} sudah terdaftar di lomba ${formConfig.nama_lomba} ini.`);
+                        }
                     }
                 }
             }
@@ -398,7 +431,24 @@ export default function FormRegister({ formConfig, nominalOverride = null, requi
                     return window.alert("Pendaftaran ditolak: Anda tidak diizinkan mengikuti kegiatan ini.");
                 }
             }
-            if (requiresBukti) {
+            if (isCampur) {
+                if (m.memberType === 'lp3i') {
+                    if (!isValidInput(m.nim)) return window.alert(`Karakter tidak valid pada NIM anggota ke-${i + 1}.`);
+                    if (!m.nim || m.nim.length !== 9) return window.alert(`NIM anggota ke-${i + 1} (${m.nama || ''}) harus berisi 9 karakter.`);
+                    if (!m.kampus) return window.alert(`Mohon pilih kampus LP3I untuk anggota ke-${i + 1} (${m.nama || ''}).`);
+                    if (m.kampus === 'Lainnya' && !m.kampusLainnya) {
+                        return window.alert(`Mohon sebutkan nama kampus jika memilih 'Lainnya' untuk anggota ke-${i + 1}.`);
+                    }
+                    const nimYear = parseInt(m.nim.substring(0, 4), 10);
+                    if (!isNaN(nimYear) && nimYear <= 2023) {
+                        return window.alert(`Anggota ${m.nama}: Pendaftaran ditolak: Anda tidak diizinkan mengikuti kegiatan ini.`);
+                    }
+                }
+            }
+            if (requiresBukti || (isCampur && m.memberType === 'umum')) {
+                if (!m.email_wa) {
+                    return window.alert(`Kontak WhatsApp/Email wajib diisi untuk anggota ${m.nama || (i + 1)}.`);
+                }
                 if (m.kontakType === 'email') {
                     const emailRegex = /^[a-zA-Z0-9@.]+$/;
                     if (!emailRegex.test(m.email_wa)) {
@@ -436,6 +486,28 @@ export default function FormRegister({ formConfig, nominalOverride = null, requi
         setSubmitting(true);
 
         const fetchedWajibData = [];
+
+        if (isCampur) {
+            try {
+                for (const m of members) {
+                    if (m.memberType === 'lp3i') {
+                        const finalKampusReg = m.kampus === 'Lainnya' ? m.kampusLainnya : m.kampus;
+                        const exists = await checkPesertaPoseWajibByNimAndKampus(m.nim, finalKampusReg);
+                        if (!exists) {
+                            setSubmitting(false);
+                            return window.alert(`Pendaftaran gagal: Anggota LP3I atas nama ${m.nama} (NIM ${m.nim}, Kampus ${finalKampusReg}) belum terdaftar pada Form Wajib POSE. Silahkan cek di grup WhatsApp atau hubungi panitia.`);
+                        }
+                        if (exists.status_pembayaran?.toLowerCase() !== 'lunas') {
+                            setSubmitting(false);
+                            return window.alert(`Pendaftaran gagal: Pembayaran Form Wajib untuk anggota LP3I ${m.nama} (NIM ${m.nim}) belum diverifikasi oleh panitia (Status: ${exists.status_pembayaran || 'pending'}). Silahkan tunggu jadwal verifikasi panitia.`);
+                        }
+                    }
+                }
+            } catch (error) {
+                setSubmitting(false);
+                return window.alert("Terjadi kesalahan saat memverifikasi Form Wajib POSE anggota LP3I.");
+            }
+        }
 
         if (!requiresBukti && isMhsLP3I) {
             try {
@@ -549,6 +621,26 @@ export default function FormRegister({ formConfig, nominalOverride = null, requi
                             finalAngkatanReg = semesterToAngkatan(m.semester);
                         }
                     }
+                } else if (kategori === 'Campur') {
+                    if (m.memberType === 'lp3i') {
+                        finalKampusReg = m.kampus === 'Lainnya' ? m.kampusLainnya : m.kampus;
+                        finalNimReg = m.nim;
+                        if (finalKampusReg === 'Kampus Bandung') {
+                            const parsedNIM = parseNIM(m.nim, finalKampusReg);
+                            if (parsedNIM) {
+                                finalProdiReg = parsedNIM.prodiName;
+                                finalAngkatanReg = parsedNIM.angkatan;
+                            }
+                        } else {
+                            finalProdiReg = m.prodi || 'Mahasiswa LP3I';
+                            finalAngkatanReg = m.angkatan || (m.semester ? semesterToAngkatan(m.semester) : null);
+                        }
+                    } else {
+                        finalKampusReg = 'Luar Kampus';
+                        finalNimReg = generateNim(`Campur${duaAngka}`, m.nama, m.email_wa);
+                        finalProdiReg = 'Campur';
+                        finalAngkatanReg = 'Campur';
+                    }
                 } else if (kategori === 'Dosen') {
                     finalKampusReg = m.kampus;
                     finalNimReg = generateNim(`Dosen${duaAngka}`, m.nama, m.email_wa);
@@ -588,6 +680,8 @@ export default function FormRegister({ formConfig, nominalOverride = null, requi
                     } else {
                         finalKelasReg = m.kelas || 'Reguler';
                     }
+                } else if (kategori === 'Campur') {
+                    finalKelasReg = m.memberType === 'lp3i' ? (m.kelas || 'Reguler') : 'Campur';
                 } else {
                     finalKelasReg = kategori;
                 }
@@ -758,6 +852,24 @@ export default function FormRegister({ formConfig, nominalOverride = null, requi
                     </div>
                 </div>
 
+                {/* Banner Info Khusus Tim Campur */}
+                {isCampur && (
+                    <div className="p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-2xl flex items-start gap-3">
+                        <Info className="text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" size={18} />
+                        <div>
+                            <h5 className="text-sm font-bold text-emerald-900 dark:text-emerald-200">Kategori Tim Campur</h5>
+                            <p className="text-xs text-emerald-700 dark:text-emerald-300 mt-0.5">
+                                Tim Campur merupakan kolaborasi anggota Mahasiswa LP3I dan peserta dari Luar Kampus.
+                                {nominalAktif > 0 ? (
+                                    <span> Biaya pendaftaran: <strong className="underline font-bold">Rp {nominalAktif.toLocaleString('id-ID')} / tim</strong> (biaya flat sudah mencakup seluruh anggota tim).</span>
+                                ) : (
+                                    <span> Biaya pendaftaran: <strong className="font-bold">Gratis (Rp 0)</strong>.</span>
+                                )}
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 {isQuotaFull ? (
                     <div className="p-8 rounded-3xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 text-center space-y-4 animate-in fade-in duration-300">
                         <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -861,6 +973,41 @@ export default function FormRegister({ formConfig, nominalOverride = null, requi
                                         </h4>
                                     )}
 
+                                    {isCampur && (
+                                        <div className="mb-4 p-3 bg-blue-50/70 dark:bg-blue-900/20 rounded-xl border border-blue-200/60 dark:border-blue-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                            <span className="text-xs font-bold text-blue-900 dark:text-blue-300">
+                                                Asal Anggota {index + 1}:
+                                            </span>
+                                            <div className="flex bg-white dark:bg-gray-800 rounded-lg p-0.5 border border-blue-200 dark:border-blue-700">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        handleMemberChange(index, 'memberType', 'lp3i');
+                                                        if (!member.kampus) handleMemberChange(index, 'kampus', 'Kampus Bandung');
+                                                    }}
+                                                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                                                        member.memberType === 'lp3i'
+                                                            ? 'bg-blue-600 text-white shadow-sm'
+                                                            : 'text-gray-600 dark:text-gray-300 hover:text-blue-600'
+                                                    }`}
+                                                >
+                                                    Mahasiswa LP3I
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleMemberChange(index, 'memberType', 'umum')}
+                                                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                                                        member.memberType === 'umum'
+                                                            ? 'bg-blue-600 text-white shadow-sm'
+                                                            : 'text-gray-600 dark:text-gray-300 hover:text-blue-600'
+                                                    }`}
+                                                >
+                                                    Luar Kampus (Umum)
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 font-semibold">Nama Lengkap *</label>
@@ -891,7 +1038,7 @@ export default function FormRegister({ formConfig, nominalOverride = null, requi
                                                 />
                                             </div>
                                         )}
-                                        {requiresBukti && (
+                                        {(requiresBukti || (isCampur && member.memberType === 'umum')) && (
                                             <div>
                                                 <div className="flex items-center justify-between mb-1">
                                                     <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">WhatsApp / Email *</label>
@@ -938,11 +1085,11 @@ export default function FormRegister({ formConfig, nominalOverride = null, requi
                                             </div>
                                         )}
 
-                                        {(isMhsLP3I || isAlumniLP3I || kategori === 'Dosen') && (
+                                        {(isMhsLP3I || isAlumniLP3I || kategori === 'Dosen' || (isCampur && member.memberType === 'lp3i')) && (
                                             <>
                                                 <div>
                                                     <div className="flex items-center gap-2 mb-1">
-                                                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Kampus *</label>
+                                                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Kampus LP3I *</label>
                                                         {index === 0 && isMhsLP3I && members[0].kampus && (
                                                             <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${isCheckingKuota ? 'bg-gray-100 text-gray-500' :
                                                                 (() => {
@@ -982,9 +1129,9 @@ export default function FormRegister({ formConfig, nominalOverride = null, requi
                                                         className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                                                     >
                                                         <option value="" disabled>Pilih Kampus</option>
-                                                        {KAMPUS_DATA.filter(k => (isMhsLP3I || isAlumniLP3I) ? true : k !== 'Lainnya').map(k => <option key={k} value={k}>{k}</option>)}
+                                                        {KAMPUS_DATA.filter(k => (isMhsLP3I || isAlumniLP3I || (isCampur && member.memberType === 'lp3i')) ? true : k !== 'Lainnya').map(k => <option key={k} value={k}>{k}</option>)}
                                                     </select>
-                                                    {(isMhsLP3I || isAlumniLP3I) && member.kampus === 'Lainnya' && (
+                                                    {(isMhsLP3I || isAlumniLP3I || (isCampur && member.memberType === 'lp3i')) && member.kampus === 'Lainnya' && (
                                                         <input
                                                             type="text" required value={member.kampusLainnya || ''} onChange={(e) => handleMemberChange(index, 'kampusLainnya', e.target.value)}
                                                             placeholder="Sebutkan nama kampus"
@@ -1095,7 +1242,7 @@ export default function FormRegister({ formConfig, nominalOverride = null, requi
                                             </div>
                                         )}
 
-                                        {isMhsLP3I && (
+                                        {(isMhsLP3I || (isCampur && member.memberType === 'lp3i')) && (
                                             <div>
                                                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">NIM *</label>
                                                 <input
@@ -1113,7 +1260,7 @@ export default function FormRegister({ formConfig, nominalOverride = null, requi
                                             </div>
                                         )}
 
-                                        {isMhsLP3I && member.kampus && member.kampus !== 'Kampus Bandung' && member.kampus !== 'Lainnya' && (formConfig?.butuh_bukti !== false) && !(formConfig?.site === 'pkkmb') && (
+                                        {(isMhsLP3I || (isCampur && member.memberType === 'lp3i')) && member.kampus && member.kampus !== 'Kampus Bandung' && member.kampus !== 'Lainnya' && (formConfig?.butuh_bukti !== false) && !(formConfig?.site === 'pkkmb') && (
                                             <div>
                                                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Prodi *</label>
                                                 {member.isProdiLainnya ? (
@@ -1152,7 +1299,7 @@ export default function FormRegister({ formConfig, nominalOverride = null, requi
                                             </div>
                                         )}
 
-                                        {isMhsLP3I && member.kampus === 'Lainnya' && (formConfig?.butuh_bukti !== false) && !(formConfig?.site === 'pkkmb') && (
+                                        {(isMhsLP3I || (isCampur && member.memberType === 'lp3i')) && member.kampus === 'Lainnya' && (formConfig?.butuh_bukti !== false) && !(formConfig?.site === 'pkkmb') && (
                                             <div>
                                                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Prodi *</label>
                                                 <input
@@ -1178,7 +1325,7 @@ export default function FormRegister({ formConfig, nominalOverride = null, requi
                                                 />
                                             </div>
                                         )}
-                                        {((isMhsLP3I && (formConfig?.butuh_bukti !== false) && (member.kampus !== 'Kampus Bandung') && !(formConfig?.site === 'pkkmb')) || kategori === 'Siswa' || (kategori === 'Umum' && member.isStudent)) && (
+                                        {(((isMhsLP3I || (isCampur && member.memberType === 'lp3i')) && (formConfig?.butuh_bukti !== false) && (member.kampus !== 'Kampus Bandung') && !(formConfig?.site === 'pkkmb')) || kategori === 'Siswa' || (kategori === 'Umum' && member.isStudent)) && (
                                             <div>
                                                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Semester *</label>
                                                 <input

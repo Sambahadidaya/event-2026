@@ -3,7 +3,8 @@
 import { supabaseAdmin } from '@/lib/supabase';
 import { checkPesertaRegisteredForLomba, checkPesertaPoseWajibByNimAndKampus, insertPesertaBatch } from './peserta';
 import { insertTeamPublic, insertTeamMembers } from './team';
-import { generateKodePeserta } from '@/lib/kodeFormUtils';
+import { generateKodePeserta, generateNim } from '@/lib/kodeFormUtils';
+import { parseNIM, semesterToAngkatan } from '@/lib/lombaData';
 
 export const submitRegisterLanjut = async ({
     formConfig,
@@ -27,24 +28,27 @@ export const submitRegisterLanjut = async ({
         }
 
         const isMhsLP3I = kategori === 'Mahasiswa LP3I';
+        const isCampur = kategori === 'Campur';
 
         // 1. Cek pendaftaran ganda pada lomba yang sama
-        if (isMhsLP3I && formConfig.nama_lomba) {
+        if ((isMhsLP3I || isCampur) && formConfig.nama_lomba) {
             for (const m of members) {
-                const finalKampusCek = m.kampus === 'Lainnya' ? m.kampusLainnya : m.kampus;
-                if (m.nim && finalKampusCek) {
-                    const alreadyRegistered = await checkPesertaRegisteredForLomba(m.nim, finalKampusCek, formConfig.nama_lomba);
-                    if (alreadyRegistered) {
-                        return {
-                            success: false,
-                            error: `Pendaftaran ditolak: NIM ${m.nim} dari kampus ${finalKampusCek} sudah terdaftar di lomba ${formConfig.nama_lomba}.`
-                        };
+                if (isMhsLP3I || m.memberType === 'lp3i') {
+                    const finalKampusCek = m.kampus === 'Lainnya' ? m.kampusLainnya : m.kampus;
+                    if (m.nim && finalKampusCek) {
+                        const alreadyRegistered = await checkPesertaRegisteredForLomba(m.nim, finalKampusCek, formConfig.nama_lomba);
+                        if (alreadyRegistered) {
+                            return {
+                                success: false,
+                                error: `Pendaftaran ditolak: Anggota ${m.nama || ''} (NIM ${m.nim}) dari kampus ${finalKampusCek} sudah terdaftar di lomba ${formConfig.nama_lomba}.`
+                            };
+                        }
                     }
                 }
             }
         }
 
-        // 2. Jika user memilih "Sudah Mengisi Form Wajib POSE", verifikasi keberadaan data form wajib
+        // 2. Jika user memilih "Sudah Mengisi Form Wajib POSE" atau tim Campur, verifikasi keberadaan data form wajib
         const fetchedWajibData = [];
         if (statusWajib === 'sudah' && isMhsLP3I) {
             for (const m of members) {
@@ -57,6 +61,28 @@ export const submitRegisterLanjut = async ({
                     };
                 }
                 fetchedWajibData.push(exists);
+            }
+        } else if (isCampur) {
+            for (const m of members) {
+                if (m.memberType === 'lp3i') {
+                    const finalKampusReg = m.kampus === 'Lainnya' ? m.kampusLainnya : m.kampus;
+                    const exists = await checkPesertaPoseWajibByNimAndKampus(m.nim, finalKampusReg);
+                    if (!exists) {
+                        return {
+                            success: false,
+                            error: `Pendaftaran gagal: Anggota LP3I atas nama ${m.nama} (NIM ${m.nim}, Kampus ${finalKampusReg}) belum terdaftar pada Form Wajib POSE.`
+                        };
+                    }
+                    if (exists.status_pembayaran?.toLowerCase() !== 'lunas') {
+                        return {
+                            success: false,
+                            error: `Pendaftaran gagal: Pembayaran Form Wajib untuk anggota LP3I ${m.nama} (NIM ${m.nim}) belum diverifikasi oleh panitia (Status: ${exists.status_pembayaran || 'pending'}).`
+                        };
+                    }
+                    fetchedWajibData.push(exists);
+                } else {
+                    fetchedWajibData.push(null);
+                }
             }
         }
 
@@ -104,10 +130,80 @@ export const submitRegisterLanjut = async ({
             const duaAngka = String(i + 1).padStart(2, '0');
             const mDataWajib = fetchedWajibData[i] || null;
 
-            let finalKampusReg = m.kampus === 'Lainnya' ? m.kampusLainnya : m.kampus;
-            let finalNimReg = m.nim;
-            let finalProdiReg = m.prodi || (mDataWajib ? mDataWajib.prodi : 'Mahasiswa LP3I');
-            let finalAngkatanReg = m.angkatan || (mDataWajib ? mDataWajib.angkatan : null);
+            let finalKampusReg = kategori;
+            let finalNimReg = kategori;
+            let finalProdiReg = kategori;
+            let finalAngkatanReg = kategori;
+            let finalKelasReg = 'Reguler';
+
+            if (isMhsLP3I) {
+                finalKampusReg = m.kampus === 'Lainnya' ? m.kampusLainnya : m.kampus;
+                finalNimReg = m.nim;
+                if (finalKampusReg === 'Kampus Bandung') {
+                    const parsedNIM = parseNIM(m.nim, finalKampusReg);
+                    if (parsedNIM) {
+                        finalProdiReg = parsedNIM.prodiName;
+                        finalAngkatanReg = parsedNIM.angkatan;
+                    }
+                } else {
+                    if (mDataWajib) {
+                        finalProdiReg = mDataWajib.prodi || m.prodi;
+                        finalAngkatanReg = mDataWajib.angkatan || semesterToAngkatan(mDataWajib.semester || m.semester);
+                    } else {
+                        finalProdiReg = m.prodi;
+                        finalAngkatanReg = semesterToAngkatan(m.semester);
+                    }
+                }
+                finalKelasReg = mDataWajib && mDataWajib.kelas ? mDataWajib.kelas : (m.kelas || 'Reguler');
+            } else if (isCampur) {
+                if (m.memberType === 'lp3i') {
+                    finalKampusReg = m.kampus === 'Lainnya' ? m.kampusLainnya : m.kampus;
+                    finalNimReg = m.nim;
+                    if (finalKampusReg === 'Kampus Bandung') {
+                        const parsedNIM = parseNIM(m.nim, finalKampusReg);
+                        if (parsedNIM) {
+                            finalProdiReg = parsedNIM.prodiName;
+                            finalAngkatanReg = parsedNIM.angkatan;
+                        }
+                    } else {
+                        finalProdiReg = m.prodi || (mDataWajib ? mDataWajib.prodi : 'Mahasiswa LP3I');
+                        finalAngkatanReg = m.angkatan || (mDataWajib ? mDataWajib.angkatan : (m.semester ? semesterToAngkatan(m.semester) : null));
+                    }
+                    finalKelasReg = m.kelas || (mDataWajib ? mDataWajib.kelas : 'Reguler');
+                } else {
+                    finalKampusReg = 'Luar Kampus';
+                    finalNimReg = generateNim(`Campur${duaAngka}`, m.nama, m.email_wa);
+                    finalProdiReg = 'Campur';
+                    finalAngkatanReg = 'Campur';
+                    finalKelasReg = 'Campur';
+                }
+            } else if (kategori === 'Dosen') {
+                finalKampusReg = m.kampus;
+                finalNimReg = generateNim(`Dosen${duaAngka}`, m.nama, m.email_wa);
+                finalKelasReg = kategori;
+            } else if (kategori === 'Alumni LP3I') {
+                finalKampusReg = m.kampus;
+                finalProdiReg = m.prodi;
+                finalAngkatanReg = m.angkatan;
+                finalNimReg = generateNim(`Alumni${duaAngka}`, m.nama, m.email_wa);
+                finalKelasReg = kategori;
+            } else if (kategori === 'Umum') {
+                if (m.isStudent) {
+                    finalKampusReg = m.kampus;
+                    finalProdiReg = m.prodi;
+                    finalAngkatanReg = semesterToAngkatan(m.semester);
+                    finalNimReg = generateNim(`MahasiswaUmum${duaAngka}`, m.nama, m.email_wa);
+                } else {
+                    finalNimReg = generateNim(`Umum${duaAngka}`, m.nama, m.email_wa);
+                }
+                finalKelasReg = kategori;
+            } else if (kategori === 'Siswa') {
+                finalKampusReg = m.kampus;
+                finalProdiReg = m.prodi;
+                finalAngkatanReg = semesterToAngkatan(m.semester);
+                finalNimReg = generateNim(`Siswa${duaAngka}`, m.nama, m.email_wa);
+                finalKelasReg = kategori;
+            }
 
             teamMembersToInsert.push({
                 team_id: teamData.id,
@@ -132,7 +228,7 @@ export const submitRegisterLanjut = async ({
                 jenis_form: 'register',
                 metode_pembayaran: metodePembayaran || null,
                 kode_form: kodePesertaReg,
-                kelas: m.kelas || (mDataWajib ? mDataWajib.kelas : 'Reguler')
+                kelas: finalKelasReg
             });
         }
 

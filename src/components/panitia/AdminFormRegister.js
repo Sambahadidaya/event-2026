@@ -208,7 +208,7 @@ export default function AdminFormRegister({ siteType, hideCreateButton = false, 
 
                 pricingList.forEach(p => {
                     pMap[p.kategori] = p.nominal !== undefined && p.nominal !== null ? p.nominal.toString() : '';
-                    indMap[p.kategori] = p.individu !== undefined ? p.individu : true;
+                    indMap[p.kategori] = p.individu !== undefined ? p.individu : (p.kategori === 'Campur' ? false : true);
                     maMap[p.kategori] = p.maks_anggota !== undefined && p.maks_anggota !== null ? p.maks_anggota.toString() : '1';
                     mtMap[p.kategori] = p.maks_team !== undefined && p.maks_team !== null ? p.maks_team.toString() : '1';
                     k1Map[p.kategori] = p.komisi_sales_lvl1 !== undefined && p.komisi_sales_lvl1 !== null ? p.komisi_sales_lvl1.toString() : '0';
@@ -313,8 +313,8 @@ export default function AdminFormRegister({ siteType, hideCreateButton = false, 
 
             // 2. Save pricing per category
             const pricingList = editKategoriPendaftar.map(kat => {
-                const isIndividu = editIndividusKategoriMap[kat] !== undefined ? editIndividusKategoriMap[kat] : true;
-                let finalMaksTeam = editMaksTeamKategoriMap[kat] !== undefined && editMaksTeamKategoriMap[kat] !== '' ? parseInt(editMaksTeamKategoriMap[kat], 10) : 1;
+                const isIndividu = editIndividusKategoriMap[kat] !== undefined ? editIndividusKategoriMap[kat] : (kat === 'Campur' ? false : true);
+                let finalMaksTeam = editMaksTeamKategoriMap[kat] !== undefined && editMaksTeamKategoriMap[kat] !== '' ? parseInt(editMaksTeamKategoriMap[kat], 10) : (kat === 'Campur' ? 10 : 1);
 
                 if (kat === 'Mahasiswa LP3I' && editKampusQuotaEnabled) {
                     let totalSum = 0;
@@ -333,7 +333,7 @@ export default function AdminFormRegister({ siteType, hideCreateButton = false, 
                         ? parseInt(editPricingKategoriMap[kat], 10)
                         : finalNominal,
                     individu: isIndividu,
-                    maks_anggota: isIndividu ? 1 : (editMaksAnggotaKategoriMap[kat] !== undefined && editMaksAnggotaKategoriMap[kat] !== '' ? parseInt(editMaksAnggotaKategoriMap[kat], 10) : 1),
+                    maks_anggota: isIndividu ? 1 : (editMaksAnggotaKategoriMap[kat] !== undefined && editMaksAnggotaKategoriMap[kat] !== '' ? parseInt(editMaksAnggotaKategoriMap[kat], 10) : (kat === 'Campur' ? 5 : 1)),
                     maks_team: finalMaksTeam,
                     komisi_sales_lvl1: editKomisiLvl1KategoriMap[kat] !== undefined && editKomisiLvl1KategoriMap[kat] !== '' ? parseInt(editKomisiLvl1KategoriMap[kat], 10) : 0,
                     komisi_sales_lvl2: editKomisiLvl2KategoriMap[kat] !== undefined && editKomisiLvl2KategoriMap[kat] !== '' ? parseInt(editKomisiLvl2KategoriMap[kat], 10) : 0,
@@ -598,7 +598,7 @@ export default function AdminFormRegister({ siteType, hideCreateButton = false, 
                                 <div>
                                     <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Kategori Pendaftar</label>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                        {['Mahasiswa LP3I', 'Siswa', 'Dosen', 'Umum', 'Alumni LP3I'].map(kat => (
+                                        {['Mahasiswa LP3I', 'Siswa', 'Dosen', 'Umum', 'Alumni LP3I', 'Campur'].map(kat => (
                                             <label key={kat} className="flex items-center gap-2 p-2 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                                                 <input
                                                     type="checkbox"
@@ -622,11 +622,18 @@ export default function AdminFormRegister({ siteType, hideCreateButton = false, 
                                             </div>
 
                                             {editKategoriPendaftar.map(kat => {
-                                                const isIndividu = editIndividusKategoriMap[kat] !== undefined ? editIndividusKategoriMap[kat] : true;
+                                                const isIndividu = editIndividusKategoriMap[kat] !== undefined ? editIndividusKategoriMap[kat] : (kat === 'Campur' ? false : true);
                                                 return (
                                                     <div key={`edit-kat-${kat}`} className="p-3 bg-gray-50/80 dark:bg-gray-800/40 rounded-2xl border border-gray-200 dark:border-gray-800 space-y-3">
                                                         <div className="flex items-center justify-between border-b border-gray-200/60 dark:border-gray-700 pb-2">
-                                                            <span className="text-xs font-bold text-blue-600 dark:text-blue-400">{kat}</span>
+                                                            <div>
+                                                                <span className="text-xs font-bold text-blue-600 dark:text-blue-400">{kat}</span>
+                                                                {kat === 'Campur' && (
+                                                                    <span className="block text-[10px] text-emerald-600 dark:text-emerald-400 font-normal">
+                                                                        (Tim Campuran Mahasiswa LP3I + Luar Kampus)
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                             <div className="flex items-center gap-2">
                                                                 <span className="text-[10px] text-gray-500 font-medium">Individu?</span>
                                                                 <button
@@ -661,10 +668,11 @@ export default function AdminFormRegister({ siteType, hideCreateButton = false, 
                                                                 <label className="block text-[10px] text-gray-500 font-semibold mb-1">Maks Anggota</label>
                                                                 <input
                                                                     type="number"
-                                                                    min="1"
+                                                                    min="0"
                                                                     disabled={isIndividu}
-                                                                    value={isIndividu ? 1 : (editMaksAnggotaKategoriMap[kat] !== undefined ? editMaksAnggotaKategoriMap[kat] : '')}
+                                                                    value={isIndividu ? 1 : (editMaksAnggotaKategoriMap[kat] !== undefined ? editMaksAnggotaKategoriMap[kat] : (kat === 'Campur' ? 5 : ''))}
                                                                     onChange={(e) => setEditMaksAnggotaKategoriMap({ ...editMaksAnggotaKategoriMap, [kat]: e.target.value })}
+                                                                    placeholder={kat === 'Campur' ? '5' : 'Maks'}
                                                                     className={`w-full px-2.5 py-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-500 ${isIndividu ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                                 />
                                                             </div>
@@ -672,7 +680,7 @@ export default function AdminFormRegister({ siteType, hideCreateButton = false, 
                                                                 <label className="block text-[10px] text-gray-500 font-semibold mb-1">Maks Team</label>
                                                                 <input
                                                                     type="number"
-                                                                    min="1"
+                                                                    min="0"
                                                                     value={kat === 'Mahasiswa LP3I' && editKampusQuotaEnabled ? '' : (editMaksTeamKategoriMap[kat] !== undefined ? editMaksTeamKategoriMap[kat] : '')}
                                                                     onChange={(e) => setEditMaksTeamKategoriMap({ ...editMaksTeamKategoriMap, [kat]: e.target.value })}
                                                                     placeholder={kat === 'Mahasiswa LP3I' && editKampusQuotaEnabled ? 'Auto Sum' : 'Maks'}
@@ -1043,7 +1051,7 @@ export default function AdminFormRegister({ siteType, hideCreateButton = false, 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Kategori Pendaftar (Minimal 1)</label>
                                 <div className="space-y-2">
-                                    {['Mahasiswa LP3I', 'Siswa', 'Dosen', 'Umum'].map(kat => (
+                                    {['Mahasiswa LP3I', 'Siswa', 'Dosen', 'Umum', 'Alumni LP3I', 'Campur'].map(kat => (
                                         <label key={kat} className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                                             <div className="relative flex items-center justify-center">
                                                 <input

@@ -1,0 +1,1 @@
+fokus ke halaman form wajib untuk site pkkmb, di pkkmb itukan ada 2 jenis yaitu untuk bertahap dan langsung, terus ada jenis lagi yang kelas itu yang terdiri reguler,nonreguler,dan kip. untuk reguler dan nonreg itukan harga normalnya 450rb, dan untuk kipnyakan 225rb, nah saya ingin merubah harganya saja unutk kipnya saja jadi 185rb. 

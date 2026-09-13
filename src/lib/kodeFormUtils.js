@@ -29,3 +29,17 @@ export function generateKodePeserta(baseKodeForm) {
     // kode_form + 2 angka random + 2 huruf random
     return `${baseKodeForm || 'X'}${generateRandomNumber(2)}${generateRandomString(2)}`;
 }
+
+export function generateNim(kategori, nama, emailWa) {
+    const firstWord = (nama || '').trim().split(' ')[0] || '';
+    let suffix = '';
+    if (emailWa) {
+        if (emailWa.includes('@')) {
+            const beforeAt = emailWa.split('@')[0];
+            suffix = beforeAt.slice(-4);
+        } else {
+            suffix = emailWa.slice(-4);
+        }
+    }
+    return `${kategori}${firstWord}${suffix}`.replace(/[^a-zA-Z0-9]/g, '');
+}

@@ -225,9 +225,9 @@ export default function UnifiedFormDashboard() {
             if (res.success && res.data?.id) {
                 // Save pricing per category
                 const pricingList = kategoriPendaftar.map(kat => {
-                    const isIndividu = individusKategoriMap[kat] !== undefined ? individusKategoriMap[kat] : true;
+                    const isIndividu = individusKategoriMap[kat] !== undefined ? individusKategoriMap[kat] : (kat === 'Campur' ? false : true);
                     
-                    let finalMaksTeam = maksTeamKategoriMap[kat] !== undefined && maksTeamKategoriMap[kat] !== '' ? parseInt(maksTeamKategoriMap[kat], 10) : 1;
+                    let finalMaksTeam = maksTeamKategoriMap[kat] !== undefined && maksTeamKategoriMap[kat] !== '' ? parseInt(maksTeamKategoriMap[kat], 10) : (kat === 'Campur' ? 10 : 1);
                     
                     // Auto-sum untuk Mahasiswa LP3I jika kampusQuotaEnabled
                     if (kat === 'Mahasiswa LP3I' && kampusQuotaEnabled) {
@@ -247,7 +247,7 @@ export default function UnifiedFormDashboard() {
                             ? parseInt(pricingKategoriMap[kat], 10)
                             : finalNominal,
                         individu: isIndividu,
-                        maks_anggota: isIndividu ? 1 : (maksAnggotaKategoriMap[kat] !== undefined && maksAnggotaKategoriMap[kat] !== '' ? parseInt(maksAnggotaKategoriMap[kat], 10) : 1),
+                        maks_anggota: isIndividu ? 1 : (maksAnggotaKategoriMap[kat] !== undefined && maksAnggotaKategoriMap[kat] !== '' ? parseInt(maksAnggotaKategoriMap[kat], 10) : (kat === 'Campur' ? 5 : 1)),
                         maks_team: finalMaksTeam,
                         komisi_sales_lvl1: komisiLvl1KategoriMap[kat] !== undefined && komisiLvl1KategoriMap[kat] !== '' ? parseInt(komisiLvl1KategoriMap[kat], 10) : 0,
                         komisi_sales_lvl2: komisiLvl2KategoriMap[kat] !== undefined && komisiLvl2KategoriMap[kat] !== '' ? parseInt(komisiLvl2KategoriMap[kat], 10) : 0,
@@ -575,8 +575,8 @@ export default function UnifiedFormDashboard() {
                             {formType === 'register' && (
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Kategori Pendaftar</label>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        {['Mahasiswa LP3I', 'Siswa', 'Dosen', 'Umum', 'Alumni LP3I'].map(kat => (
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                        {['Mahasiswa LP3I', 'Siswa', 'Dosen', 'Umum', 'Alumni LP3I', 'Campur'].map(kat => (
                                             <label key={kat} className="flex items-center gap-3 p-2 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                                                 <input
                                                     type="checkbox"
@@ -597,11 +597,18 @@ export default function UnifiedFormDashboard() {
                                             <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">Pengaturan Kategori Pendaftar</label>
                                             <p className="text-[11px] text-gray-500">Atur detail pendaftaran (nominal, tipe pendaftaran, batas anggota, kuota tim) per kategori.</p>
                                             {kategoriPendaftar.map(kat => {
-                                                const isIndividu = individusKategoriMap[kat] !== undefined ? individusKategoriMap[kat] : true;
+                                                const isIndividu = individusKategoriMap[kat] !== undefined ? individusKategoriMap[kat] : (kat === 'Campur' ? false : true);
                                                 return (
                                                     <div key={kat} className="p-3 bg-gray-50/70 dark:bg-gray-800/40 rounded-2xl border border-gray-200/80 dark:border-gray-800 space-y-3 shadow-inner">
                                                         <div className="flex items-center justify-between border-b border-gray-200/50 dark:border-gray-800 pb-2">
-                                                            <span className="text-xs font-bold text-blue-700 dark:text-blue-400 truncate">{kat}</span>
+                                                            <div>
+                                                                <span className="text-xs font-bold text-blue-700 dark:text-blue-400">{kat}</span>
+                                                                {kat === 'Campur' && (
+                                                                    <span className="block text-[10px] text-emerald-600 dark:text-emerald-400 font-normal">
+                                                                        (Tim Campuran Mahasiswa LP3I + Luar Kampus)
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                             <div className="flex items-center gap-2">
                                                                 <span className="text-[10px] text-gray-500 font-medium">Individu?</span>
                                                                 <button
@@ -635,11 +642,11 @@ export default function UnifiedFormDashboard() {
                                                                 <label className="block text-[10px] text-gray-500 dark:text-gray-400 mb-1 font-semibold">Maks Anggota</label>
                                                                 <input
                                                                     type="number"
-                                                                    min="1"
+                                                                    min="0"
                                                                     disabled={isIndividu}
-                                                                    value={isIndividu ? 1 : (maksAnggotaKategoriMap[kat] !== undefined ? maksAnggotaKategoriMap[kat] : '')}
+                                                                    value={isIndividu ? 1 : (maksAnggotaKategoriMap[kat] !== undefined ? maksAnggotaKategoriMap[kat] : (kat === 'Campur' ? 5 : ''))}
                                                                     onChange={(e) => setMaksAnggotaKategoriMap({ ...maksAnggotaKategoriMap, [kat]: e.target.value })}
-                                                                    placeholder="Maks"
+                                                                    placeholder={kat === 'Campur' ? '5' : 'Maks'}
                                                                     className={`w-full px-2.5 py-1.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl text-xs outline-none focus:ring-1 focus:ring-blue-500 ${isIndividu ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                                 />
                                                             </div>
@@ -647,7 +654,7 @@ export default function UnifiedFormDashboard() {
                                                                 <label className="block text-[10px] text-gray-500 dark:text-gray-400 mb-1 font-semibold">Maks Team</label>
                                                                 <input
                                                                     type="number"
-                                                                    min="1"
+                                                                    min="0"
                                                                     value={kat === 'Mahasiswa LP3I' && kampusQuotaEnabled ? '' : (maksTeamKategoriMap[kat] !== undefined ? maksTeamKategoriMap[kat] : '')}
                                                                     onChange={(e) => setMaksTeamKategoriMap({ ...maksTeamKategoriMap, [kat]: e.target.value })}
                                                                     placeholder={kat === 'Mahasiswa LP3I' && kampusQuotaEnabled ? 'Auto Sum' : 'Maks'}
